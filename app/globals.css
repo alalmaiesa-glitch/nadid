@@ -1752,3 +1752,22 @@ body,
   font-weight: 400;
   letter-spacing: 0;
 }
+
+
+/* Diacritics-safe hero headline */
+.hero h1 {
+  font-family: var(--font-hero), var(--font-interface), Tahoma, Arial, sans-serif !important;
+  font-weight: 700;
+  line-height: 1.34;
+  letter-spacing: 0;
+  padding-top: .08em;
+  padding-bottom: .12em;
+}
+
+.hero h1 em,
+.hero h1 span {
+  display: inline-block;
+  padding-top: .04em;
+  padding-bottom: .08em;
+  font-style: normal;
+}
