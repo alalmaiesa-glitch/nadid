@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Brand } from "@/components/SiteHeader";
 import { saveAnalysis } from "@/lib/browser-analysis-store";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { uploadResumable } from "@/lib/resumable-upload";
 import type { AnalyzeResponse } from "@/lib/nadid-types";
 
 const DOCX_MIME =
@@ -102,21 +103,36 @@ export default function UploadPage() {
       );
     }
 
-    setProgressLabel("نرفع الملف مباشرة إلى التخزين الآمن…");
+    if (nextFile.size > 6 * 1024 * 1024) {
+      setProgressLabel("نرفع الملف على أجزاء قابلة للاستئناف… 0%");
 
-    const { error: uploadError } = await supabase.storage
-      .from("nadid-documents")
-      .uploadToSignedUrl(
-        upload.storagePath,
-        upload.token,
-        nextFile,
-        {
-          contentType: nextFile.type || DOCX_MIME
+      await uploadResumable({
+        file: nextFile,
+        storagePath: upload.storagePath,
+        signedToken: upload.token,
+        onProgress(percentage) {
+          setProgressLabel(
+            `نرفع الملف على أجزاء قابلة للاستئناف… ${percentage}%`
+          );
         }
-      );
+      });
+    } else {
+      setProgressLabel("نرفع الملف مباشرة إلى التخزين الآمن…");
 
-    if (uploadError) {
-      throw new Error("تعذر رفع الملف إلى التخزين.");
+      const { error: uploadError } = await supabase.storage
+        .from("nadid-documents")
+        .uploadToSignedUrl(
+          upload.storagePath,
+          upload.token,
+          nextFile,
+          {
+            contentType: nextFile.type || DOCX_MIME
+          }
+        );
+
+      if (uploadError) {
+        throw new Error("تعذر رفع الملف إلى التخزين.");
+      }
     }
 
     setProgressLabel("نحلل بنية المستند ونجهز المراجعة الأولى…");
