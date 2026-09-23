@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import {
   Alexandria,
+  Noto_Sans_Arabic,
   Readex_Pro
 } from "next/font/google";
 import "./globals.css";
@@ -9,6 +10,13 @@ const interfaceFont = Alexandria({
   subsets: ["arabic"],
   display: "swap",
   variable: "--font-interface"
+});
+
+const heroFont = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  display: "swap",
+  weight: ["600", "700", "800"],
+  variable: "--font-hero"
 });
 
 const readingFont = Readex_Pro({
@@ -33,6 +41,7 @@ export default function RootLayout({
       <body
         className={[
           interfaceFont.variable,
+          heroFont.variable,
           readingFont.variable
         ].join(" ")}
       >
