@@ -474,7 +474,8 @@ export async function persistDeepAnalysis(
       return {
         version_id: versionId,
         node_id: firstFact ? nodeMap.get(firstFact.nodeId) ?? null : null,
-        client_suggestion_id: `deep-conflict-${conflict.id}`,
+        client_suggestion_id:
+          `deep-conflict-${versionId}-${conflict.id}`,
         category: "consistency",
         title: "تعارض محتمل في حقيقة",
         explanation:
