@@ -388,7 +388,12 @@ export default function EditorPage() {
     <main className="editor-app">
       <header className="editor-header">
         <Brand />
-        <span className="editor-doc-title">{analysis.document.filename}</span>
+        <span className="editor-doc-title">
+          {analysis.document.filename}
+          {analysis.document.versionNo
+            ? ` · v${analysis.document.versionNo}`
+            : ""}
+        </span>
         <div className="editor-header-actions">
           <Link
             href="/upload"
@@ -543,6 +548,9 @@ export default function EditorPage() {
         <span className={deepState === "ready" ? "status-good" : ""}>
           {deepStatusLabel}
         </span>
+        {analysis.document.versionNo && (
+          <span>النسخة {analysis.document.versionNo}</span>
+        )}
         <span>{analysis.document.wordCount.toLocaleString("ar-SA")} كلمة</span>
         <span>{totalSuggestions} ملاحظة</span>
         <span>{analysis.protectedFacts.length} قيمة محمية</span>
