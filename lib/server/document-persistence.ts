@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type {
   AnalyzeResponse,
   DeepAnalysisResult,
@@ -1162,7 +1162,7 @@ export async function createPendingDocumentUpload(
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("supabase_not_configured");
 
-  const documentId = crypto.randomUUID();
+  const documentId = randomUUID();
   const storagePath =
     `${ownerId}/${documentId}/v1/source.docx`;
 
