@@ -77,3 +77,17 @@ jobs:
       - name: Stop container
         if: always()
         run: docker stop nadid-aee-ci || true
+
+
+  worker-container:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate worker syntax
+        run: node --check worker/index.mjs
+
+      - name: Build worker image
+        run: docker build -t nadid-worker:ci -f worker/Dockerfile .
