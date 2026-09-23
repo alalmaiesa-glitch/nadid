@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import {
   Alexandria,
-  Noto_Sans_Arabic,
+  Cairo,
   Readex_Pro
 } from "next/font/google";
 import "./globals.css";
@@ -12,7 +12,7 @@ const interfaceFont = Alexandria({
   variable: "--font-interface"
 });
 
-const heroFont = Noto_Sans_Arabic({
+const heroFont = Cairo({
   subsets: ["arabic"],
   display: "swap",
   weight: ["600", "700", "800"],
