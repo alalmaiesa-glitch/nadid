@@ -1,6 +1,6 @@
 {
   "name": "nadid",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "lucide-react": "^0.468.0",
     "mammoth": "^1.9.1",
     "next": "15.1.3",
