@@ -1,10 +1,14 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { authorizeSuggestion } from "@/lib/server/authz";
 
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const auth = await authorizeSuggestion(id);
+  if (!auth.ok) return auth.response;
+
   const body = (await request.json()) as {
     status?: "accepted" | "rejected";
   };
