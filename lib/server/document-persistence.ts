@@ -840,13 +840,21 @@ export async function loadAcceptedPatches(documentId: string) {
     versionId: version.id as string,
     versionNo: Number(version.version_no),
     patches: (suggestions ?? [])
+      .filter(
+        (item) =>
+          Boolean(item.client_suggestion_id) &&
+          Boolean(item.node_id) &&
+          item.replacement_text !== null
+      )
       .map((item) => ({
         suggestionId: item.client_suggestion_id as string,
-        nodeId: nodeMap.get(item.node_id) ?? "",
-        original: item.original_text as string,
+        nodeId: item.node_id
+          ? nodeMap.get(item.node_id) ?? ""
+          : "",
+        original: item.original_text,
         replacement: item.replacement_text as string
       }))
-      .filter((item) => item.nodeId && item.replacement !== null)
+      .filter((item) => item.nodeId)
   };
 }
 
