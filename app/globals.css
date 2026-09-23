@@ -1580,3 +1580,83 @@ a {
     display: none;
   }
 }
+
+
+/* Nadid Arabic typography system */
+body {
+  font-family: var(--font-body), var(--font-ui), "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+.brand-copy strong,
+.hero h1,
+.upload-heading h1,
+.documents-title-row h1,
+.auth-card h1,
+.editor-empty h1 {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.feature-card h3,
+.section-heading h2,
+.long-doc-banner h2,
+.steps-grid h3,
+.document-sheet h1,
+.document-sheet h2,
+.document-card h2,
+.dropzone h2,
+.panel-head h3 {
+  font-family: var(--font-heading), var(--font-display), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+}
+
+.hero-lead,
+.section-heading p,
+.long-doc-banner p,
+.upload-heading p,
+.documents-title-row p,
+.auth-card > p,
+.documents-empty p {
+  font-family: var(--font-short), var(--font-body), sans-serif;
+  font-weight: 400;
+}
+
+.main-nav,
+.header-actions,
+.button,
+.text-button,
+.eyebrow,
+.review-panel,
+.outline-panel,
+.editor-statusbar,
+.editor-doc-title,
+.app-topbar-title,
+.review-tab,
+.review-card-type,
+.status-badge,
+.document-stats,
+.document-card-footer,
+.validation-message {
+  font-family: var(--font-ui), var(--font-display), sans-serif;
+}
+
+.hero h1 {
+  line-height: 1.13;
+}
+
+.brand-copy {
+  line-height: 1.08;
+}
+
+.document-sheet p {
+  font-family: var(--font-body), var(--font-short), sans-serif;
+  font-weight: 400;
+  line-height: 2.2;
+}
+
+.button,
+.main-nav {
+  font-weight: 600;
+}
