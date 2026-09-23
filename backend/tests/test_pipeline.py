@@ -95,3 +95,61 @@ def test_fact_lock_blocks_negation_removal():
     )
 
     assert result.status == "BLOCK"
+
+
+def test_document_memory_extracts_repeated_terms():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [
+        node("يعتمد المشروع على الذكاء الاصطناعي في التحليل.", 0),
+        node("يستخدم الذكاء الاصطناعي لتحسين المراجعة.", 1),
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+
+    assert any(term.term == "الذكاء" and term.count >= 2 for term in memory.terms)
+
+
+def test_fact_conflict_detects_same_claim_different_value():
+    from app.pipeline.facts import detect_fact_conflicts, extract_facts
+
+    nodes = [
+        node("عدد المحاور في النموذج 4 محاور.", 0),
+        node("عدد المحاور في النموذج 5 محاور.", 1),
+    ]
+    facts = extract_facts(nodes)
+    conflicts = detect_fact_conflicts(facts)
+
+    assert len(conflicts) == 1
+    assert set(conflicts[0].values) == {"4", "5"}
+
+
+def test_context_retrieval_finds_related_chunk():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.context import retrieve_context
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [
+        node("يعالج الفصل الأول الجوانب التشغيلية العامة.", 0),
+        node("تبلغ الطاقة الإنتاجية للمصنع 2000000 وحدة سنويًا.", 1),
+        node("يتناول هذا الجزء استراتيجية التسويق والتوزيع.", 2),
+        node("تساعد الطاقة الإنتاجية في تقدير احتياجات المواد.", 3),
+    ]
+    chunks = build_chunks(nodes, target_tokens=7, hard_limit=15)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+
+    package = retrieve_context(
+        target_node_id="n-1",
+        nodes=nodes,
+        chunks=chunks,
+        memory=memory,
+        query="الطاقة الإنتاجية",
+        max_chunks=3,
+    )
+
+    assert any("الطاقة الإنتاجية" in hit.text for hit in package.hits)
