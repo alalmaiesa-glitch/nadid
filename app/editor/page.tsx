@@ -6,6 +6,7 @@ import { Brand } from "@/components/SiteHeader";
 import { getAnalysis } from "@/lib/browser-analysis-store";
 import type {
   AnalyzeResponse,
+  DeepMemorySnapshot,
   DocumentBlock,
   QuickSuggestion,
   ReviewCategory
@@ -18,6 +19,8 @@ const categoryLabels: Record<ReviewCategory | "all", string> = {
   consistency: "اتساق",
   protection: "حماية"
 };
+
+type DeepState = "idle" | "loading" | "ready" | "unavailable" | "failed";
 
 function highlightSuggestion(
   block: DocumentBlock,
@@ -56,16 +59,11 @@ export default function EditorPage() {
   const [rejected, setRejected] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(80);
   const [validationMessage, setValidationMessage] = useState("");
+  const [deepState, setDeepState] = useState<DeepState>("idle");
+  const [deepMemory, setDeepMemory] = useState<DeepMemorySnapshot | null>(null);
 
   useEffect(() => {
-    async function load() {
-      const id = new URLSearchParams(window.location.search).get("id");
-
-      if (!id) {
-        setLoading(false);
-        return;
-      }
-
+    async function loadDocument(id: string) {
       let stored: AnalyzeResponse | null | undefined;
 
       try {
@@ -89,7 +87,71 @@ export default function EditorPage() {
         setBlocks(stored.document.blocks);
       }
 
+      return stored ?? null;
+    }
+
+    async function refreshPersistentDocument(id: string) {
+      try {
+        const response = await fetch(`/api/documents/${id}`, {
+          cache: "no-store"
+        });
+
+        if (!response.ok) return;
+
+        const updated = (await response.json()) as AnalyzeResponse;
+        setAnalysis(updated);
+      } catch {
+        // Keep the current document available even if refresh fails.
+      }
+    }
+
+    async function loadDeepReview(id: string) {
+      setDeepState("loading");
+
+      try {
+        let response = await fetch(`/api/documents/${id}/deep-review`, {
+          cache: "no-store"
+        });
+
+        if (response.status === 404) {
+          response = await fetch(`/api/documents/${id}/deep-review`, {
+            method: "POST"
+          });
+        }
+
+        if (response.status === 409 || response.status === 404) {
+          setDeepState("unavailable");
+          return;
+        }
+
+        if (!response.ok) {
+          setDeepState("failed");
+          return;
+        }
+
+        const payload = await response.json();
+        setDeepMemory(payload.memory as DeepMemorySnapshot);
+        setDeepState("ready");
+        await refreshPersistentDocument(id);
+      } catch {
+        setDeepState("failed");
+      }
+    }
+
+    async function load() {
+      const id = new URLSearchParams(window.location.search).get("id");
+
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      const stored = await loadDocument(id);
       setLoading(false);
+
+      if (stored) {
+        void loadDeepReview(id);
+      }
     }
 
     load().catch(() => setLoading(false));
@@ -112,7 +174,9 @@ export default function EditorPage() {
 
     for (const item of analysis.suggestions) {
       if (accepted.has(item.id) || rejected.has(item.id)) continue;
-      if (!map.has(item.blockId)) map.set(item.blockId, item);
+      if (!map.has(item.blockId) && item.replacement) {
+        map.set(item.blockId, item);
+      }
     }
     return map;
   }, [analysis, accepted, rejected]);
@@ -229,6 +293,17 @@ export default function EditorPage() {
   const totalSuggestions =
     analysis.suggestions.length - accepted.size - rejected.size;
 
+  const deepStatusLabel =
+    deepState === "ready"
+      ? "● ذاكرة المستند مكتملة"
+      : deepState === "loading"
+        ? "المراجعة العميقة تعمل…"
+        : deepState === "failed"
+          ? "تعذر إكمال المراجعة العميقة"
+          : deepState === "unavailable"
+            ? "المراجعة العميقة غير مفعلة"
+            : "الفحص السريع مكتمل";
+
   return (
     <main className="editor-app">
       <header className="editor-header">
@@ -334,7 +409,7 @@ export default function EditorPage() {
           <div className="review-list">
             {pendingSuggestions.length === 0 ? (
               <div className="review-empty">
-                لا توجد ملاحظات في هذا التصنيف ضمن الفحص السريع الحالي.
+                لا توجد ملاحظات في هذا التصنيف ضمن نتائج المراجعة الحالية.
               </div>
             ) : (
               pendingSuggestions.map((item) => (
@@ -385,10 +460,16 @@ export default function EditorPage() {
       </div>
 
       <div className="editor-statusbar">
-        <span className="status-good">● الفحص السريع مكتمل</span>
+        <span className={deepState === "ready" ? "status-good" : ""}>
+          {deepStatusLabel}
+        </span>
         <span>{analysis.document.wordCount.toLocaleString("ar-SA")} كلمة</span>
         <span>{totalSuggestions} ملاحظة</span>
         <span>{analysis.protectedFacts.length} قيمة محمية</span>
+        {deepMemory && <span>{deepMemory.facts.length} حقيقة</span>}
+        {deepMemory && deepMemory.conflicts.length > 0 && (
+          <span>{deepMemory.conflicts.length} تعارض محتمل</span>
+        )}
       </div>
     </main>
   );
