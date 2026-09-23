@@ -1,10 +1,11 @@
 # نشر نَضِيد
 
-نَضِيد يتكون من ثلاث خدمات مستقلة:
+نَضِيد يتكون من أربع خدمات مستقلة:
 
 1. **Web — Next.js**
 2. **AEE — FastAPI**
-3. **Data — Supabase PostgreSQL + Storage + Auth**
+3. **Worker — معالج مستندات خلفي دائم**
+4. **Data — Supabase PostgreSQL + Storage + Auth**
 
 ## الواجهة
 
@@ -55,8 +56,10 @@ Health check: `GET /health`.
 ```text
 Browser
   → signed upload token
-  → Supabase Storage
+  → Supabase Private Storage
   → finalize-upload
+  → processing_jobs
+  → Worker
   → AEE
   → PostgreSQL
   → Editor
@@ -65,3 +68,42 @@ Browser
 الملفات حتى 6 MB تستخدم signed upload المباشر. الملفات الأكبر تستخدم TUS resumable upload بأجزاء 6 MB.
 
 لا يُفضّل تشغيل AEE داخل Serverless Function قصيرة العمر لمعالجة المستندات الكبيرة؛ يُشغّل كخدمة container، ثم يضاف worker queue عند الانتقال للمعالجة غير المتزامنة واسعة النطاق.
+
+
+## Worker
+
+العامل الخلفي موجود في:
+
+`worker/index.mjs`
+
+ويُبنى من:
+
+`worker/Dockerfile`
+
+المتغيرات المطلوبة:
+
+```env
+SUPABASE_URL=https://jcyfhfpulckpsdaiecoe.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=
+AEE_BACKEND_URL=
+AEE_INTERNAL_TOKEN=
+WORKER_ID=
+WORKER_POLL_INTERVAL_MS=2000
+```
+
+العامل يطالب بالوظائف ذريًا عبر `claim_processing_job`، ويعيد الوظائف العالقة بعد مهلة القفل، ويكتب heartbeat كل 30 ثانية.
+
+## Production readiness
+
+المسار:
+
+`GET /api/health/ready`
+
+لا يعيد HTTP 200 إلا عندما تكون:
+
+- إعدادات الإنتاج الأساسية مكتملة.
+- قاعدة البيانات قابلة للوصول.
+- خدمة AEE سليمة.
+- يوجد Worker حي خلال آخر دقيقتين.
+
+كما يعيد أعداد الوظائف `queued / processing / failed` للمراقبة التشغيلية.
