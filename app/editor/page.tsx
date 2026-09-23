@@ -148,20 +148,60 @@ export default function EditorPage() {
           });
         }
 
-        if (response.status === 409 || response.status === 404) {
+        if (response.status === 409) {
           setDeepState("unavailable");
           return;
         }
 
-        if (!response.ok) {
+        if (!response.ok && response.status !== 202) {
           setDeepState("failed");
           return;
         }
 
-        const payload = await response.json();
-        setDeepMemory(payload.memory as DeepMemorySnapshot);
-        setDeepState("ready");
-        await refreshPersistentDocument(id);
+        let payload = await response.json();
+
+        if (payload.state === "ready" && payload.memory) {
+          setDeepMemory(payload.memory as DeepMemorySnapshot);
+          setDeepState("ready");
+          await refreshPersistentDocument(id);
+          return;
+        }
+
+        const deadline = Date.now() + 10 * 60 * 1000;
+
+        while (Date.now() < deadline) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          const statusResponse = await fetch(
+            `/api/documents/${id}/deep-review`,
+            { cache: "no-store" }
+          );
+
+          if (statusResponse.status === 404) {
+            continue;
+          }
+
+          if (!statusResponse.ok) {
+            setDeepState("failed");
+            return;
+          }
+
+          payload = await statusResponse.json();
+
+          if (payload.state === "failed") {
+            setDeepState("failed");
+            return;
+          }
+
+          if (payload.state === "ready" && payload.memory) {
+            setDeepMemory(payload.memory as DeepMemorySnapshot);
+            setDeepState("ready");
+            await refreshPersistentDocument(id);
+            return;
+          }
+        }
+
+        setDeepState("unavailable");
       } catch {
         setDeepState("failed");
       }
