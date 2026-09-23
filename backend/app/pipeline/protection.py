@@ -3,16 +3,20 @@ from __future__ import annotations
 import re
 from uuid import uuid4
 
+from app.arabic_numbers import DIGITS, NUMBER_PATTERN
 from app.contracts import DocumentNode, ProtectedSpan
 
 
 CURRENCY_RE = re.compile(
-    r"\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*(?:ريال|ر\.س)"
+    rf"(?P<number>{NUMBER_PATTERN})\s*(?:ريال|ر\.س)"
 )
-NUMBER_RE = re.compile(r"\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b")
-PERCENT_RE = re.compile(r"\b\d+(?:\.\d+)?\s*%")
-DATE_RE = re.compile(r"\b(?:19|20)\d{2}\b")
-STANDARD_RE = re.compile(r"\bISO\s*\d{3,6}(?::\d{4})?\b", re.IGNORECASE)
+NUMBER_RE = re.compile(NUMBER_PATTERN)
+PERCENT_RE = re.compile(rf"{NUMBER_PATTERN}\s*[%٪]")
+DATE_RE = re.compile(rf"(?<![{DIGITS}])[12١٢][09٠٩][{DIGITS}]{{2}}(?![{DIGITS}])")
+STANDARD_RE = re.compile(
+    rf"\bISO\s*[{DIGITS}]{{3,6}}(?::[{DIGITS}]{{4}})?\b",
+    re.IGNORECASE,
+)
 NEGATION_RE = re.compile(
     r"(?:^|\s)(?:و|ف)?(?:لا|لم|لن|ليس|ليست)\s+[^،؛.!؟\n]{1,55}"
 )
