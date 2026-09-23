@@ -7,6 +7,7 @@ import type {
   QuickSuggestion
 } from "@/lib/nadid-types";
 import { persistAnalyzedDocument } from "@/lib/server/document-persistence";
+import { authorizeUser } from "@/lib/server/authz";
 import {
   analyzeDocxWithAee,
   isAeeBackendConfigured
@@ -214,6 +215,9 @@ function extractProtectedFacts(blocks: DocumentBlock[]): ProtectedFact[] {
 }
 
 export async function POST(request: Request) {
+  const auth = await authorizeUser();
+  if (!auth.ok) return auth.response;
+
   const formData = await request.formData();
   const value = formData.get("file");
 
@@ -247,7 +251,7 @@ export async function POST(request: Request) {
         const response = await analyzeDocxWithAee(value.name, buffer);
 
         try {
-          await persistAnalyzedDocument(response, buffer);
+          await persistAnalyzedDocument(response, buffer, auth.userId);
         } catch {
           response.warnings.push(
             "اكتمل تحليل AEE، لكن تعذر حفظ المستند في التخزين الدائم."
@@ -293,7 +297,7 @@ export async function POST(request: Request) {
     };
 
     try {
-      const persistence = await persistAnalyzedDocument(response, buffer);
+      const persistence = await persistAnalyzedDocument(response, buffer, auth.userId);
       if (!persistence.persisted) {
         response.warnings.push(
           "يعمل نَضِيد حاليًا بوضع التخزين المحلي لأن قاعدة البيانات لم تُربط بعد."
