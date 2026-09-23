@@ -69,7 +69,7 @@ export async function persistAnalyzedDocument(
 
   if (documentError) throw documentError;
 
-  const { data: version, error: versionError } = await supabase
+  const { data: createdVersion, error: versionError } = await supabase
     .from("document_versions")
     .insert({
       document_id: analysis.document.id,
@@ -85,7 +85,9 @@ export async function persistAnalyzedDocument(
     .select("id")
     .single();
 
-  if (versionError) {
+  let versionId = createdVersion?.id as string | undefined;
+
+  if (versionError || !versionId) {
     const { data: existing, error: existingError } = await supabase
       .from("document_versions")
       .select("id")
@@ -93,12 +95,15 @@ export async function persistAnalyzedDocument(
       .eq("version_no", 1)
       .single();
 
-    if (existingError) throw versionError;
-    version.id = existing.id;
+    if (existingError || !existing?.id) {
+      throw versionError ?? existingError ?? new Error("version_not_created");
+    }
+
+    versionId = existing.id;
   }
 
   const nodeRows = analysis.document.blocks.map((block, index) => ({
-    version_id: version.id,
+    version_id: versionId,
     logical_node_key: block.id,
     node_type: block.type,
     sequence_no: index,
@@ -120,7 +125,7 @@ export async function persistAnalyzedDocument(
 
   if (analysis.suggestions.length > 0) {
     const suggestionRows = analysis.suggestions.map((item) => ({
-      version_id: version.id,
+      version_id: versionId,
       node_id: nodeMap.get(item.blockId) ?? null,
       client_suggestion_id: item.id,
       category: item.category,
@@ -142,7 +147,7 @@ export async function persistAnalyzedDocument(
 
   if (analysis.protectedFacts.length > 0) {
     const factRows = analysis.protectedFacts.map((fact) => ({
-      version_id: version.id,
+      version_id: versionId,
       node_id: nodeMap.get(fact.blockId) ?? null,
       client_fact_id: fact.id,
       span_type: fact.type,
@@ -163,7 +168,7 @@ export async function persistAnalyzedDocument(
   }
 
   const { error: runError } = await supabase.from("analysis_runs").insert({
-    version_id: version.id,
+    version_id: versionId,
     run_type: "fast",
     state: "complete",
     engine_manifest: {
@@ -181,7 +186,7 @@ export async function persistAnalyzedDocument(
 
   return {
     persisted: true as const,
-    versionId: version.id,
+    versionId: versionId,
     sourcePath
   };
 }
@@ -213,19 +218,19 @@ export async function loadAnalyzedDocument(documentId: string) {
       supabase
         .from("document_nodes")
         .select("id, logical_node_key, node_type, sequence_no, text")
-        .eq("version_id", version.id)
+        .eq("version_id", versionId)
         .order("sequence_no", { ascending: true }),
       supabase
         .from("suggestions")
         .select(
           "client_suggestion_id, node_id, category, title, explanation, original_text, replacement_text, confidence, status"
         )
-        .eq("version_id", version.id)
+        .eq("version_id", versionId)
         .eq("status", "pending"),
       supabase
         .from("protected_spans")
         .select("client_fact_id, node_id, span_type, surface_text")
-        .eq("version_id", version.id)
+        .eq("version_id", versionId)
     ]);
 
   const nodeIdToLogical = new Map(
