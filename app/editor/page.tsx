@@ -66,11 +66,29 @@ export default function EditorPage() {
         return;
       }
 
-      const stored = await getAnalysis(id);
+      let stored: AnalyzeResponse | null | undefined;
+
+      try {
+        const response = await fetch(`/api/documents/${id}`, {
+          cache: "no-store"
+        });
+
+        if (response.ok) {
+          stored = (await response.json()) as AnalyzeResponse;
+        }
+      } catch {
+        stored = null;
+      }
+
+      if (!stored) {
+        stored = await getAnalysis(id);
+      }
+
       if (stored) {
         setAnalysis(stored);
         setBlocks(stored.document.blocks);
       }
+
       setLoading(false);
     }
 
@@ -159,6 +177,12 @@ export default function EditorPage() {
       return next;
     });
 
+    fetch(`/api/suggestions/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "accepted" })
+    }).catch(() => undefined);
+
     setValidationMessage("تم تطبيق التعديل بعد اجتياز فحص حماية المعنى.");
   }
 
@@ -168,6 +192,13 @@ export default function EditorPage() {
       next.add(item.id);
       return next;
     });
+
+    fetch(`/api/suggestions/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "rejected" })
+    }).catch(() => undefined);
+
     setValidationMessage("تم تجاهل الملاحظة ولن تُطبق على النص.");
   }
 
