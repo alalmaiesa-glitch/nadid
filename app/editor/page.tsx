@@ -22,6 +22,16 @@ const categoryLabels: Record<ReviewCategory | "all", string> = {
 
 type DeepState = "idle" | "loading" | "ready" | "unavailable" | "failed";
 
+type VersionSummary = {
+  id: string;
+  versionNo: number;
+  isSource: boolean;
+  status: string;
+  createdAt: string;
+  changeSummary: Record<string, unknown>;
+  downloadUrl: string | null;
+};
+
 function highlightSuggestion(
   block: DocumentBlock,
   suggestion?: QuickSuggestion
@@ -64,6 +74,7 @@ export default function EditorPage() {
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [savingDecision, setSavingDecision] = useState(false);
+  const [versions, setVersions] = useState<VersionSummary[]>([]);
 
   useEffect(() => {
     async function loadDocument(id: string) {
@@ -105,6 +116,21 @@ export default function EditorPage() {
         setAnalysis(updated);
       } catch {
         // Keep the current document available even if refresh fails.
+      }
+    }
+
+    async function loadVersions(id: string) {
+      try {
+        const response = await fetch(`/api/documents/${id}/versions`, {
+          cache: "no-store"
+        });
+
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        setVersions((payload.versions ?? []) as VersionSummary[]);
+      } catch {
+        // Version history is supplementary; keep the editor usable.
       }
     }
 
@@ -150,6 +176,7 @@ export default function EditorPage() {
       }
 
       setDocumentId(id);
+      void loadVersions(id);
       const stored = await loadDocument(id);
       setLoading(false);
 
@@ -401,6 +428,49 @@ export default function EditorPage() {
           >
             مستند جديد
           </Link>
+
+          {versions.length > 0 && (
+            <details className="version-menu">
+              <summary className="button button-small button-secondary">
+                النسخ
+              </summary>
+              <div className="version-popover">
+                <strong>سجل النسخ</strong>
+                {versions.map((version) => {
+                  const applied = Number(
+                    version.changeSummary.applied_count ?? 0
+                  );
+
+                  return (
+                    <div className="version-row" key={version.id}>
+                      <div>
+                        <b>v{version.versionNo}</b>
+                        <small>
+                          {version.isSource
+                            ? "الأصل"
+                            : applied > 0
+                              ? `${applied} تعديل`
+                              : "نسخة منقحة"}
+                        </small>
+                      </div>
+                      <div className="version-row-meta">
+                        <span>
+                          {new Date(version.createdAt).toLocaleDateString(
+                            "ar-SA"
+                          )}
+                        </span>
+                        {version.downloadUrl ? (
+                          <a href={version.downloadUrl}>تنزيل</a>
+                        ) : (
+                          <span>غير مكتملة</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+          )}
           <button
             className="button button-small button-primary"
             onClick={exportDocument}
