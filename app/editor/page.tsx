@@ -1,26 +1,222 @@
-import Link from "next/link";
-import { Brand } from "@/components/SiteHeader";
+"use client";
 
-const outline = [
-  ["active", "مقدمة الدراسة"],
-  ["sub", "خلفية المشروع"],
-  ["sub", "المشكلة"],
-  ["", "الإطار العام"],
-  ["sub", "النموذج التشغيلي"],
-  ["", "التحليل المالي"],
-  ["", "المخاطر"],
-  ["", "الخاتمة"]
-];
+import Link from "next/link";
+import { ReactNode, useEffect, useMemo, useState } from "react";
+import { Brand } from "@/components/SiteHeader";
+import { getAnalysis } from "@/lib/browser-analysis-store";
+import type {
+  AnalyzeResponse,
+  DocumentBlock,
+  QuickSuggestion,
+  ReviewCategory
+} from "@/lib/nadid-types";
+
+const categoryLabels: Record<ReviewCategory | "all", string> = {
+  all: "الكل",
+  language: "لغة",
+  style: "صياغة",
+  consistency: "اتساق",
+  protection: "حماية"
+};
+
+function highlightSuggestion(
+  block: DocumentBlock,
+  suggestion?: QuickSuggestion
+): ReactNode {
+  if (!suggestion || !block.text.includes(suggestion.original)) {
+    return block.text;
+  }
+
+  const index = block.text.indexOf(suggestion.original);
+  const before = block.text.slice(0, index);
+  const after = block.text.slice(index + suggestion.original.length);
+
+  return (
+    <>
+      {before}
+      <span
+        className={
+          suggestion.category === "language" ? "mark-grammar" : "mark-style"
+        }
+      >
+        {suggestion.original}
+      </span>
+      {after}
+    </>
+  );
+}
 
 export default function EditorPage() {
+  const [analysis, setAnalysis] = useState<AnalyzeResponse | null>(null);
+  const [blocks, setBlocks] = useState<DocumentBlock[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] =
+    useState<ReviewCategory | "all">("all");
+  const [accepted, setAccepted] = useState<Set<string>>(new Set());
+  const [rejected, setRejected] = useState<Set<string>>(new Set());
+  const [visibleCount, setVisibleCount] = useState(80);
+  const [validationMessage, setValidationMessage] = useState("");
+
+  useEffect(() => {
+    async function load() {
+      const id = new URLSearchParams(window.location.search).get("id");
+
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      const stored = await getAnalysis(id);
+      if (stored) {
+        setAnalysis(stored);
+        setBlocks(stored.document.blocks);
+      }
+      setLoading(false);
+    }
+
+    load().catch(() => setLoading(false));
+  }, []);
+
+  const pendingSuggestions = useMemo(() => {
+    if (!analysis) return [];
+
+    return analysis.suggestions.filter(
+      (item) =>
+        !accepted.has(item.id) &&
+        !rejected.has(item.id) &&
+        (activeCategory === "all" || item.category === activeCategory)
+    );
+  }, [analysis, accepted, rejected, activeCategory]);
+
+  const suggestionsByBlock = useMemo(() => {
+    const map = new Map<string, QuickSuggestion>();
+    if (!analysis) return map;
+
+    for (const item of analysis.suggestions) {
+      if (accepted.has(item.id) || rejected.has(item.id)) continue;
+      if (!map.has(item.blockId)) map.set(item.blockId, item);
+    }
+    return map;
+  }, [analysis, accepted, rejected]);
+
+  const outline = useMemo(() => {
+    const headings = blocks.filter((block) => block.type === "heading");
+
+    if (headings.length > 0) {
+      return headings.slice(0, 24);
+    }
+
+    return blocks.slice(0, 12).map((block) => ({
+      ...block,
+      text:
+        block.text.length > 45
+          ? block.text.slice(0, 45) + "…"
+          : block.text
+    }));
+  }, [blocks]);
+
+  async function acceptSuggestion(item: QuickSuggestion) {
+    if (!analysis || !item.replacement) return;
+
+    const block = blocks.find((entry) => entry.id === item.blockId);
+    if (!block) return;
+
+    const protectedFacts = analysis.protectedFacts.filter(
+      (fact) => fact.blockId === block.id
+    );
+
+    const response = await fetch("/api/validate-patch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        blockText: block.text,
+        original: item.original,
+        replacement: item.replacement,
+        protectedFacts
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.status !== "PASS") {
+      setValidationMessage(
+        "أوقف نَضِيد هذا التعديل لأنه قد يغيّر معلومة محمية في النص."
+      );
+      return;
+    }
+
+    setBlocks((current) =>
+      current.map((entry) =>
+        entry.id === block.id
+          ? { ...entry, text: result.candidate }
+          : entry
+      )
+    );
+
+    setAccepted((current) => {
+      const next = new Set(current);
+      next.add(item.id);
+      return next;
+    });
+
+    setValidationMessage("تم تطبيق التعديل بعد اجتياز فحص حماية المعنى.");
+  }
+
+  function rejectSuggestion(item: QuickSuggestion) {
+    setRejected((current) => {
+      const next = new Set(current);
+      next.add(item.id);
+      return next;
+    });
+    setValidationMessage("تم تجاهل الملاحظة ولن تُطبق على النص.");
+  }
+
+  if (loading) {
+    return (
+      <main className="editor-empty">
+        <div className="loading-ring" />
+        <h1>نفتح المستند…</h1>
+        <p>نجهز النص والملاحظات الأولى.</p>
+      </main>
+    );
+  }
+
+  if (!analysis) {
+    return (
+      <main className="editor-empty">
+        <Brand />
+        <h1>لا يوجد مستند مفتوح</h1>
+        <p>ارفع ملف DOCX أولًا ليظهر هنا مع نتائج المراجعة.</p>
+        <Link href="/upload" className="button button-primary">
+          رفع مستند
+        </Link>
+      </main>
+    );
+  }
+
+  const visibleBlocks = blocks.slice(0, visibleCount);
+  const totalSuggestions =
+    analysis.suggestions.length - accepted.size - rejected.size;
+
   return (
     <main className="editor-app">
       <header className="editor-header">
         <Brand />
-        <span className="editor-doc-title">دراسة تطوير المنظومة.docx</span>
+        <span className="editor-doc-title">{analysis.document.filename}</span>
         <div className="editor-header-actions">
-          <Link href="/upload" className="button button-small button-secondary">مستند جديد</Link>
-          <button className="button button-small button-primary">تصدير</button>
+          <Link
+            href="/upload"
+            className="button button-small button-secondary"
+          >
+            مستند جديد
+          </Link>
+          <button
+            className="button button-small button-secondary"
+            disabled
+            title="سيُربط بتصدير DOCX في المرحلة التالية"
+          >
+            تصدير
+          </button>
         </div>
       </header>
 
@@ -28,13 +224,16 @@ export default function EditorPage() {
         <aside className="outline-panel">
           <div className="panel-head">
             <h3>هيكل المستند</h3>
-            <span className="panel-count">8</span>
+            <span className="panel-count">{outline.length}</span>
           </div>
           <div className="outline-content">
-            {outline.map(([kind, label], index) => (
-              <div className={"outline-item " + kind} key={label + index}>
-                <span>{kind === "sub" ? "ـ" : "•"}</span>
-                {label}
+            {outline.map((block, index) => (
+              <div
+                className={"outline-item " + (index === 0 ? "active" : "")}
+                key={block.id}
+              >
+                <span>•</span>
+                {block.text}
               </div>
             ))}
           </div>
@@ -42,96 +241,123 @@ export default function EditorPage() {
 
         <section className="document-stage">
           <article className="document-sheet">
-            <h1>مقدمة الدراسة</h1>
-            <p>
-              تهدف هذه الدراسة إلى تقديم إطار متكامل لتطوير المنظومة التشغيلية،
-              مع التركيز على رفع كفاءة الإجراءات وتحسين مستوى التنسيق بين الأطراف
-              ذات العلاقة.
-            </p>
-            <p>
-              وقد أظهرت المراجعة الأولية أن تطوير الإجراءات{" "}
-              <span className="mark-grammar">يساهم في تحسين من مستوى</span>{" "}
-              الأداء، كما يسهم في تقليص التكرار وتحسين وضوح المسؤوليات.
-            </p>
+            {visibleBlocks.map((block, index) =>
+              block.type === "heading" ? (
+                index === 0 ? (
+                  <h1 key={block.id}>{block.text}</h1>
+                ) : (
+                  <h2 key={block.id}>{block.text}</h2>
+                )
+              ) : (
+                <p key={block.id}>
+                  {highlightSuggestion(
+                    block,
+                    suggestionsByBlock.get(block.id)
+                  )}
+                </p>
+              )
+            )}
 
-            <h2>خلفية المشروع</h2>
-            <p>
-              انطلقت فكرة المشروع من الحاجة إلى توحيد عدد من المسارات المتفرقة
-              ضمن نموذج أكثر اتساقًا. ويتكون النموذج من أربعة محاور رئيسية،
-              ترتبط فيما بينها بعلاقات تشغيلية واضحة.
-            </p>
-            <p>
-              وتبلغ التكلفة التقديرية للمشروع{" "}
-              <span className="mark-style">38,771,251 ريال</span>، وقد صُنفت
-              هذه القيمة ضمن الحقائق المحمية بحيث لا يجوز أن تتغير بسبب تحسين
-              الصياغة أو اختصار الفقرة.
-            </p>
-            <p>
-              كما يعتمد المستند مصطلح «الذكاء الاصطناعي» بوصفه الصيغة الأساسية،
-              بينما رصد نَضِيد استخدام صيغة أخرى في فصل لاحق ويعرضها كملاحظة
-              اتساق لا كخطأ إملائي مباشر.
-            </p>
+            {visibleCount < blocks.length && (
+              <button
+                className="button button-secondary load-more"
+                onClick={() =>
+                  setVisibleCount((current) =>
+                    Math.min(current + 80, blocks.length)
+                  )
+                }
+              >
+                عرض المزيد من المستند
+              </button>
+            )}
           </article>
         </section>
 
         <aside className="review-panel">
           <div className="panel-head">
             <h3>المراجعة</h3>
-            <span className="panel-count">12</span>
+            <span className="panel-count">{totalSuggestions}</span>
           </div>
 
-          <div className="review-tabs">
-            <button className="review-tab active">الكل</button>
-            <button className="review-tab">لغة</button>
-            <button className="review-tab">صياغة</button>
-            <button className="review-tab">اتساق</button>
+          <div className="review-tabs review-tabs-five">
+            {(
+              ["all", "language", "style", "consistency", "protection"] as const
+            ).map((category) => (
+              <button
+                className={
+                  "review-tab " +
+                  (activeCategory === category ? "active" : "")
+                }
+                key={category}
+                onClick={() => setActiveCategory(category)}
+              >
+                {categoryLabels[category]}
+              </button>
+            ))}
           </div>
+
+          {validationMessage && (
+            <div className="validation-message">{validationMessage}</div>
+          )}
 
           <div className="review-list">
-            <article className="review-card">
-              <span className="review-card-type">صياغة · ثقة عالية</span>
-              <h4>حرف جر زائد</h4>
-              <p>وجود «من» هنا يضعف سلامة التركيب ولا يضيف معنى.</p>
-              <div className="review-diff">
-                <div className="old-text">تحسين من مستوى الأداء</div>
-                <div className="new-text">تحسين مستوى الأداء</div>
+            {pendingSuggestions.length === 0 ? (
+              <div className="review-empty">
+                لا توجد ملاحظات في هذا التصنيف ضمن الفحص السريع الحالي.
               </div>
-              <div className="review-actions">
-                <button className="accept">قبول</button>
-                <button>رفض</button>
-              </div>
-            </article>
+            ) : (
+              pendingSuggestions.map((item) => (
+                <article className="review-card" key={item.id}>
+                  <span className="review-card-type">
+                    {categoryLabels[item.category]} · ثقة{" "}
+                    {Math.round(item.confidence * 100)}%
+                  </span>
+                  <h4>{item.title}</h4>
+                  <p>{item.explanation}</p>
 
-            <article className="review-card">
-              <span className="review-card-type">حماية معنى</span>
-              <h4>قيمة مالية محمية</h4>
-              <p>
-                القيمة 38,771,251 ريال محفوظة في Fact Lock ولن يسمح نَضِيد
-                بتغييرها ضمن إعادة الصياغة.
-              </p>
-            </article>
+                  {item.replacement && (
+                    <div className="review-diff">
+                      <div className="old-text">{item.original}</div>
+                      <div className="new-text">{item.replacement}</div>
+                    </div>
+                  )}
 
-            <article className="review-card">
-              <span className="review-card-type">اتساق المستند</span>
-              <h4>صياغتان لمصطلح واحد</h4>
-              <p>
-                ورد «الذكاء الصناعي» في موضع آخر بينما الصيغة الأكثر استخدامًا
-                هنا هي «الذكاء الاصطناعي».
-              </p>
-              <div className="review-actions">
-                <button className="accept">توحيد المصطلح</button>
-                <button>تجاهل</button>
-              </div>
-            </article>
+                  <div className="review-actions">
+                    {item.replacement && (
+                      <button
+                        className="accept"
+                        onClick={() => acceptSuggestion(item)}
+                      >
+                        قبول
+                      </button>
+                    )}
+                    <button onClick={() => rejectSuggestion(item)}>
+                      تجاهل
+                    </button>
+                  </div>
+                </article>
+              ))
+            )}
+
+            {analysis.protectedFacts.slice(0, 12).map((fact) => (
+              <article className="review-card protected-card" key={fact.id}>
+                <span className="review-card-type">حماية معنى</span>
+                <h4>{fact.value}</h4>
+                <p>
+                  رصد نَضِيد هذه القيمة كعنصر محمي ويختبر التعديلات حولها قبل
+                  تطبيقها.
+                </p>
+              </article>
+            ))}
           </div>
         </aside>
       </div>
 
       <div className="editor-statusbar">
-        <span className="status-good">● السياق متصل</span>
-        <span>12 ملاحظة</span>
-        <span>3 حقائق محمية</span>
-        <span>المراجعة العميقة تعمل</span>
+        <span className="status-good">● الفحص السريع مكتمل</span>
+        <span>{analysis.document.wordCount.toLocaleString("ar-SA")} كلمة</span>
+        <span>{totalSuggestions} ملاحظة</span>
+        <span>{analysis.protectedFacts.length} قيمة محمية</span>
       </div>
     </main>
   );
