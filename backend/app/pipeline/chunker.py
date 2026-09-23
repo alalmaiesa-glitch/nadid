@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid5
 
 from app.contracts import Chunk, DocumentNode
 
@@ -24,11 +24,14 @@ def build_chunks(
         nonlocal current_nodes, current_text, current_tokens
         if not current_nodes:
             return
+        node_ids = [node.id for node in current_nodes]
+        chunk_text = "\n\n".join(current_text)
+        chunk_identity = "|".join(node_ids) + "|" + chunk_text
         chunks.append(
             Chunk(
-                id=str(uuid4()),
-                node_ids=[node.id for node in current_nodes],
-                text="\n\n".join(current_text),
+                id=str(uuid5(NAMESPACE_URL, chunk_identity)),
+                node_ids=node_ids,
+                text=chunk_text,
                 token_estimate=current_tokens,
             )
         )
