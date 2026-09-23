@@ -3,6 +3,7 @@ import {
   loadDocumentSource,
   persistDeepAnalysis
 } from "@/lib/server/document-persistence";
+import { authorizeDocument } from "@/lib/server/authz";
 import {
   analyzeDocxDeepWithAee,
   isAeeBackendConfigured
@@ -13,6 +14,9 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const auth = await authorizeDocument(id);
+  if (!auth.ok) return auth.response;
+
   const memory = await loadDeepMemory(id);
 
   if (!memory) {
@@ -33,6 +37,8 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const auth = await authorizeDocument(id);
+  if (!auth.ok) return auth.response;
 
   const existing = await loadDeepMemory(id);
   if (existing) {
