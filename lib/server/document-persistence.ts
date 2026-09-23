@@ -1153,3 +1153,200 @@ export async function getDocumentProcessingStatus(documentId: string) {
     updatedAt: document.updated_at as string
   };
 }
+
+
+export async function createPendingDocumentUpload(
+  ownerId: string,
+  filename: string
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("supabase_not_configured");
+
+  const documentId = crypto.randomUUID();
+  const storagePath =
+    `${ownerId}/${documentId}/v1/source.docx`;
+
+  const { error: documentError } = await supabase
+    .from("documents")
+    .insert({
+      id: documentId,
+      owner_id: ownerId,
+      title: filename.replace(/\.docx$/i, ""),
+      filename,
+      source_type: "docx",
+      storage_path: storagePath,
+      status: "uploading",
+      word_count: 0,
+      paragraph_count: 0
+    });
+
+  if (documentError) throw documentError;
+
+  const { data, error: signedError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUploadUrl(storagePath);
+
+  if (signedError || !data?.token) {
+    await supabase
+      .from("documents")
+      .delete()
+      .eq("id", documentId)
+      .eq("owner_id", ownerId);
+
+    throw signedError ?? new Error("signed_upload_not_created");
+  }
+
+  return {
+    documentId,
+    storagePath,
+    token: data.token
+  };
+}
+
+export async function loadPendingDocumentUpload(
+  documentId: string,
+  ownerId: string
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const { data: document, error: documentError } = await supabase
+    .from("documents")
+    .select("id, filename, storage_path, status")
+    .eq("id", documentId)
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+
+  if (
+    documentError ||
+    !document?.storage_path ||
+    !document?.filename
+  ) {
+    return null;
+  }
+
+  const { data: existingVersion } = await supabase
+    .from("document_versions")
+    .select("id, version_no")
+    .eq("document_id", documentId)
+    .eq("version_no", 1)
+    .eq("status", "ready")
+    .maybeSingle();
+
+  if (existingVersion) {
+    return {
+      documentId,
+      filename: document.filename as string,
+      storagePath: document.storage_path as string,
+      status: "finalized" as const,
+      existingVersionId: existingVersion.id as string
+    };
+  }
+
+  const { data: source, error: storageError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .download(document.storage_path);
+
+  if (storageError || !source) return null;
+
+  return {
+    documentId,
+    filename: document.filename as string,
+    storagePath: document.storage_path as string,
+    status: "pending" as const,
+    buffer: Buffer.from(await source.arrayBuffer())
+  };
+}
+
+export async function finalizePendingDocument(
+  documentId: string,
+  ownerId: string,
+  storagePath: string,
+  buffer: Buffer,
+  analysis: AnalyzeResponse
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("supabase_not_configured");
+
+  const owned = await assertDocumentOwner(documentId, ownerId);
+  if (!owned) throw new Error("document_not_owned");
+
+  const { data: existing } = await supabase
+    .from("document_versions")
+    .select("id")
+    .eq("document_id", documentId)
+    .eq("version_no", 1)
+    .eq("status", "ready")
+    .maybeSingle();
+
+  if (existing?.id) {
+    return {
+      versionId: existing.id as string,
+      reused: true
+    };
+  }
+
+  const { data: version, error: versionError } = await supabase
+    .from("document_versions")
+    .insert({
+      document_id: documentId,
+      version_no: 1,
+      is_source: true,
+      storage_path: storagePath,
+      status: "ready",
+      source_sha256: sha256(buffer),
+      engine_manifest: {
+        parser: "aee_docx_v0.1",
+        fast_review: "fast_rules_v0.1",
+        protected_spans: "atomic_guard_v0.1"
+      }
+    })
+    .select("id")
+    .single();
+
+  if (versionError || !version?.id) throw versionError;
+
+  try {
+    await persistFastAnalysisRows(version.id, {
+      ...analysis,
+      document: {
+        ...analysis.document,
+        id: documentId
+      }
+    });
+
+    const { error: updateError } = await supabase
+      .from("documents")
+      .update({
+        status: "partial_ready",
+        word_count: analysis.document.wordCount,
+        paragraph_count: analysis.document.paragraphCount,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", documentId)
+      .eq("owner_id", ownerId);
+
+    if (updateError) throw updateError;
+  } catch (error) {
+    await supabase
+      .from("document_versions")
+      .update({ status: "failed" })
+      .eq("id", version.id);
+
+    await supabase
+      .from("documents")
+      .update({
+        status: "failed",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", documentId)
+      .eq("owner_id", ownerId);
+
+    throw error;
+  }
+
+  return {
+    versionId: version.id as string,
+    reused: false
+  };
+}
