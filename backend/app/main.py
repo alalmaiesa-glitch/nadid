@@ -24,6 +24,7 @@ from app.pipeline.reviewer import fast_review
 from app.pipeline.memory import build_document_memory
 from app.pipeline.context import retrieve_context
 from app.pipeline.docx_patch import apply_patches_to_docx
+from app.docx_security import UnsafeDocxError, validate_docx_payload, validate_word_count
 
 
 app = FastAPI(
@@ -83,11 +84,13 @@ async def analyze_docx(
     if not data:
         raise HTTPException(status_code=400, detail="Empty file.")
 
-    if len(data) > 100 * 1024 * 1024:
+    try:
+        validate_docx_payload(data)
+    except UnsafeDocxError as exc:
         raise HTTPException(
-            status_code=413,
-            detail="File exceeds the v0.1 operational limit of 100 MB.",
-        )
+            status_code=422,
+            detail=f"Unsafe or invalid DOCX: {exc}",
+        ) from exc
 
     try:
         nodes = parse_docx(data)
@@ -109,6 +112,11 @@ async def analyze_docx(
 
     text = " ".join(node.text for node in nodes)
     word_count = len([token for token in text.split() if token])
+
+    try:
+        validate_word_count(word_count)
+    except UnsafeDocxError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
 
     return AnalyzeResponse(
         document={
@@ -167,6 +175,14 @@ async def analyze_docx_deep(
     if not data:
         raise HTTPException(status_code=400, detail="Empty file.")
 
+    try:
+        validate_docx_payload(data)
+    except UnsafeDocxError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsafe or invalid DOCX: {exc}",
+        ) from exc
+
     nodes = parse_docx(data)
     if not nodes:
         raise HTTPException(status_code=422, detail="No reviewable content found.")
@@ -178,6 +194,11 @@ async def analyze_docx_deep(
 
     text = " ".join(node.text for node in nodes)
     word_count = len([token for token in text.split() if token])
+
+    try:
+        validate_word_count(word_count)
+    except UnsafeDocxError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
 
     base = AnalyzeResponse(
         document={
@@ -242,6 +263,14 @@ async def apply_docx_patches(
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Empty file.")
+
+    try:
+        validate_docx_payload(data)
+    except UnsafeDocxError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsafe or invalid DOCX: {exc}",
+        ) from exc
 
     try:
         patch_list = TypeAdapter(list[PatchOperation]).validate_json(patches)
