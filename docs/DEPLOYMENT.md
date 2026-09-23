@@ -107,3 +107,16 @@ WORKER_POLL_INTERVAL_MS=2000
 - يوجد Worker حي خلال آخر دقيقتين.
 
 كما يعيد أعداد الوظائف `queued / processing / failed` للمراقبة التشغيلية.
+
+
+## حد الرفع في Beta
+
+مشروع Supabase الحالي على الخطة Free، والحد العالمي للملف فيها 50 MB.
+لذلك إطلاق Beta يستخدم:
+
+```env
+NADID_MAX_FILE_MB=50
+NEXT_PUBLIC_NADID_MAX_FILE_MB=50
+```
+
+يبقى bucket ومحرك AEE جاهزين لسقف 100 MB. بعد الترقية إلى Supabase Pro يمكن رفع الحد التشغيلي إلى 100 MB بعد إعادة اختبار الضغط.
