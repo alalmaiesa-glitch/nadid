@@ -1539,6 +1539,105 @@ export async function finalizePendingDocument(
 }
 
 
+export async function enqueueDeepReview(
+  documentId: string,
+  ownerId: string
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("supabase_not_configured");
+
+  const owned = await assertDocumentOwner(documentId, ownerId);
+  if (!owned) throw new Error("document_not_owned");
+
+  const { data: version, error: versionError } = await supabase
+    .from("document_versions")
+    .select("id")
+    .eq("document_id", documentId)
+    .eq("status", "ready")
+    .order("version_no", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (versionError) throw versionError;
+  if (!version?.id) throw new Error("ready_version_missing");
+
+  const { data: memory, error: memoryError } = await supabase
+    .from("document_memory")
+    .select("state")
+    .eq("version_id", version.id)
+    .maybeSingle();
+
+  if (memoryError) throw memoryError;
+
+  if (memory?.state === "ready") {
+    return {
+      documentId,
+      status: "ready" as const
+    };
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("processing_jobs")
+    .select("id, status, attempts, max_attempts")
+    .eq("document_id", documentId)
+    .eq("job_type", "deep_review")
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+
+  let job = existing;
+
+  if (!job) {
+    const { data: created, error: createError } = await supabase
+      .from("processing_jobs")
+      .insert({
+        document_id: documentId,
+        owner_id: ownerId,
+        job_type: "deep_review",
+        status: "queued"
+      })
+      .select("id, status, attempts, max_attempts")
+      .single();
+
+    if (createError || !created) {
+      throw createError ?? new Error("deep_job_not_created");
+    }
+
+    job = created;
+  } else if (job.status === "failed") {
+    const { data: reset, error: resetError } = await supabase
+      .from("processing_jobs")
+      .update({
+        status: "queued",
+        attempts: 0,
+        available_at: new Date().toISOString(),
+        locked_at: null,
+        locked_by: null,
+        last_error: null,
+        completed_at: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", job.id)
+      .select("id, status, attempts, max_attempts")
+      .single();
+
+    if (resetError || !reset) {
+      throw resetError ?? new Error("deep_job_not_reset");
+    }
+
+    job = reset;
+  }
+
+  return {
+    documentId,
+    jobId: job.id as string,
+    status: job.status as "queued" | "processing" | "complete",
+    attempts: Number(job.attempts ?? 0),
+    maxAttempts: Number(job.max_attempts ?? 3)
+  };
+}
+
+
 export async function deleteDocumentFully(
   documentId: string,
   ownerId: string
