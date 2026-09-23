@@ -63,6 +63,7 @@ export default function EditorPage() {
   const [deepMemory, setDeepMemory] = useState<DeepMemorySnapshot | null>(null);
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [savingDecision, setSavingDecision] = useState(false);
 
   useEffect(() => {
     async function loadDocument(id: string) {
@@ -230,47 +231,59 @@ export default function EditorPage() {
       return;
     }
 
-    setBlocks((current) =>
-      current.map((entry) =>
-        entry.id === block.id
-          ? { ...entry, text: result.candidate }
-          : entry
-      )
-    );
+    setSavingDecision(true);
 
-    setAccepted((current) => {
-      const next = new Set(current);
-      next.add(item.id);
-      return next;
-    });
+    try {
+      await fetch(`/api/suggestions/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "accepted" })
+      });
 
-    fetch(`/api/suggestions/${item.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "accepted" })
-    }).catch(() => undefined);
+      setBlocks((current) =>
+        current.map((entry) =>
+          entry.id === block.id
+            ? { ...entry, text: result.candidate }
+            : entry
+        )
+      );
 
-    setValidationMessage("تم تطبيق التعديل بعد اجتياز فحص حماية المعنى.");
+      setAccepted((current) => {
+        const next = new Set(current);
+        next.add(item.id);
+        return next;
+      });
+
+      setValidationMessage("تم تطبيق التعديل بعد اجتياز فحص حماية المعنى.");
+    } finally {
+      setSavingDecision(false);
+    }
   }
 
-  function rejectSuggestion(item: QuickSuggestion) {
+  async function rejectSuggestion(item: QuickSuggestion) {
     setRejected((current) => {
       const next = new Set(current);
       next.add(item.id);
       return next;
     });
 
-    fetch(`/api/suggestions/${item.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "rejected" })
-    }).catch(() => undefined);
+    setSavingDecision(true);
 
-    setValidationMessage("تم تجاهل الملاحظة ولن تُطبق على النص.");
+    try {
+      await fetch(`/api/suggestions/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected" })
+      });
+
+      setValidationMessage("تم تجاهل الملاحظة ولن تُطبق على النص.");
+    } finally {
+      setSavingDecision(false);
+    }
   }
 
   async function exportDocument() {
-    if (!documentId || exporting) return;
+    if (!documentId || exporting || savingDecision) return;
 
     setExporting(true);
     setValidationMessage("نُنشئ نسخة جديدة من التعديلات المقبولة…");
@@ -386,7 +399,7 @@ export default function EditorPage() {
           <button
             className="button button-small button-primary"
             onClick={exportDocument}
-            disabled={exporting}
+            disabled={exporting || savingDecision}
           >
             {exporting ? "نُنشئ النسخة…" : "تصدير"}
           </button>
