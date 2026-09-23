@@ -64,7 +64,12 @@ jobs:
         run: docker build -t nadid-aee:ci ./backend
 
       - name: Start AEE container
-        run: docker run -d --rm --name nadid-aee-ci -p 8000:8000 nadid-aee:ci
+        run: >-
+          docker run -d --rm
+          --name nadid-aee-ci
+          -e AEE_INTERNAL_TOKEN=ci-internal-token
+          -p 8000:8000
+          nadid-aee:ci
 
       - name: Verify health endpoint
         run: |
@@ -76,6 +81,50 @@ jobs:
           done
           docker logs nadid-aee-ci
           exit 1
+
+      - name: Concurrent AEE smoke test
+        run: |
+          docker exec -i nadid-aee-ci python - <<'PY'
+          from concurrent.futures import ThreadPoolExecutor
+          from io import BytesIO
+
+          import httpx
+          from docx import Document
+
+          document = Document()
+          document.add_heading("اختبار التحمل المصغر", level=1)
+          for index in range(40):
+              document.add_paragraph(
+                  f"فقرة رقم {index} لاختبار المعالجة المتزامنة في نضيد."
+              )
+
+          stream = BytesIO()
+          document.save(stream)
+          payload = stream.getvalue()
+
+          def analyze(_):
+              response = httpx.post(
+                  "http://127.0.0.1:8000/v1/analyze/docx",
+                  headers={
+                      "Authorization": "Bearer ci-internal-token"
+                  },
+                  files={
+                      "file": (
+                          "load-smoke.docx",
+                          payload,
+                          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                      )
+                  },
+                  timeout=30,
+              )
+              return response.status_code
+
+          with ThreadPoolExecutor(max_workers=4) as pool:
+              statuses = list(pool.map(analyze, range(8)))
+
+          assert statuses == [200] * 8, statuses
+          print("AEE concurrent smoke passed:", statuses)
+          PY
 
       - name: Stop container
         if: always()
