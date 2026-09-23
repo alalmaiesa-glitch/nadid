@@ -1537,3 +1537,84 @@ export async function finalizePendingDocument(
     reused: false
   };
 }
+
+
+export async function deleteDocumentFully(
+  documentId: string,
+  ownerId: string
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("supabase_not_configured");
+
+  const { data: document, error: documentError } = await supabase
+    .from("documents")
+    .select("id, storage_path")
+    .eq("id", documentId)
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+
+  if (documentError) throw documentError;
+  if (!document) return { deleted: false as const, reason: "not_found" };
+
+  const { data: versions, error: versionsError } = await supabase
+    .from("document_versions")
+    .select("storage_path")
+    .eq("document_id", documentId);
+
+  if (versionsError) throw versionsError;
+
+  const paths = new Set<string>();
+
+  if (document.storage_path) {
+    paths.add(document.storage_path as string);
+  }
+
+  for (const version of versions ?? []) {
+    if (version.storage_path) {
+      paths.add(version.storage_path as string);
+    }
+  }
+
+  const { error: markError } = await supabase
+    .from("documents")
+    .update({
+      status: "deleting",
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", documentId)
+    .eq("owner_id", ownerId);
+
+  if (markError) throw markError;
+
+  if (paths.size > 0) {
+    const { error: storageError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove([...paths]);
+
+    if (storageError) {
+      await supabase
+        .from("documents")
+        .update({
+          status: "delete_failed",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", documentId)
+        .eq("owner_id", ownerId);
+
+      throw storageError;
+    }
+  }
+
+  const { error: deleteError } = await supabase
+    .from("documents")
+    .delete()
+    .eq("id", documentId)
+    .eq("owner_id", ownerId);
+
+  if (deleteError) throw deleteError;
+
+  return {
+    deleted: true as const,
+    removedObjects: paths.size
+  };
+}
