@@ -285,14 +285,6 @@ body,
 }
 
 
-/* Support development */
-.supportSec{padding:10px 0 72px}
-.supportBox{display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:22px;padding:32px;box-shadow:0 14px 42px rgba(28,50,42,.05)}
-.supportCopy h2{font-size:32px;margin:12px 0 9px;line-height:1.45}.supportCopy p{margin:0;color:var(--muted);line-height:1.9;font-size:12px}.supportCopy small{display:block;margin-top:12px;color:#87918d;font-size:9px;line-height:1.8}
-.supportPanel{background:#f6f9f7;border:1px solid #e3ebe6;border-radius:16px;padding:18px}.supportAmounts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.supportAmt{height:52px;border:1px solid var(--line);background:#fff;border-radius:11px;font:700 13px var(--font-interface);cursor:pointer}.supportAmt.active{border-color:var(--green);background:var(--greenSoft);color:var(--green2)}
-.supportCustom{display:none;margin-top:10px}.supportCustom.active{display:flex;align-items:center;gap:8px;height:45px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 12px}.supportCustom input{width:100%;border:0;outline:0;direction:ltr;background:transparent}.supportPanel .btn{width:100%;margin-top:11px}.supportMsg{display:none;margin-top:10px;padding:9px 10px;border-radius:9px;background:var(--greenSoft);color:var(--green2);font-size:9px;line-height:1.7;text-align:center}
-@media(max-width:760px){.supportBox{grid-template-columns:1fr;padding:23px 18px}.supportAmounts{grid-template-columns:1fr 1fr}.supportAmounts .supportAmt:last-child{grid-column:1/-1}}
-
 </style>
 </head>
 <body>
@@ -331,10 +323,6 @@ body,
 <div class="step"><b>04</b><h3>أنت تقرر</h3><p>اقبل أو ارفض كل تعديل، ثم صدّر نسخة جديدة مع بقاء الأصل محفوظًا.</p></div>
 </div></div></section>
 
-<section class="supportSec" id="support"><div class="shell"><div class="supportBox">
-<div class="supportCopy"><span class="eyebrow">ساهم في استمرار التطوير</span><h2>استفدت من نَضِيد؟ ادعمنا لنكمل التطوير.</h2><p>مساهمتك اختيارية، وتساعدنا على تحسين دقة المراجعة، وتوسيع دعم المستندات، وتطوير مزايا جديدة لنَضِيد.</p><small>المساهمة لا تمنح مزايا مدفوعة بحد ذاتها، وستبقى الخدمات المدفوعة لاحقًا منفصلة وواضحة.</small></div>
-<div class="supportPanel"><div class="supportAmounts"><button class="supportAmt active" data-support="5">$5</button><button class="supportAmt" data-support="10">$10</button><button class="supportAmt" data-support="custom">مبلغ آخر</button></div><div class="supportCustom" id="supportCustom"><span>$</span><input id="supportCustomInput" type="number" min="1" placeholder="25"></div><button class="btn primary" id="supportBtn">ادعم تطوير نَضِيد</button><div class="supportMsg" id="supportMsg">سيتم تفعيل بوابة الدفع الآمنة فور ربط حساب Moyasar.</div></div>
-</div></div></section>
 
 <section class="cta"><div class="shell"><div class="ctaBox"><h2>ابدأ بالمستند كما هو.</h2><p>لا تنسخ الفصول ولا تقسّم الصفحات. ارفع ملفك، واترك لنَضِيد مهمة فهم بنيته قبل أن يبدأ التصحيح.</p><button class="btn primary" data-go="upload">ارفع مستندًا</button></div></div></section>
 </main><footer class="footer"><div class="shell"><span>نَضِيد — محرر العربية الذكي</span><span>نص أدق. سياق أتم.</span></div></footer>
@@ -400,25 +388,6 @@ function closeSuggestion(accepted){if(accepted&&targetIssue){targetIssue.textCon
 if(accept)accept.onclick=()=>closeSuggestion(true);if(reject)reject.onclick=()=>closeSuggestion(false);
 const exportBtn=document.getElementById('exportBtn');if(exportBtn)exportBtn.onclick=()=>{exportBtn.textContent='تم إنشاء v3 ✓';setTimeout(()=>exportBtn.textContent='تصدير',1800)};
 const loginBtn=document.getElementById('loginBtn');if(loginBtn)loginBtn.onclick=()=>document.getElementById('notice').style.display='block';
-
-let supportAmount=5;
-document.querySelectorAll('.supportAmt').forEach(btn=>btn.addEventListener('click',()=>{
-  document.querySelectorAll('.supportAmt').forEach(x=>x.classList.remove('active'));
-  btn.classList.add('active');
-  const value=btn.dataset.support;
-  const custom=document.getElementById('supportCustom');
-  if(value==='custom'){supportAmount='custom';custom.classList.add('active')}else{supportAmount=Number(value);custom.classList.remove('active')}
-}));
-const supportBtn=document.getElementById('supportBtn');
-if(supportBtn)supportBtn.addEventListener('click',()=>{
-  const amount=supportAmount==='custom'?Number(document.getElementById('supportCustomInput').value||0):supportAmount;
-  if(!amount||amount<1)return;
-  const msg=document.getElementById('supportMsg');
-  msg.textContent='اخترت دعم نَضِيد بمبلغ 
-</body>
-</html>+amount+'. سيتم تفعيل بوابة الدفع الآمنة فور ربط حساب Moyasar.';
-  msg.style.display='block';
-});
 
 </script>
 </body>
