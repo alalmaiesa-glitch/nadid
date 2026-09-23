@@ -15,6 +15,14 @@ const POLL_INTERVAL_MS = Math.max(
   500,
   Number(process.env.WORKER_POLL_INTERVAL_MS ?? 2000)
 );
+const MAINTENANCE_INTERVAL_MS = Math.max(
+  60_000,
+  Number(process.env.WORKER_MAINTENANCE_INTERVAL_MS ?? 3_600_000)
+);
+const STALE_UPLOAD_HOURS = Math.max(
+  1,
+  Number(process.env.NADID_STALE_UPLOAD_HOURS ?? 24)
+);
 
 if (!SUPABASE_URL) throw new Error("SUPABASE_URL is required");
 if (!SERVICE_ROLE) throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
@@ -29,6 +37,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
 });
 
 let stopping = false;
+let lastMaintenanceAt = 0;
 
 async function writeHeartbeat() {
   const now = new Date().toISOString();
@@ -101,6 +110,78 @@ function validatorForFact(type) {
       return "negation_preservation";
     default:
       return "exact_text";
+  }
+}
+
+async function runMaintenanceIfDue() {
+  if (Date.now() - lastMaintenanceAt < MAINTENANCE_INTERVAL_MS) {
+    return;
+  }
+
+  lastMaintenanceAt = Date.now();
+  const staleBefore = new Date(
+    Date.now() - STALE_UPLOAD_HOURS * 60 * 60 * 1000
+  ).toISOString();
+
+  const { data: staleDocuments, error: staleError } = await supabase
+    .from("documents")
+    .select("id, storage_path")
+    .eq("status", "uploading")
+    .lt("created_at", staleBefore)
+    .limit(100);
+
+  if (staleError) {
+    log("maintenance_stale_query_failed", {
+      error: staleError.message.slice(0, 300)
+    });
+    return;
+  }
+
+  let removed = 0;
+
+  for (const document of staleDocuments ?? []) {
+    try {
+      if (document.storage_path) {
+        const { error: storageError } = await supabase.storage
+          .from("nadid-documents")
+          .remove([document.storage_path]);
+
+        if (storageError) {
+          throw storageError;
+        }
+      }
+
+      const { error: deleteError } = await supabase
+        .from("documents")
+        .delete()
+        .eq("id", document.id)
+        .eq("status", "uploading");
+
+      if (deleteError) throw deleteError;
+      removed += 1;
+    } catch (error) {
+      log("maintenance_stale_delete_failed", {
+        documentId: document.id,
+        error:
+          error instanceof Error
+            ? error.message.slice(0, 300)
+            : String(error).slice(0, 300)
+      });
+    }
+  }
+
+  const oldHeartbeatCutoff = new Date(
+    Date.now() - 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  await supabase
+    .from("worker_heartbeats")
+    .delete()
+    .lt("last_seen", oldHeartbeatCutoff)
+    .neq("worker_id", WORKER_ID);
+
+  if (removed > 0) {
+    log("maintenance_stale_uploads_removed", { removed });
   }
 }
 
@@ -767,6 +848,7 @@ async function main() {
 
   while (!stopping) {
     try {
+      await runMaintenanceIfDue();
       const job = await claimJob();
 
       if (!job) {
