@@ -1,6 +1,6 @@
 {
   "name": "nadid",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,7 +13,8 @@
     "mammoth": "^1.9.1",
     "next": "15.5.9",
     "react": "19.0.1",
-    "react-dom": "19.0.1"
+    "react-dom": "19.0.1",
+    "@supabase/ssr": "0.12.7"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
