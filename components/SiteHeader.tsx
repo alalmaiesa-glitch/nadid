@@ -24,10 +24,10 @@ export default function SiteHeader() {
         <nav className="main-nav" aria-label="التنقل الرئيسي">
           <Link href="/#capabilities">المزايا</Link>
           <Link href="/#how">كيف يعمل؟</Link>
-          <Link href="/editor">المحرر</Link>
+          <Link href="/documents">مستنداتي</Link>
         </nav>
         <div className="header-actions">
-          <button className="text-button">تسجيل الدخول</button>
+          <Link href="/login" className="text-button">تسجيل الدخول</Link>
           <Link href="/upload" className="button button-small button-primary">
             ابدأ المراجعة
           </Link>
