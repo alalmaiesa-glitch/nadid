@@ -1771,3 +1771,22 @@ body,
   padding-bottom: .08em;
   font-style: normal;
 }
+
+
+/* Hero slogan — Cairo */
+.hero h1 {
+  font-family: var(--font-hero), var(--font-interface), Tahoma, Arial, sans-serif !important;
+  font-weight: 700;
+  line-height: 1.38;
+  letter-spacing: 0;
+  padding-top: .10em;
+  padding-bottom: .16em;
+}
+
+.hero h1 em,
+.hero h1 span {
+  display: inline-block;
+  padding-top: .05em;
+  padding-bottom: .10em;
+  font-style: normal;
+}
