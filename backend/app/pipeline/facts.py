@@ -4,18 +4,19 @@ import re
 from collections import defaultdict
 from uuid import NAMESPACE_URL, uuid5
 
+from app.arabic_numbers import NUMBER_PATTERN, canonical_decimal
 from app.contracts import DocumentNode, FactAssertion, FactConflict
 
 
 VALUE_RE = re.compile(
-    r"(?P<value>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)"
-    r"\s*(?P<unit>ريال|ر\.س|%|وحدة|فرع|محور|محاور|صفحة|سنة|سنوات)?"
+    rf"(?P<value>{NUMBER_PATTERN})"
+    r"\s*(?P<unit>ريال|ر\.س|[%٪]|وحدة|فرع|محور|محاور|صفحة|سنة|سنوات)?"
 )
 WORD_RE = re.compile(r"[\u0600-\u06FF]{2,}")
 
 
 def _canonical_number(value: str) -> str:
-    return value.replace(",", "").strip()
+    return canonical_decimal(value) or value.strip()
 
 
 def _claim_context(text: str, start: int) -> str:
@@ -34,7 +35,15 @@ def extract_facts(nodes: list[DocumentNode]) -> list[FactAssertion]:
             context = _claim_context(node.text, match.start())
 
             # Years alone are useful context but too weak for conflict detection.
-            fact_type = "date" if unit == "number" and re.fullmatch(r"(?:19|20)\d{2}", value) else unit
+            canonical = canonical
+            fact_type = (
+                "date"
+                if unit == "number"
+                and canonical.isdigit()
+                and len(canonical) == 4
+                and canonical[:2] in {"19", "20"}
+                else ("%" if unit == "٪" else unit)
+            )
             normalized_context = " ".join(context.split())
             claim_key = f"{normalized_context}|{fact_type}".strip("|")
 
@@ -44,14 +53,14 @@ def extract_facts(nodes: list[DocumentNode]) -> list[FactAssertion]:
                         uuid5(
                             NAMESPACE_URL,
                             f"{node.id}|{fact_type}|{claim_key}|"
-                            f"{_canonical_number(value)}|{match.start()}",
+                            f"{canonical}|{match.start()}",
                         )
                     ),
                     node_id=node.id,
                     fact_type=fact_type,
                     claim_key=claim_key,
                     value=(value + (" " + unit if unit != "number" else "")).strip(),
-                    canonical_value=_canonical_number(value),
+                    canonical_value=canonical,
                     context=node.text[max(0, match.start() - 120):match.end() + 80],
                     confidence=0.92 if unit != "number" else 0.78,
                 )
