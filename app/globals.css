@@ -1660,3 +1660,95 @@ body {
 .main-nav {
   font-weight: 600;
 }
+
+
+/* Typography v2 — unified product interface */
+body,
+.brand-copy strong,
+.brand-copy small,
+.main-nav,
+.header-actions,
+.button,
+.text-button,
+.eyebrow,
+.hero h1,
+.hero-lead,
+.hero-proof,
+.section-heading h2,
+.section-heading p,
+.feature-card,
+.feature-card h3,
+.feature-card p,
+.long-doc-banner,
+.steps,
+.step,
+.step h3,
+.step p,
+.upload-heading,
+.dropzone,
+.upload-meta,
+.review-panel,
+.outline-panel,
+.panel-head,
+.review-tab,
+.review-card,
+.review-card-type,
+.validation-message,
+.editor-statusbar,
+.editor-doc-title,
+.app-topbar-title,
+.documents-page,
+.document-card,
+.document-card h2,
+.document-stats,
+.document-card-footer,
+.auth-page,
+.auth-card,
+.auth-form,
+.status-badge {
+  font-family: var(--font-interface), "Segoe UI", Tahoma, Arial, sans-serif !important;
+}
+
+.document-sheet,
+.document-sheet h1,
+.document-sheet h2,
+.document-sheet p,
+.preview-paper,
+.preview-paper h3,
+.preview-paper p {
+  font-family: var(--font-reading), var(--font-interface), Tahoma, Arial, sans-serif !important;
+}
+
+.brand-copy strong {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.hero h1 {
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.032em;
+}
+
+.hero-lead {
+  font-weight: 400;
+}
+
+.main-nav,
+.button {
+  font-weight: 600;
+}
+
+.section-heading h2,
+.feature-card h3,
+.long-doc-banner h2,
+.step h3 {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.document-sheet p,
+.preview-paper p {
+  font-weight: 400;
+  letter-spacing: 0;
+}
