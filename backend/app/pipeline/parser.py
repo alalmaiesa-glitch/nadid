@@ -37,7 +37,9 @@ def _stable_node_id(
     text: str,
     anchor: str,
 ) -> str:
-    identity = f"{sequence}|{node_type}|{anchor}|{text}"
+    # Node identity tracks the structural location, not mutable text.
+    # This keeps the logical node stable across text-only document versions.
+    identity = f"{sequence}|{node_type}|{anchor}"
     return str(uuid5(NAMESPACE_URL, identity))
 
 
