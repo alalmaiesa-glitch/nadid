@@ -1,13 +1,9 @@
 import {
-  loadDeepMemory,
-  loadDocumentSource,
-  persistDeepAnalysis
+  enqueueDeepReview,
+  loadDeepMemory
 } from "@/lib/server/document-persistence";
 import { authorizeDocument } from "@/lib/server/authz";
-import {
-  analyzeDocxDeepWithAee,
-  isAeeBackendConfigured
-} from "@/lib/server/aee-client";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(
   _request: Request,
@@ -19,7 +15,30 @@ export async function GET(
 
   const memory = await loadDeepMemory(id);
 
-  if (!memory) {
+  if (memory) {
+    return Response.json({
+      state: "ready",
+      memory
+    });
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    return Response.json(
+      { state: "unavailable" },
+      { status: 409 }
+    );
+  }
+
+  const { data: job } = await supabase
+    .from("processing_jobs")
+    .select("status, attempts, max_attempts, last_error")
+    .eq("document_id", id)
+    .eq("job_type", "deep_review")
+    .maybeSingle();
+
+  if (!job) {
     return Response.json(
       { state: "missing" },
       { status: 404 }
@@ -27,8 +46,10 @@ export async function GET(
   }
 
   return Response.json({
-    state: "ready",
-    memory
+    state: job.status,
+    attempts: Number(job.attempts ?? 0),
+    maxAttempts: Number(job.max_attempts ?? 3),
+    error: job.status === "failed" ? job.last_error : null
   });
 }
 
@@ -40,7 +61,15 @@ export async function POST(
   const auth = await authorizeDocument(id);
   if (!auth.ok) return auth.response;
 
+  if (!auth.userId) {
+    return Response.json(
+      { state: "unavailable" },
+      { status: 409 }
+    );
+  }
+
   const existing = await loadDeepMemory(id);
+
   if (existing) {
     return Response.json({
       state: "ready",
@@ -49,44 +78,18 @@ export async function POST(
     });
   }
 
-  if (!isAeeBackendConfigured()) {
-    return Response.json(
-      {
-        state: "unavailable",
-        error: "AEE_BACKEND_URL is not configured."
-      },
-      { status: 409 }
-    );
-  }
-
-  const source = await loadDocumentSource(id);
-  if (!source) {
-    return Response.json(
-      {
-        state: "unavailable",
-        error: "Persistent source file is not available."
-      },
-      { status: 404 }
-    );
-  }
-
   try {
-    const deep = await analyzeDocxDeepWithAee(
-      source.filename,
-      source.buffer
-    );
+    const job = await enqueueDeepReview(id, auth.userId);
 
-    await persistDeepAnalysis(
-      id,
-      source.versionId,
-      deep
+    return Response.json(
+      {
+        state: job.status,
+        ...job
+      },
+      {
+        status: job.status === "ready" ? 200 : 202
+      }
     );
-
-    return Response.json({
-      state: "ready",
-      memory: deep.memory,
-      reused: false
-    });
   } catch (error) {
     return Response.json(
       {
@@ -94,9 +97,9 @@ export async function POST(
         error:
           error instanceof Error
             ? error.message
-            : "deep_review_failed"
+            : "deep_review_enqueue_failed"
       },
-      { status: 502 }
+      { status: 500 }
     );
   }
 }
