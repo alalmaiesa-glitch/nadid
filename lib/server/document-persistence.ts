@@ -211,6 +211,7 @@ export async function loadAnalyzedDocument(documentId: string) {
     .from("document_versions")
     .select("id")
     .eq("document_id", documentId)
+    .eq("status", "ready")
     .order("version_no", { ascending: false })
     .limit(1)
     .single();
@@ -300,6 +301,7 @@ export async function loadDocumentSource(documentId: string) {
     .from("document_versions")
     .select("id, version_no, storage_path")
     .eq("document_id", documentId)
+    .eq("status", "ready")
     .order("version_no", { ascending: false })
     .limit(1)
     .single();
@@ -552,6 +554,7 @@ export async function loadDeepMemory(
     .from("document_versions")
     .select("id")
     .eq("document_id", documentId)
+    .eq("status", "ready")
     .order("version_no", { ascending: false })
     .limit(1)
     .single();
@@ -637,6 +640,7 @@ export async function searchStoredContext(
     .from("document_versions")
     .select("id")
     .eq("document_id", documentId)
+    .eq("status", "ready")
     .order("version_no", { ascending: false })
     .limit(1)
     .single();
@@ -756,6 +760,7 @@ export async function loadAcceptedPatches(documentId: string) {
     .from("document_versions")
     .select("id, version_no")
     .eq("document_id", documentId)
+    .eq("status", "ready")
     .order("version_no", { ascending: false })
     .limit(1)
     .single();
@@ -816,7 +821,21 @@ export async function createDocumentVersion(
     return { persisted: false as const, reason: "supabase_not_configured" };
   }
 
-  const nextVersionNo = parentVersionNo + 1;
+  const { data: latestAny, error: latestAnyError } = await supabase
+    .from("document_versions")
+    .select("version_no")
+    .eq("document_id", documentId)
+    .order("version_no", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestAnyError) throw latestAnyError;
+
+  const nextVersionNo = Math.max(
+    parentVersionNo,
+    Number(latestAny?.version_no ?? parentVersionNo)
+  ) + 1;
+
   const storagePath =
     `${documentId}/v${nextVersionNo}/source.docx`;
 
@@ -902,6 +921,8 @@ export async function downloadDocumentVersion(
     .from("document_versions")
     .select("id, version_no, storage_path")
     .eq("document_id", documentId);
+
+  query = query.eq("status", "ready");
 
   if (versionNo != null) {
     query = query.eq("version_no", versionNo);
