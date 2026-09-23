@@ -194,3 +194,68 @@ def test_fact_ids_are_stable():
     second = extract_facts(nodes)
 
     assert [item.id for item in first] == [item.id for item in second]
+
+
+def test_arabic_numeric_forms_are_canonicalized():
+    from app.arabic_numbers import canonical_decimal
+
+    assert canonical_decimal("٣٨٬٧٧١٬٢٥١ ريال") == "38771251"
+    assert canonical_decimal("١٨٫٦٪") == "18.6"
+
+
+def test_protection_extracts_arabic_currency_percentage_and_year():
+    from app.pipeline.protection import extract_protected_spans
+
+    spans = extract_protected_spans([
+        node("بلغت التكلفة ٣٨٬٧٧١٬٢٥١ ريال في عام ٢٠٢٦ بنسبة ١٨٫٦٪.", 0)
+    ])
+
+    values = {(span.type, span.value) for span in spans}
+
+    assert ("currency", "٣٨٬٧٧١٬٢٥١ ريال") in values
+    assert ("date", "٢٠٢٦") in values
+    assert ("percentage", "١٨٫٦٪") in values
+
+
+def test_fact_lock_allows_equivalent_numeric_format():
+    text = "بلغت التكلفة ٣٨٬٧٧١٬٢٥١ ريال."
+    protected = [
+        ProtectedSpan(
+            id="arabic-number",
+            node_id="n-0",
+            type="currency",
+            value="٣٨٬٧٧١٬٢٥١ ريال",
+            validator_key="numeric_equivalence",
+        )
+    ]
+
+    result = validate_patch(
+        block_text=text,
+        original="٣٨٬٧٧١٬٢٥١ ريال",
+        replacement="38,771,251 ريال",
+        protected_spans=protected,
+    )
+
+    assert result.status == "PASS"
+
+
+def test_fact_lock_blocks_changed_arabic_number():
+    text = "بلغت التكلفة ٣٨٬٧٧١٬٢٥١ ريال."
+    protected = [
+        ProtectedSpan(
+            id="arabic-number",
+            node_id="n-0",
+            type="currency",
+            value="٣٨٬٧٧١٬٢٥١ ريال",
+            validator_key="numeric_equivalence",
+        )
+    ]
+
+    result = validate_patch(
+        block_text=text,
+        original="٣٨٬٧٧١٬٢٥١",
+        replacement="٣٩٬٧٧١٬٢٥١",
+        protected_spans=protected,
+    )
+
+    assert result.status == "BLOCK"
