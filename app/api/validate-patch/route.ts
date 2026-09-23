@@ -1,4 +1,8 @@
 import type { ProtectedFact } from "@/lib/nadid-types";
+import {
+  isAeeBackendConfigured,
+  validatePatchWithAee
+} from "@/lib/server/aee-client";
 
 type PatchRequest = {
   blockText: string;
@@ -19,6 +23,15 @@ export async function POST(request: Request) {
       { error: "بيانات التعديل غير مكتملة." },
       { status: 400 }
     );
+  }
+
+  if (isAeeBackendConfigured()) {
+    try {
+      const result = await validatePatchWithAee(body);
+      return Response.json(result);
+    } catch {
+      // Keep the local validator available as a resilience fallback.
+    }
   }
 
   if (!body.blockText.includes(body.original)) {
