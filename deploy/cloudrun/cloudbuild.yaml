@@ -1,0 +1,44 @@
+substitutions:
+  _REGION: asia-south1
+  _REPOSITORY: nadid
+  _NEXT_PUBLIC_SUPABASE_URL: https://jcyfhfpulckpsdaiecoe.supabase.co
+  _NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ""
+
+steps:
+  - id: build-web
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/nadid-web:latest
+      - --build-arg
+      - NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL}
+      - --build-arg
+      - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${_NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+      - .
+
+  - id: build-aee
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/nadid-aee:latest
+      - ./backend
+
+  - id: build-worker
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/nadid-worker:latest
+      - -f
+      - worker/Dockerfile
+      - .
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/nadid-web:latest
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/nadid-aee:latest
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/nadid-worker:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
