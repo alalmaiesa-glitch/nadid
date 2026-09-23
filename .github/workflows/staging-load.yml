@@ -1,0 +1,60 @@
+name: Staging Load Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      requests:
+        description: "Total requests"
+        required: true
+        default: "20"
+      concurrency:
+        description: "Concurrent requests"
+        required: true
+        default: "5"
+      paragraphs:
+        description: "Paragraphs per generated DOCX"
+        required: true
+        default: "250"
+      max_p95:
+        description: "Maximum p95 latency in seconds"
+        required: true
+        default: "60"
+
+jobs:
+  aee-load-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install load-test dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Verify staging secrets
+        env:
+          AEE_BACKEND_URL: ${{ secrets.NADID_STAGING_AEE_URL }}
+          AEE_INTERNAL_TOKEN: ${{ secrets.NADID_STAGING_AEE_TOKEN }}
+        run: |
+          test -n "$AEE_BACKEND_URL" || (echo "Missing NADID_STAGING_AEE_URL" && exit 1)
+          test -n "$AEE_INTERNAL_TOKEN" || (echo "Missing NADID_STAGING_AEE_TOKEN" && exit 1)
+
+      - name: Run AEE load gate
+        env:
+          AEE_BACKEND_URL: ${{ secrets.NADID_STAGING_AEE_URL }}
+          AEE_INTERNAL_TOKEN: ${{ secrets.NADID_STAGING_AEE_TOKEN }}
+        run: |
+          python tests/load/aee_load.py \
+            --requests "${{ inputs.requests }}" \
+            --concurrency "${{ inputs.concurrency }}" \
+            --paragraphs "${{ inputs.paragraphs }}" \
+            --max-error-rate 0.01 \
+            --max-p95 "${{ inputs.max_p95 }}"
