@@ -17,16 +17,56 @@ export async function GET() {
 
   let database = false;
   let aee = false;
+  let worker = false;
+
+  const queue = {
+    queued: 0,
+    processing: 0,
+    failed: 0
+  };
 
   const supabase = getSupabaseAdmin();
 
   if (supabase) {
-    const { error } = await supabase
-      .from("documents")
-      .select("id", { head: true, count: "exact" })
-      .limit(1);
+    const cutoff = new Date(Date.now() - 120_000).toISOString();
 
-    database = !error;
+    const [
+      { error: databaseError },
+      { data: heartbeat, error: heartbeatError },
+      { count: queuedCount },
+      { count: processingCount },
+      { count: failedCount }
+    ] = await Promise.all([
+      supabase
+        .from("documents")
+        .select("id", { head: true, count: "exact" })
+        .limit(1),
+      supabase
+        .from("worker_heartbeats")
+        .select("worker_id, last_seen")
+        .gte("last_seen", cutoff)
+        .order("last_seen", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("processing_jobs")
+        .select("id", { head: true, count: "exact" })
+        .eq("status", "queued"),
+      supabase
+        .from("processing_jobs")
+        .select("id", { head: true, count: "exact" })
+        .eq("status", "processing"),
+      supabase
+        .from("processing_jobs")
+        .select("id", { head: true, count: "exact" })
+        .eq("status", "failed")
+    ]);
+
+    database = !databaseError;
+    worker = !heartbeatError && Boolean(heartbeat?.last_seen);
+    queue.queued = queuedCount ?? 0;
+    queue.processing = processingCount ?? 0;
+    queue.failed = failedCount ?? 0;
   }
 
   const aeeBase = process.env.AEE_BACKEND_URL?.replace(/\/$/, "");
@@ -44,7 +84,11 @@ export async function GET() {
     }
   }
 
-  const ready = configurationReady && database && aee;
+  const ready =
+    configurationReady &&
+    database &&
+    aee &&
+    worker;
 
   return Response.json(
     {
@@ -52,9 +96,10 @@ export async function GET() {
       components: {
         configuration: configurationReady,
         database,
-        aee
+        aee,
+        worker
       },
-      configuration
+      queue
     },
     {
       status: ready ? 200 : 503,
