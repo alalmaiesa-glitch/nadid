@@ -1079,3 +1079,77 @@ export async function listUserDocuments(ownerId: string) {
     updatedAt: document.updated_at as string
   }));
 }
+
+
+export async function getDocumentProcessingStatus(documentId: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const { data: document, error: documentError } = await supabase
+    .from("documents")
+    .select("status, updated_at")
+    .eq("id", documentId)
+    .maybeSingle();
+
+  if (documentError || !document) return null;
+
+  const { data: version, error: versionError } = await supabase
+    .from("document_versions")
+    .select("id, version_no")
+    .eq("document_id", documentId)
+    .eq("status", "ready")
+    .order("version_no", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (versionError || !version) {
+    return {
+      documentStatus: document.status,
+      versionNo: null,
+      memoryState: "missing",
+      fastState: "missing",
+      deepState: "missing",
+      pendingSuggestions: 0,
+      updatedAt: document.updated_at
+    };
+  }
+
+  const [
+    { data: memory },
+    { data: runs },
+    { count: pendingSuggestions }
+  ] = await Promise.all([
+    supabase
+      .from("document_memory")
+      .select("state")
+      .eq("version_id", version.id)
+      .maybeSingle(),
+    supabase
+      .from("analysis_runs")
+      .select("run_type, state, started_at, completed_at")
+      .eq("version_id", version.id)
+      .order("started_at", { ascending: false }),
+    supabase
+      .from("suggestions")
+      .select("id", { count: "exact", head: true })
+      .eq("version_id", version.id)
+      .eq("status", "pending")
+  ]);
+
+  const latestByType = new Map<string, string>();
+  for (const run of runs ?? []) {
+    if (!latestByType.has(run.run_type)) {
+      latestByType.set(run.run_type, run.state);
+    }
+  }
+
+  return {
+    documentStatus: document.status as string,
+    versionNo: Number(version.version_no),
+    memoryState: memory?.state ?? "missing",
+    fastState: latestByType.get("fast") ?? "missing",
+    deepState: latestByType.get("deep") ?? "missing",
+    pendingSuggestions: pendingSuggestions ?? 0,
+    updatedAt: document.updated_at as string
+  };
+}
