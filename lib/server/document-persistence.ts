@@ -34,7 +34,8 @@ function validatorForFact(type: ProtectedFact["type"]) {
 
 export async function persistAnalyzedDocument(
   analysis: AnalyzeResponse,
-  sourceBuffer: Buffer
+  sourceBuffer: Buffer,
+  ownerId?: string | null
 ) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -58,6 +59,7 @@ export async function persistAnalyzedDocument(
     .upsert(
       {
         id: analysis.document.id,
+        owner_id: ownerId ?? null,
         title: analysis.document.filename.replace(/\.docx$/i, ""),
         filename: analysis.document.filename,
         source_type: "docx",
@@ -978,5 +980,101 @@ export async function listDocumentVersions(documentId: string) {
     changeSummary:
       (version.change_summary as Record<string, unknown> | null) ?? {},
     createdAt: version.created_at as string
+  }));
+}
+
+
+export async function assertDocumentOwner(
+  documentId: string,
+  ownerId: string
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return false;
+
+  const { data, error } = await supabase
+    .from("documents")
+    .select("id")
+    .eq("id", documentId)
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return Boolean(data?.id);
+}
+
+export async function assertSuggestionOwner(
+  suggestionId: string,
+  ownerId: string
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return false;
+
+  const { data: suggestion, error: suggestionError } = await supabase
+    .from("suggestions")
+    .select("version_id")
+    .eq("client_suggestion_id", suggestionId)
+    .maybeSingle();
+
+  if (suggestionError || !suggestion?.version_id) return false;
+
+  const { data: version, error: versionError } = await supabase
+    .from("document_versions")
+    .select("document_id")
+    .eq("id", suggestion.version_id)
+    .maybeSingle();
+
+  if (versionError || !version?.document_id) return false;
+
+  return assertDocumentOwner(version.document_id, ownerId);
+}
+
+export async function listUserDocuments(ownerId: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+
+  const { data: documents, error } = await supabase
+    .from("documents")
+    .select(
+      "id, title, filename, status, word_count, paragraph_count, created_at, updated_at"
+    )
+    .eq("owner_id", ownerId)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+
+  if (!documents?.length) return [];
+
+  const ids = documents.map((document) => document.id);
+
+  const { data: versions, error: versionsError } = await supabase
+    .from("document_versions")
+    .select("document_id, version_no, status")
+    .in("document_id", ids)
+    .eq("status", "ready")
+    .order("version_no", { ascending: false });
+
+  if (versionsError) throw versionsError;
+
+  const latestVersion = new Map<string, number>();
+
+  for (const version of versions ?? []) {
+    if (!latestVersion.has(version.document_id)) {
+      latestVersion.set(
+        version.document_id,
+        Number(version.version_no)
+      );
+    }
+  }
+
+  return documents.map((document) => ({
+    id: document.id as string,
+    title: document.title as string,
+    filename: document.filename as string,
+    status: document.status as string,
+    wordCount: Number(document.word_count),
+    paragraphCount: Number(document.paragraph_count),
+    versionNo: latestVersion.get(document.id) ?? 1,
+    createdAt: document.created_at as string,
+    updatedAt: document.updated_at as string
   }));
 }
