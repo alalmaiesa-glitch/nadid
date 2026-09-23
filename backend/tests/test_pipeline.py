@@ -300,3 +300,24 @@ def test_docx_patch_preserves_surrounding_run_formatting():
 
     assert "38,771,251 ريال، وهي معتمدة." in result_paragraph.text
     assert result_paragraph.runs[0].bold is True
+
+
+def test_parser_node_identity_survives_text_edit():
+    from io import BytesIO
+    from docx import Document
+    from app.pipeline.parser import parse_docx
+
+    first_document = Document()
+    first_document.add_paragraph("النص قبل التصحيح.")
+    first_stream = BytesIO()
+    first_document.save(first_stream)
+
+    second_document = Document()
+    second_document.add_paragraph("النص بعد التصحيح.")
+    second_stream = BytesIO()
+    second_document.save(second_stream)
+
+    first_nodes = parse_docx(first_stream.getvalue())
+    second_nodes = parse_docx(second_stream.getvalue())
+
+    assert first_nodes[0].id == second_nodes[0].id
