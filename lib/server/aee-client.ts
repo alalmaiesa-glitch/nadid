@@ -42,7 +42,25 @@ type AeeAnalyzeResponse = {
 };
 
 export function isAeeBackendConfigured() {
-  return Boolean(process.env.AEE_BACKEND_URL);
+  const hasUrl = Boolean(process.env.AEE_BACKEND_URL);
+  const hasToken = Boolean(process.env.AEE_INTERNAL_TOKEN);
+
+  if (process.env.NODE_ENV === "production") {
+    return hasUrl && hasToken;
+  }
+
+  return hasUrl;
+}
+
+function aeeHeaders(extra?: HeadersInit) {
+  const headers = new Headers(extra);
+  const token = process.env.AEE_INTERNAL_TOKEN;
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  return headers;
 }
 
 function aeeUrl(path: string) {
@@ -69,6 +87,7 @@ export async function analyzeDocxWithAee(
 
   const response = await fetch(aeeUrl("/v1/analyze/docx"), {
     method: "POST",
+    headers: aeeHeaders(),
     body,
     signal: AbortSignal.timeout(120_000)
   });
@@ -129,7 +148,7 @@ export async function validatePatchWithAee(input: {
 }) {
   const response = await fetch(aeeUrl("/v1/validate-patch"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: aeeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       block_text: input.blockText,
       original: input.original,
@@ -212,6 +231,7 @@ export async function analyzeDocxDeepWithAee(
 
   const response = await fetch(aeeUrl("/v1/analyze/docx/deep"), {
     method: "POST",
+    headers: aeeHeaders(),
     body,
     signal: AbortSignal.timeout(180_000)
   });
@@ -296,6 +316,7 @@ export async function applyDocxPatchesWithAee(
 
   const response = await fetch(aeeUrl("/v1/apply/docx"), {
     method: "POST",
+    headers: aeeHeaders(),
     body,
     signal: AbortSignal.timeout(180_000)
   });
