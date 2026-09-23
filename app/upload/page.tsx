@@ -11,6 +11,10 @@ import type { AnalyzeResponse } from "@/lib/nadid-types";
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+function wait(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -135,22 +139,72 @@ export default function UploadPage() {
       }
     }
 
-    setProgressLabel("نحلل بنية المستند ونجهز المراجعة الأولى…");
+    setProgressLabel("نضع المستند في قائمة المعالجة الآمنة…");
 
     const finalizeResponse = await fetch(
       `/api/documents/${upload.documentId}/finalize-upload`,
       { method: "POST" }
     );
 
-    const payload = await finalizeResponse.json();
+    const queued = await finalizeResponse.json();
 
     if (!finalizeResponse.ok) {
       throw new Error(
-        payload.error || "تعذر تثبيت المستند بعد الرفع."
+        queued.error || "تعذر إدخال المستند في قائمة المعالجة."
       );
     }
 
-    return payload as AnalyzeResponse;
+    const deadline = Date.now() + 10 * 60 * 1000;
+
+    while (Date.now() < deadline) {
+      const statusResponse = await fetch(
+        `/api/documents/${upload.documentId}/status`,
+        { cache: "no-store" }
+      );
+
+      if (!statusResponse.ok) {
+        throw new Error("تعذر متابعة حالة معالجة المستند.");
+      }
+
+      const status = await statusResponse.json();
+
+      if (status.documentStatus === "failed" || status.queueState === "failed") {
+        throw new Error(
+          status.queueError || "تعذرت معالجة المستند بعد عدة محاولات."
+        );
+      }
+
+      if (
+        status.versionNo &&
+        (status.documentStatus === "partial_ready" ||
+          status.documentStatus === "ready")
+      ) {
+        const documentResponse = await fetch(
+          `/api/documents/${upload.documentId}`,
+          { cache: "no-store" }
+        );
+
+        if (!documentResponse.ok) {
+          throw new Error("اكتملت المعالجة لكن تعذر تحميل المستند.");
+        }
+
+        return (await documentResponse.json()) as AnalyzeResponse;
+      }
+
+      if (status.queueState === "processing") {
+        setProgressLabel(
+          `نراجع المستند الآن… المحاولة ${status.queueAttempts || 1}`
+        );
+      } else {
+        setProgressLabel("المستند في قائمة المعالجة…");
+      }
+
+      await wait(1500);
+    }
+
+    throw new Error(
+      "المستند ما زال قيد المعالجة. ستجده في «مستنداتي» عند اكتماله."
+    );
   }
 
   async function analyzeFile() {
