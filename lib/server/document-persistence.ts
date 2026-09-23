@@ -428,6 +428,66 @@ export async function persistDeepAnalysis(
     if (error) throw error;
   }
 
+  const { error: oldDeepSuggestionError } = await supabase
+    .from("suggestions")
+    .delete()
+    .eq("version_id", versionId)
+    .eq("source_engine", "deep_consistency_v0.1");
+
+  if (oldDeepSuggestionError) throw oldDeepSuggestionError;
+
+  if (deep.memory.conflicts.length > 0) {
+    const { data: nodes, error: nodeLookupError } = await supabase
+      .from("document_nodes")
+      .select("id, logical_node_key")
+      .eq("version_id", versionId);
+
+    if (nodeLookupError) throw nodeLookupError;
+
+    const nodeMap = new Map(
+      (nodes ?? []).map((node) => [node.logical_node_key, node.id])
+    );
+    const factMap = new Map(
+      deep.memory.facts.map((fact) => [fact.id, fact])
+    );
+
+    const rows = deep.memory.conflicts.map((conflict) => {
+      const firstFact = conflict.factIds
+        .map((factId) => factMap.get(factId))
+        .find(Boolean);
+
+      return {
+        version_id: versionId,
+        node_id: firstFact ? nodeMap.get(firstFact.nodeId) ?? null : null,
+        client_suggestion_id: `deep-conflict-${conflict.id}`,
+        category: "consistency",
+        title: "تعارض محتمل في حقيقة",
+        explanation:
+          "وجد نَضِيد قيمًا مختلفة لادعاء يبدو متطابقًا عبر المستند: " +
+          conflict.values.join(" / "),
+        original_text: firstFact?.value ?? conflict.values.join(" / "),
+        replacement_text: null,
+        confidence: conflict.confidence,
+        status: "pending",
+        source_engine: "deep_consistency_v0.1",
+        evidence: [
+          {
+            type: "fact_conflict",
+            conflict_id: conflict.id,
+            fact_ids: conflict.factIds,
+            values: conflict.values
+          }
+        ]
+      };
+    });
+
+    const { error: deepSuggestionError } = await supabase
+      .from("suggestions")
+      .insert(rows);
+
+    if (deepSuggestionError) throw deepSuggestionError;
+  }
+
   const { error: memoryReadyError } = await supabase
     .from("document_memory")
     .update({
@@ -552,4 +612,41 @@ export async function loadDeepMemory(
     protectedCount: memory.protected_count,
     chunkCount: memory.chunk_count
   };
+}
+
+
+export async function searchStoredContext(
+  documentId: string,
+  query: string,
+  limit = 5
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase || !query.trim()) return [];
+
+  const { data: version, error: versionError } = await supabase
+    .from("document_versions")
+    .select("id")
+    .eq("document_id", documentId)
+    .order("version_no", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (versionError || !version) return [];
+
+  const { data, error } = await supabase.rpc("search_document_chunks", {
+    p_version_id: version.id,
+    p_query: query,
+    p_limit: Math.max(1, Math.min(limit, 12))
+  });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row: any) => ({
+    chunkId: row.chunk_key,
+    sequenceNo: row.sequence_no,
+    nodeIds: row.node_keys ?? [],
+    text: row.chunk_text,
+    tokenEstimate: row.token_estimate,
+    score: Number(row.rank ?? 0)
+  }));
 }
