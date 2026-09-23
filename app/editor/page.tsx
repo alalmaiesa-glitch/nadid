@@ -61,6 +61,8 @@ export default function EditorPage() {
   const [validationMessage, setValidationMessage] = useState("");
   const [deepState, setDeepState] = useState<DeepState>("idle");
   const [deepMemory, setDeepMemory] = useState<DeepMemorySnapshot | null>(null);
+  const [documentId, setDocumentId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     async function loadDocument(id: string) {
@@ -146,6 +148,7 @@ export default function EditorPage() {
         return;
       }
 
+      setDocumentId(id);
       const stored = await loadDocument(id);
       setLoading(false);
 
@@ -266,6 +269,70 @@ export default function EditorPage() {
     setValidationMessage("تم تجاهل الملاحظة ولن تُطبق على النص.");
   }
 
+  async function exportDocument() {
+    if (!documentId || exporting) return;
+
+    setExporting(true);
+    setValidationMessage("نُنشئ نسخة جديدة من التعديلات المقبولة…");
+
+    try {
+      const response = await fetch(
+        `/api/documents/${documentId}/versions`,
+        { method: "POST" }
+      );
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        if (payload.code === "NO_ACCEPTED_PATCHES") {
+          setValidationMessage(
+            "لا توجد تعديلات مقبولة بعد لإنشاء نسخة جديدة."
+          );
+        } else if (payload.code === "VERSION_CHANGED") {
+          setValidationMessage(
+            "ظهرت نسخة أحدث من المستند. أعد تحميل الصفحة قبل التصدير."
+          );
+        } else {
+          setValidationMessage(
+            "تعذر إنشاء النسخة الجديدة. تأكد من تفعيل التخزين ومحرك AEE."
+          );
+        }
+        return;
+      }
+
+      const download = await fetch(payload.downloadUrl);
+      if (!download.ok) {
+        throw new Error("download_failed");
+      }
+
+      const blob = await download.blob();
+      const url = URL.createObjectURL(blob);
+      const link = window.document.createElement("a");
+      link.href = url;
+      link.download =
+        analysis?.document.filename.replace(/\.docx$/i, "") +
+        `-nadid-v${payload.versionNo}.docx`;
+      window.document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      setValidationMessage(
+        `تم إنشاء النسخة ${payload.versionNo} وتنزيلها بنجاح.`
+      );
+
+      window.location.assign(
+        `/editor?id=${encodeURIComponent(documentId)}`
+      );
+    } catch {
+      setValidationMessage(
+        "حدث خطأ أثناء إنشاء ملف Word الجديد."
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="editor-empty">
@@ -317,11 +384,11 @@ export default function EditorPage() {
             مستند جديد
           </Link>
           <button
-            className="button button-small button-secondary"
-            disabled
-            title="سيُربط بتصدير DOCX في المرحلة التالية"
+            className="button button-small button-primary"
+            onClick={exportDocument}
+            disabled={exporting}
           >
-            تصدير
+            {exporting ? "نُنشئ النسخة…" : "تصدير"}
           </button>
         </div>
       </header>
