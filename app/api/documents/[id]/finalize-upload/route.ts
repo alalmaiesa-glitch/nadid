@@ -1,13 +1,5 @@
 import { authorizeDocument } from "@/lib/server/authz";
-import {
-  finalizePendingDocument,
-  loadAnalyzedDocument,
-  loadPendingDocumentUpload
-} from "@/lib/server/document-persistence";
-import {
-  analyzeDocxWithAee,
-  isAeeBackendConfigured
-} from "@/lib/server/aee-client";
+import { enqueueDocumentProcessing } from "@/lib/server/document-persistence";
 
 export async function POST(
   _request: Request,
@@ -24,74 +16,30 @@ export async function POST(
     );
   }
 
-  const pending = await loadPendingDocumentUpload(
-    id,
-    auth.userId
-  );
+  try {
+    const job = await enqueueDocumentProcessing(id, auth.userId);
 
-  if (!pending) {
     return Response.json(
-      { error: "Uploaded file was not found." },
-      { status: 404 }
+      job,
+      { status: job.status === "ready" ? 200 : 202 }
     );
-  }
+  } catch (error) {
+    const code =
+      error instanceof Error ? error.message : "enqueue_failed";
 
-  if (pending.status === "finalized") {
-    const existing = await loadAnalyzedDocument(id);
-
-    if (!existing) {
+    if (code === "uploaded_file_missing") {
       return Response.json(
-        { error: "Finalized document could not be loaded." },
-        { status: 500 }
+        { error: "Uploaded file was not found." },
+        { status: 404 }
       );
     }
 
-    return Response.json(existing);
-  }
-
-  if (!isAeeBackendConfigured()) {
     return Response.json(
       {
-        error: "AEE backend is not configured.",
-        code: "AEE_UNAVAILABLE"
+        error: "Could not queue uploaded document.",
+        code
       },
-      { status: 409 }
-    );
-  }
-
-  try {
-    const analysis = await analyzeDocxWithAee(
-      pending.filename,
-      pending.buffer
-    );
-
-    const normalized = {
-      ...analysis,
-      document: {
-        ...analysis.document,
-        id
-      }
-    };
-
-    await finalizePendingDocument(
-      id,
-      auth.userId,
-      pending.storagePath,
-      pending.buffer,
-      normalized
-    );
-
-    return Response.json(normalized);
-  } catch (error) {
-    return Response.json(
-      {
-        error: "Could not finalize uploaded document.",
-        detail:
-          error instanceof Error
-            ? error.message
-            : "finalize_failed"
-      },
-      { status: 502 }
+      { status: 500 }
     );
   }
 }
