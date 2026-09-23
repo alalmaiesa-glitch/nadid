@@ -55,9 +55,12 @@ export async function analyzeDocxWithAee(
   buffer: Buffer
 ): Promise<AnalyzeResponse> {
   const body = new FormData();
+  const bytes = new Uint8Array(buffer.length);
+  bytes.set(buffer);
+
   body.append(
     "file",
-    new Blob([buffer], {
+    new Blob([bytes.buffer], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     }),
     filename
