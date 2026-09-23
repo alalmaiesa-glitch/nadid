@@ -7,6 +7,10 @@ import type {
   QuickSuggestion
 } from "@/lib/nadid-types";
 import { persistAnalyzedDocument } from "@/lib/server/document-persistence";
+import {
+  analyzeDocxWithAee,
+  isAeeBackendConfigured
+} from "@/lib/server/aee-client";
 
 export const runtime = "nodejs";
 
@@ -236,6 +240,27 @@ export async function POST(request: Request) {
 
   try {
     const buffer = Buffer.from(await value.arrayBuffer());
+    let aeeFallbackWarning = "";
+
+    if (isAeeBackendConfigured()) {
+      try {
+        const response = await analyzeDocxWithAee(value.name, buffer);
+
+        try {
+          await persistAnalyzedDocument(response, buffer);
+        } catch {
+          response.warnings.push(
+            "اكتمل تحليل AEE، لكن تعذر حفظ المستند في التخزين الدائم."
+          );
+        }
+
+        return Response.json(response);
+      } catch {
+        aeeFallbackWarning =
+          "تعذر الوصول إلى محرك AEE؛ استُخدم الفحص المحلي السريع كمسار احتياطي.";
+      }
+    }
+
     const extraction = await mammoth.extractRawText({ buffer });
     const blocks = buildBlocks(extraction.value);
 
@@ -261,7 +286,10 @@ export async function POST(request: Request) {
       },
       suggestions: quickReview(blocks),
       protectedFacts: extractProtectedFacts(blocks),
-      warnings: extraction.messages.map((message) => message.message)
+      warnings: [
+        ...extraction.messages.map((message) => message.message),
+        ...(aeeFallbackWarning ? [aeeFallbackWarning] : [])
+      ]
     };
 
     try {
