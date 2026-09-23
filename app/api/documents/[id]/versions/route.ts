@@ -4,6 +4,7 @@ import {
   loadAcceptedPatches,
   loadDocumentSource
 } from "@/lib/server/document-persistence";
+import { authorizeDocument } from "@/lib/server/authz";
 import {
   analyzeDocxWithAee,
   applyDocxPatchesWithAee,
@@ -15,6 +16,8 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const auth = await authorizeDocument(id);
+  if (!auth.ok) return auth.response;
 
   if (!isAeeBackendConfigured()) {
     return Response.json(
@@ -120,6 +123,8 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const auth = await authorizeDocument(id);
+  if (!auth.ok) return auth.response;
 
   try {
     const versions = await listDocumentVersions(id);
