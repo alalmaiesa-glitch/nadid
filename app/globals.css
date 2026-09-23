@@ -1161,3 +1161,75 @@ a {
     transform: rotate(360deg);
   }
 }
+
+
+/* Version history */
+.version-menu {
+  position: relative;
+}
+
+.version-menu > summary {
+  list-style: none;
+}
+
+.version-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.version-popover {
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 0;
+  z-index: 80;
+  width: 285px;
+  max-height: 360px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.version-popover > strong {
+  display: block;
+  padding: 4px 4px 10px;
+  font-size: 12px;
+}
+
+.version-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 4px;
+  border-top: 1px solid var(--line);
+}
+
+.version-row > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.version-row b {
+  font-size: 11px;
+  color: var(--ink);
+}
+
+.version-row small {
+  font-size: 9px;
+  color: var(--muted);
+}
+
+.version-row-meta {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  font-size: 9px;
+  color: var(--muted);
+}
+
+.version-row-meta a {
+  color: var(--green);
+  font-weight: 700;
+}
