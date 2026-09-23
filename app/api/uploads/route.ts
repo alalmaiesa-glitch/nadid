@@ -1,7 +1,18 @@
+import { isSupabaseAdminConfigured } from "@/lib/supabase-admin";
 import { authorizeUser } from "@/lib/server/authz";
 import { createPendingDocumentUpload } from "@/lib/server/document-persistence";
 
 export async function POST(request: Request) {
+  if (
+    process.env.NODE_ENV === "production" &&
+    !isSupabaseAdminConfigured()
+  ) {
+    return Response.json(
+      { error: "Document storage is not configured." },
+      { status: 503 }
+    );
+  }
+
   const auth = await authorizeUser();
   if (!auth.ok) return auth.response;
 
