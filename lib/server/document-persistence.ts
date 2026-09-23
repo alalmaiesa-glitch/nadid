@@ -778,6 +778,7 @@ export async function loadAcceptedPatches(documentId: string) {
       .eq("version_id", version.id)
       .eq("status", "accepted")
       .not("replacement_text", "is", null)
+      .order("created_at", { ascending: true })
   ]);
 
   if (nodesError || suggestionsError) {
