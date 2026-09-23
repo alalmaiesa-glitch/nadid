@@ -1162,6 +1162,49 @@ export async function createPendingDocumentUpload(
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("supabase_not_configured");
 
+  const maxDailyUploads = Math.max(
+    1,
+    Number(process.env.NADID_MAX_UPLOADS_PER_DAY ?? 20)
+  );
+  const maxActiveUploads = Math.max(
+    1,
+    Number(process.env.NADID_MAX_ACTIVE_UPLOADS ?? 3)
+  );
+
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const activeWindow = new Date(
+    Date.now() - 30 * 60 * 1000
+  ).toISOString();
+
+  const [
+    { count: dailyUploads, error: dailyError },
+    { count: activeUploads, error: activeError }
+  ] = await Promise.all([
+    supabase
+      .from("documents")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", ownerId)
+      .gte("created_at", dayAgo),
+    supabase
+      .from("documents")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", ownerId)
+      .in("status", ["uploading", "queued", "processing"])
+      .gte("created_at", activeWindow)
+  ]);
+
+  if (dailyError || activeError) {
+    throw dailyError ?? activeError ?? new Error("quota_check_failed");
+  }
+
+  if ((dailyUploads ?? 0) >= maxDailyUploads) {
+    throw new Error("upload_daily_limit");
+  }
+
+  if ((activeUploads ?? 0) >= maxActiveUploads) {
+    throw new Error("upload_active_limit");
+  }
+
   const documentId = randomUUID();
   const storagePath =
     `${ownerId}/${documentId}/v1/source.docx`;
