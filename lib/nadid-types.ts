@@ -30,6 +30,7 @@ export type AnalyzeResponse = {
     filename: string;
     wordCount: number;
     paragraphCount: number;
+    versionNo?: number;
     blocks: DocumentBlock[];
   };
   suggestions: QuickSuggestion[];
