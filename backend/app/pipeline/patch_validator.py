@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.arabic_numbers import preserves_numeric_value
 from app.contracts import ProtectedSpan
 
 
@@ -39,17 +40,24 @@ def validate_patch(
 
     for protected in protected_spans:
         existed_before = protected.value in block_text
-        exists_after = protected.value in candidate
 
         if protected.validator_key in {
             "numeric_equivalence",
             "date_equivalence",
-            "exact_or_normalized_identifier",
-            "negation_preservation",
         }:
-            passed = (not existed_before) or exists_after
+            passed = (
+                not existed_before
+                or preserves_numeric_value(protected.value, candidate)
+            )
+        elif protected.validator_key == "exact_or_normalized_identifier":
+            passed = (
+                not existed_before
+                or protected.value.casefold() in candidate.casefold()
+            )
+        elif protected.validator_key == "negation_preservation":
+            passed = not existed_before or protected.value in candidate
         else:
-            passed = True
+            passed = not existed_before or protected.value in candidate
 
         checks.append(
             ValidationCheck(
