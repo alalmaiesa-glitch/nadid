@@ -258,3 +258,60 @@ export async function analyzeDocxDeepWithAee(
     }
   };
 }
+
+
+export type AeePatchOperation = {
+  nodeId: string;
+  original: string;
+  replacement: string;
+};
+
+export async function applyDocxPatchesWithAee(
+  filename: string,
+  buffer: Buffer,
+  patches: AeePatchOperation[]
+): Promise<Buffer> {
+  const body = new FormData();
+  const bytes = new Uint8Array(buffer.length);
+  bytes.set(buffer);
+
+  body.append(
+    "file",
+    new Blob([bytes.buffer], {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }),
+    filename
+  );
+
+  body.append(
+    "patches",
+    JSON.stringify(
+      patches.map((patch) => ({
+        node_id: patch.nodeId,
+        original: patch.original,
+        replacement: patch.replacement
+      }))
+    )
+  );
+
+  const response = await fetch(aeeUrl("/v1/apply/docx"), {
+    method: "POST",
+    body,
+    signal: AbortSignal.timeout(180_000)
+  });
+
+  if (!response.ok) {
+    let reason = `aee_docx_apply_failed_${response.status}`;
+
+    try {
+      const payload = await response.json();
+      reason = JSON.stringify(payload);
+    } catch {
+      // Keep the status based error.
+    }
+
+    throw new Error(reason);
+  }
+
+  return Buffer.from(await response.arrayBuffer());
+}
