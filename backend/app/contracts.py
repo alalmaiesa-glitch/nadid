@@ -122,3 +122,9 @@ class ContextPackage(BaseModel):
 class DeepAnalyzeResponse(BaseModel):
     base: AnalyzeResponse
     memory: DocumentMemory
+
+
+class PatchOperation(BaseModel):
+    node_id: str
+    original: str
+    replacement: str
