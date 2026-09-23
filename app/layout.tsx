@@ -1,11 +1,43 @@
 import type { Metadata } from "next";
-import { Noto_Sans_Arabic } from "next/font/google";
+import {
+  Alexandria,
+  Almarai,
+  Cairo,
+  IBM_Plex_Sans_Arabic,
+  Readex_Pro
+} from "next/font/google";
 import "./globals.css";
 
-const arabic = Noto_Sans_Arabic({
+const cairo = Cairo({
   subsets: ["arabic"],
   display: "swap",
-  variable: "--font-arabic"
+  variable: "--font-display"
+});
+
+const alexandria = Alexandria({
+  subsets: ["arabic"],
+  display: "swap",
+  variable: "--font-heading"
+});
+
+const almarai = Almarai({
+  weight: ["400", "700", "800"],
+  subsets: ["arabic"],
+  display: "swap",
+  variable: "--font-short"
+});
+
+const ibmPlex = IBM_Plex_Sans_Arabic({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["arabic"],
+  display: "swap",
+  variable: "--font-ui"
+});
+
+const readex = Readex_Pro({
+  subsets: ["arabic"],
+  display: "swap",
+  variable: "--font-body"
 });
 
 export const metadata: Metadata = {
@@ -21,7 +53,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body className={arabic.variable}>{children}</body>
+      <body
+        className={[
+          cairo.variable,
+          alexandria.variable,
+          almarai.variable,
+          ibmPlex.variable,
+          readex.variable
+        ].join(" ")}
+      >
+        {children}
+      </body>
     </html>
   );
 }
