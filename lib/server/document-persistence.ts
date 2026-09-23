@@ -954,3 +954,29 @@ export async function downloadDocumentVersion(
     buffer: Buffer.from(await blob.arrayBuffer())
   };
 }
+
+
+export async function listDocumentVersions(documentId: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("document_versions")
+    .select(
+      "id, version_no, is_source, status, change_summary, created_at"
+    )
+    .eq("document_id", documentId)
+    .order("version_no", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((version) => ({
+    id: version.id as string,
+    versionNo: Number(version.version_no),
+    isSource: Boolean(version.is_source),
+    status: version.status as string,
+    changeSummary:
+      (version.change_summary as Record<string, unknown> | null) ?? {},
+    createdAt: version.created_at as string
+  }));
+}
