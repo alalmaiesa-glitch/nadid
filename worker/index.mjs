@@ -30,6 +30,43 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
 
 let stopping = false;
 
+async function writeHeartbeat() {
+  const now = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("worker_heartbeats")
+    .upsert(
+      {
+        worker_id: WORKER_ID,
+        last_seen: now,
+        metadata: {
+          service: "initial_review",
+          poll_interval_ms: POLL_INTERVAL_MS
+        }
+      },
+      { onConflict: "worker_id" }
+    );
+
+  if (error) throw error;
+}
+
+async function heartbeatLoop() {
+  while (!stopping) {
+    try {
+      await writeHeartbeat();
+    } catch (error) {
+      log("heartbeat_failed", {
+        error:
+          error instanceof Error
+            ? error.message.slice(0, 300)
+            : String(error).slice(0, 300)
+      });
+    }
+
+    await sleep(30_000);
+  }
+}
+
 process.on("SIGTERM", () => {
   stopping = true;
 });
@@ -394,6 +431,8 @@ async function processJob(job) {
 
 async function main() {
   log("worker_started");
+  await writeHeartbeat();
+  const heartbeatTask = heartbeatLoop();
 
   while (!stopping) {
     try {
@@ -426,6 +465,7 @@ async function main() {
     }
   }
 
+  await heartbeatTask;
   log("worker_stopped");
 }
 
