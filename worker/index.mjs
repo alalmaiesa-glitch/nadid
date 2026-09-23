@@ -146,7 +146,47 @@ async function callAee(filename, buffer) {
   return response.json();
 }
 
-async function markComplete(jobId, documentId) {
+async function callAeeDeep(filename, buffer) {
+  const bytes = new Uint8Array(buffer.length);
+  bytes.set(buffer);
+
+  const body = new FormData();
+  body.append(
+    "file",
+    new Blob([bytes.buffer], {
+      type:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }),
+    filename
+  );
+
+  const response = await fetch(
+    `${AEE_BACKEND_URL}/v1/analyze/docx/deep`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${AEE_INTERNAL_TOKEN}`
+      },
+      body,
+      signal: AbortSignal.timeout(240_000)
+    }
+  );
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(
+      `aee_deep_failed_${response.status}:${detail.slice(0, 300)}`
+    );
+  }
+
+  return response.json();
+}
+
+async function markComplete(
+  jobId,
+  documentId,
+  documentStatus = "partial_ready"
+) {
   const now = new Date().toISOString();
 
   const { error: jobError } = await supabase
@@ -166,7 +206,7 @@ async function markComplete(jobId, documentId) {
   const { error: documentError } = await supabase
     .from("documents")
     .update({
-      status: "partial_ready",
+      status: documentStatus,
       updated_at: now
     })
     .eq("id", documentId);
@@ -201,10 +241,17 @@ async function markFailure(job, error) {
     })
     .eq("id", job.id);
 
+  const documentStatus =
+    job.job_type === "deep_review"
+      ? "partial_ready"
+      : exhausted
+        ? "failed"
+        : "queued";
+
   await supabase
     .from("documents")
     .update({
-      status: exhausted ? "failed" : "queued",
+      status: documentStatus,
       updated_at: now.toISOString()
     })
     .eq("id", job.document_id);
@@ -218,7 +265,7 @@ async function markFailure(job, error) {
   });
 }
 
-async function processJob(job) {
+async function processInitialReview(job) {
   const { data: document, error: documentError } = await supabase
     .from("documents")
     .select("id, owner_id, filename, storage_path, status")
@@ -427,6 +474,290 @@ async function processJob(job) {
 
     throw error;
   }
+}
+
+async function processDeepReview(job) {
+  const { data: document, error: documentError } = await supabase
+    .from("documents")
+    .select("id, filename, storage_path")
+    .eq("id", job.document_id)
+    .single();
+
+  if (documentError || !document) {
+    throw documentError ?? new Error("document_missing");
+  }
+
+  const { data: version, error: versionError } = await supabase
+    .from("document_versions")
+    .select("id, storage_path")
+    .eq("document_id", document.id)
+    .eq("status", "ready")
+    .order("version_no", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (versionError || !version) {
+    throw versionError ?? new Error("ready_version_missing");
+  }
+
+  const { data: existingMemory, error: memoryLookupError } =
+    await supabase
+      .from("document_memory")
+      .select("state")
+      .eq("version_id", version.id)
+      .maybeSingle();
+
+  if (memoryLookupError) throw memoryLookupError;
+
+  if (existingMemory?.state === "ready") {
+    await markComplete(job.id, document.id, "ready");
+    log("deep_job_reused_ready_memory", {
+      jobId: job.id,
+      documentId: document.id
+    });
+    return;
+  }
+
+  const storagePath = version.storage_path ?? document.storage_path;
+
+  if (!storagePath) {
+    throw new Error("source_storage_path_missing");
+  }
+
+  const { data: source, error: storageError } = await supabase.storage
+    .from("nadid-documents")
+    .download(storagePath);
+
+  if (storageError || !source) {
+    throw storageError ?? new Error("source_download_failed");
+  }
+
+  const buffer = Buffer.from(await source.arrayBuffer());
+  const deep = await callAeeDeep(document.filename, buffer);
+  const memory = deep.memory ?? {};
+  const chunks = deep.base?.chunks ?? [];
+
+  const { error: memoryStartError } = await supabase
+    .from("document_memory")
+    .upsert(
+      {
+        version_id: version.id,
+        state: "building",
+        headings: memory.headings ?? [],
+        protected_count: Number(memory.protected_count ?? 0),
+        chunk_count: Number(memory.chunk_count ?? chunks.length),
+        engine_manifest: {
+          memory: "deterministic_v0.1",
+          facts: "deterministic_v0.1",
+          retrieval: "lexical_v0.1"
+        },
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: "version_id" }
+    );
+
+  if (memoryStartError) throw memoryStartError;
+
+  for (const table of [
+    "fact_conflicts",
+    "fact_assertions",
+    "memory_terms",
+    "document_chunks"
+  ]) {
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq("version_id", version.id);
+
+    if (error) throw error;
+  }
+
+  const { error: oldDeepSuggestionError } = await supabase
+    .from("suggestions")
+    .delete()
+    .eq("version_id", version.id)
+    .eq("source_engine", "deep_consistency_v0.1");
+
+  if (oldDeepSuggestionError) throw oldDeepSuggestionError;
+
+  if (chunks.length > 0) {
+    const { error } = await supabase.from("document_chunks").insert(
+      chunks.map((chunk, index) => ({
+        version_id: version.id,
+        chunk_key: chunk.id,
+        sequence_no: index,
+        node_keys: chunk.node_ids ?? [],
+        chunk_text: chunk.text,
+        token_estimate: Number(chunk.token_estimate ?? 0)
+      }))
+    );
+
+    if (error) throw error;
+  }
+
+  const terms = memory.terms ?? [];
+  if (terms.length > 0) {
+    const { error } = await supabase.from("memory_terms").insert(
+      terms.map((term) => ({
+        version_id: version.id,
+        term: term.term,
+        occurrence_count: Number(term.count ?? 0),
+        node_keys: term.node_ids ?? []
+      }))
+    );
+
+    if (error) throw error;
+  }
+
+  const facts = memory.facts ?? [];
+  if (facts.length > 0) {
+    const { error } = await supabase.from("fact_assertions").insert(
+      facts.map((fact) => ({
+        version_id: version.id,
+        client_fact_id: fact.id,
+        node_key: fact.node_id,
+        fact_type: fact.fact_type,
+        claim_key: fact.claim_key,
+        surface_value: fact.value,
+        canonical_value: fact.canonical_value,
+        context_text: fact.context ?? "",
+        confidence: Number(fact.confidence ?? 0),
+        authority: "extracted"
+      }))
+    );
+
+    if (error) throw error;
+  }
+
+  const conflicts = memory.conflicts ?? [];
+  if (conflicts.length > 0) {
+    const { error } = await supabase.from("fact_conflicts").insert(
+      conflicts.map((conflict) => ({
+        version_id: version.id,
+        client_conflict_id: conflict.id,
+        claim_key: conflict.claim_key,
+        fact_ids: conflict.fact_ids ?? [],
+        values_found: conflict.values ?? [],
+        confidence: Number(conflict.confidence ?? 0),
+        status: "open"
+      }))
+    );
+
+    if (error) throw error;
+
+    const { data: nodes, error: nodesError } = await supabase
+      .from("document_nodes")
+      .select("id, logical_node_key")
+      .eq("version_id", version.id);
+
+    if (nodesError) throw nodesError;
+
+    const nodeMap = new Map(
+      (nodes ?? []).map((node) => [
+        node.logical_node_key,
+        node.id
+      ])
+    );
+    const factMap = new Map(
+      facts.map((fact) => [fact.id, fact])
+    );
+
+    const { error: suggestionError } = await supabase
+      .from("suggestions")
+      .insert(
+        conflicts.map((conflict) => {
+          const firstFact = (conflict.fact_ids ?? [])
+            .map((factId) => factMap.get(factId))
+            .find(Boolean);
+
+          return {
+            version_id: version.id,
+            node_id: firstFact
+              ? nodeMap.get(firstFact.node_id) ?? null
+              : null,
+            client_suggestion_id:
+              `deep-conflict-${version.id}-${conflict.id}`,
+            category: "consistency",
+            title: "تعارض محتمل في حقيقة",
+            explanation:
+              "وجد نَضِيد قيمًا مختلفة لادعاء يبدو متطابقًا عبر المستند: " +
+              (conflict.values ?? []).join(" / "),
+            original_text:
+              firstFact?.value ??
+              (conflict.values ?? []).join(" / "),
+            replacement_text: null,
+            confidence: Number(conflict.confidence ?? 0),
+            status: "pending",
+            source_engine: "deep_consistency_v0.1",
+            evidence: [
+              {
+                type: "fact_conflict",
+                conflict_id: conflict.id,
+                fact_ids: conflict.fact_ids ?? [],
+                values: conflict.values ?? []
+              }
+            ]
+          };
+        })
+      );
+
+    if (suggestionError) throw suggestionError;
+  }
+
+  await supabase
+    .from("analysis_runs")
+    .delete()
+    .eq("version_id", version.id)
+    .eq("run_type", "deep");
+
+  const { error: runError } = await supabase
+    .from("analysis_runs")
+    .insert({
+      version_id: version.id,
+      run_type: "deep",
+      state: "complete",
+      engine_manifest: {
+        memory: "deterministic_v0.1",
+        facts: "deterministic_v0.1",
+        retrieval: "lexical_v0.1"
+      },
+      metrics: {
+        chunks: chunks.length,
+        terms: terms.length,
+        facts: facts.length,
+        conflicts: conflicts.length
+      },
+      completed_at: new Date().toISOString()
+    });
+
+  if (runError) throw runError;
+
+  const { error: memoryReadyError } = await supabase
+    .from("document_memory")
+    .update({
+      state: "ready",
+      built_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq("version_id", version.id);
+
+  if (memoryReadyError) throw memoryReadyError;
+
+  await markComplete(job.id, document.id, "ready");
+
+  log("deep_job_completed", {
+    jobId: job.id,
+    documentId: document.id,
+    conflicts: conflicts.length
+  });
+}
+
+async function processJob(job) {
+  if (job.job_type === "deep_review") {
+    return processDeepReview(job);
+  }
+
+  return processInitialReview(job);
 }
 
 async function main() {
