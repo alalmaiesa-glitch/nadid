@@ -117,3 +117,8 @@ class ContextPackage(BaseModel):
     local_nodes: list[DocumentNode]
     hits: list[ContextHit]
     related_facts: list[FactAssertion]
+
+
+class DeepAnalyzeResponse(BaseModel):
+    base: AnalyzeResponse
+    memory: DocumentMemory
