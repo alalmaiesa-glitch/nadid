@@ -77,6 +77,8 @@ export async function persistAnalyzedDocument(
       document_id: analysis.document.id,
       version_no: 1,
       is_source: true,
+      storage_path: sourcePath,
+      status: "ready",
       source_sha256: sha256(sourceBuffer),
       engine_manifest: {
         parser: "mammoth",
@@ -292,11 +294,11 @@ export async function loadDocumentSource(documentId: string) {
     .eq("id", documentId)
     .single();
 
-  if (documentError || !document?.storage_path) return null;
+  if (documentError || !document) return null;
 
   const { data: version, error: versionError } = await supabase
     .from("document_versions")
-    .select("id")
+    .select("id, version_no, storage_path")
     .eq("document_id", documentId)
     .order("version_no", { ascending: false })
     .limit(1)
@@ -304,15 +306,23 @@ export async function loadDocumentSource(documentId: string) {
 
   if (versionError || !version) return null;
 
+  const storagePath =
+    (version.storage_path as string | null) ??
+    (document.storage_path as string | null);
+
+  if (!storagePath) return null;
+
   const { data: source, error: storageError } = await supabase.storage
     .from(STORAGE_BUCKET)
-    .download(document.storage_path);
+    .download(storagePath);
 
   if (storageError || !source) return null;
 
   return {
     documentId,
     versionId: version.id as string,
+    versionNo: Number(version.version_no),
+    storagePath,
     filename: document.filename as string,
     buffer: Buffer.from(await source.arrayBuffer())
   };
@@ -649,4 +659,275 @@ export async function searchStoredContext(
     tokenEstimate: row.token_estimate,
     score: Number(row.rank ?? 0)
   }));
+}
+
+
+async function persistFastAnalysisRows(
+  versionId: string,
+  analysis: AnalyzeResponse
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("supabase_not_configured");
+
+  const nodeRows = analysis.document.blocks.map((block, index) => ({
+    version_id: versionId,
+    logical_node_key: block.id,
+    node_type: block.type,
+    sequence_no: index,
+    text: block.text,
+    normalized_text: block.text.normalize("NFC"),
+    content_hash: createHash("sha256").update(block.text).digest("hex")
+  }));
+
+  const { data: insertedNodes, error: nodeError } = await supabase
+    .from("document_nodes")
+    .insert(nodeRows)
+    .select("id, logical_node_key");
+
+  if (nodeError) throw nodeError;
+
+  const nodeMap = new Map(
+    (insertedNodes ?? []).map((row) => [row.logical_node_key, row.id])
+  );
+
+  if (analysis.suggestions.length > 0) {
+    const { error } = await supabase.from("suggestions").insert(
+      analysis.suggestions.map((item) => ({
+        version_id: versionId,
+        node_id: nodeMap.get(item.blockId) ?? null,
+        client_suggestion_id: item.id,
+        category: item.category,
+        title: item.title,
+        explanation: item.explanation,
+        original_text: item.original,
+        replacement_text: item.replacement ?? null,
+        confidence: item.confidence,
+        status: "pending",
+        source_engine: "fast_rules_v0.1"
+      }))
+    );
+
+    if (error) throw error;
+  }
+
+  if (analysis.protectedFacts.length > 0) {
+    const { error } = await supabase.from("protected_spans").insert(
+      analysis.protectedFacts.map((fact) => ({
+        version_id: versionId,
+        node_id: nodeMap.get(fact.blockId) ?? null,
+        client_fact_id: fact.id,
+        span_type: fact.type,
+        surface_text: fact.value,
+        canonical_value: { surface: fact.value },
+        validator_key: validatorForFact(fact.type),
+        lock_policy:
+          fact.type === "negation" ? "semantic_exact" : "normalize_only",
+        lock_mode: "block",
+        confidence: 1
+      }))
+    );
+
+    if (error) throw error;
+  }
+
+  const { error: runError } = await supabase.from("analysis_runs").insert({
+    version_id: versionId,
+    run_type: "fast",
+    state: "complete",
+    engine_manifest: {
+      parser: "aee_docx_v0.1",
+      reviewer: "fast_rules_v0.1"
+    },
+    metrics: {
+      suggestions: analysis.suggestions.length,
+      protected_facts: analysis.protectedFacts.length
+    },
+    completed_at: new Date().toISOString()
+  });
+
+  if (runError) throw runError;
+}
+
+export async function loadAcceptedPatches(documentId: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const { data: version, error: versionError } = await supabase
+    .from("document_versions")
+    .select("id, version_no")
+    .eq("document_id", documentId)
+    .order("version_no", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (versionError || !version) return null;
+
+  const [
+    { data: nodes, error: nodesError },
+    { data: suggestions, error: suggestionsError }
+  ] = await Promise.all([
+    supabase
+      .from("document_nodes")
+      .select("id, logical_node_key")
+      .eq("version_id", version.id),
+    supabase
+      .from("suggestions")
+      .select(
+        "node_id, client_suggestion_id, original_text, replacement_text"
+      )
+      .eq("version_id", version.id)
+      .eq("status", "accepted")
+      .not("replacement_text", "is", null)
+  ]);
+
+  if (nodesError || suggestionsError) {
+    throw nodesError ?? suggestionsError;
+  }
+
+  const nodeMap = new Map(
+    (nodes ?? []).map((node) => [node.id, node.logical_node_key])
+  );
+
+  return {
+    versionId: version.id as string,
+    versionNo: Number(version.version_no),
+    patches: (suggestions ?? [])
+      .map((item) => ({
+        suggestionId: item.client_suggestion_id as string,
+        nodeId: nodeMap.get(item.node_id) ?? "",
+        original: item.original_text as string,
+        replacement: item.replacement_text as string
+      }))
+      .filter((item) => item.nodeId && item.replacement !== null)
+  };
+}
+
+export async function createDocumentVersion(
+  documentId: string,
+  parentVersionId: string,
+  parentVersionNo: number,
+  buffer: Buffer,
+  analysis: AnalyzeResponse,
+  appliedSuggestionIds: string[]
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { persisted: false as const, reason: "supabase_not_configured" };
+  }
+
+  const nextVersionNo = parentVersionNo + 1;
+  const storagePath =
+    `${documentId}/v${nextVersionNo}/source.docx`;
+
+  const { error: storageError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(storagePath, buffer, {
+      contentType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      upsert: false
+    });
+
+  if (storageError) throw storageError;
+
+  const { data: version, error: versionError } = await supabase
+    .from("document_versions")
+    .insert({
+      document_id: documentId,
+      version_no: nextVersionNo,
+      parent_version_id: parentVersionId,
+      is_source: false,
+      storage_path: storagePath,
+      status: "ready",
+      source_sha256: sha256(buffer),
+      engine_manifest: {
+        exporter: "aee_docx_patch_v0.1",
+        parser: "aee_docx_v0.1"
+      },
+      change_summary: {
+        applied_suggestions: appliedSuggestionIds,
+        applied_count: appliedSuggestionIds.length
+      }
+    })
+    .select("id")
+    .single();
+
+  if (versionError || !version?.id) throw versionError;
+
+  try {
+    await persistFastAnalysisRows(version.id, {
+      ...analysis,
+      document: {
+        ...analysis.document,
+        id: documentId
+      }
+    });
+
+    const { error: documentError } = await supabase
+      .from("documents")
+      .update({
+        status: "partial_ready",
+        word_count: analysis.document.wordCount,
+        paragraph_count: analysis.document.paragraphCount,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", documentId);
+
+    if (documentError) throw documentError;
+  } catch (error) {
+    await supabase
+      .from("document_versions")
+      .update({ status: "failed" })
+      .eq("id", version.id);
+
+    throw error;
+  }
+
+  return {
+    persisted: true as const,
+    versionId: version.id as string,
+    versionNo: nextVersionNo,
+    storagePath
+  };
+}
+
+export async function downloadDocumentVersion(
+  documentId: string,
+  versionNo?: number
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  let query = supabase
+    .from("document_versions")
+    .select("id, version_no, storage_path")
+    .eq("document_id", documentId);
+
+  if (versionNo != null) {
+    query = query.eq("version_no", versionNo);
+  } else {
+    query = query.order("version_no", { ascending: false }).limit(1);
+  }
+
+  const { data: version, error: versionError } = await query.single();
+  if (versionError || !version?.storage_path) return null;
+
+  const { data: document, error: documentError } = await supabase
+    .from("documents")
+    .select("filename")
+    .eq("id", documentId)
+    .single();
+
+  if (documentError || !document) return null;
+
+  const { data: blob, error: storageError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .download(version.storage_path);
+
+  if (storageError || !blob) return null;
+
+  return {
+    versionNo: Number(version.version_no),
+    filename: document.filename as string,
+    buffer: Buffer.from(await blob.arrayBuffer())
+  };
 }
