@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
+import secrets
 from hashlib import sha256
 from uuid import uuid4
 
-from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Response, UploadFile
 from pydantic import BaseModel, TypeAdapter
 
 from app.contracts import (
@@ -38,13 +40,39 @@ class PatchRequest(BaseModel):
     protected_spans: list[ProtectedSpan]
 
 
+def require_internal_auth(
+    authorization: str | None = Header(default=None),
+):
+    environment = os.getenv("NADID_ENV", "development").lower()
+    expected = os.getenv("AEE_INTERNAL_TOKEN")
+
+    if not expected:
+        if environment == "production":
+            raise HTTPException(
+                status_code=503,
+                detail="AEE internal authentication is not configured.",
+            )
+        return
+
+    scheme, _, supplied = (authorization or "").partition(" ")
+
+    if scheme.lower() != "bearer" or not secrets.compare_digest(
+        supplied,
+        expected,
+    ):
+        raise HTTPException(status_code=401, detail="Unauthorized.")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "nadid-aee"}
 
 
 @app.post("/v1/analyze/docx", response_model=AnalyzeResponse)
-async def analyze_docx(file: UploadFile = File(...)):
+async def analyze_docx(
+    file: UploadFile = File(...),
+    _auth: None = Depends(require_internal_auth),
+):
     if not file.filename or not file.filename.lower().endswith(".docx"):
         raise HTTPException(
             status_code=415,
@@ -101,7 +129,10 @@ async def analyze_docx(file: UploadFile = File(...)):
 
 
 @app.post("/v1/validate-patch")
-def validate_patch_endpoint(request: PatchRequest):
+def validate_patch_endpoint(
+    request: PatchRequest,
+    _auth: None = Depends(require_internal_auth),
+):
     result = validate_patch(
         block_text=request.block_text,
         original=request.original,
@@ -125,7 +156,10 @@ def validate_patch_endpoint(request: PatchRequest):
 
 
 @app.post("/v1/analyze/docx/deep", response_model=DeepAnalyzeResponse)
-async def analyze_docx_deep(file: UploadFile = File(...)):
+async def analyze_docx_deep(
+    file: UploadFile = File(...),
+    _auth: None = Depends(require_internal_auth),
+):
     if not file.filename or not file.filename.lower().endswith(".docx"):
         raise HTTPException(status_code=415, detail="DOCX only.")
 
@@ -173,7 +207,10 @@ class ContextEnvelope(BaseModel):
 
 
 @app.post("/v1/context", response_model=ContextPackage)
-def context_endpoint(envelope: ContextEnvelope):
+def context_endpoint(
+    envelope: ContextEnvelope,
+    _auth: None = Depends(require_internal_auth),
+):
     from app.contracts import Chunk, DocumentMemory, DocumentNode
 
     nodes = [DocumentNode.model_validate(item) for item in envelope.nodes]
@@ -197,6 +234,7 @@ def context_endpoint(envelope: ContextEnvelope):
 async def apply_docx_patches(
     file: UploadFile = File(...),
     patches: str = Form(...),
+    _auth: None = Depends(require_internal_auth),
 ):
     if not file.filename or not file.filename.lower().endswith(".docx"):
         raise HTTPException(status_code=415, detail="DOCX only.")
