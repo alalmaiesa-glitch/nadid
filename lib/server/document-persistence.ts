@@ -5,7 +5,8 @@ import type {
   DeepMemorySnapshot,
   DocumentBlock,
   ProtectedFact,
-  QuickSuggestion
+  QuickSuggestion,
+  ReviewCategory
 } from "@/lib/nadid-types";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -13,6 +14,35 @@ const STORAGE_BUCKET = "nadid-documents";
 
 function sha256(buffer: Buffer) {
   return createHash("sha256").update(buffer).digest("hex");
+}
+
+
+function normalizeReviewCategory(value: string): ReviewCategory {
+  switch (value) {
+    case "language":
+    case "style":
+    case "consistency":
+    case "protection":
+      return value;
+    default:
+      return "language";
+  }
+}
+
+function normalizeProtectedFactType(
+  value: string
+): ProtectedFact["type"] {
+  switch (value) {
+    case "number":
+    case "currency":
+    case "percentage":
+    case "date":
+    case "standard":
+    case "negation":
+      return value;
+    default:
+      return "standard";
+  }
 }
 
 function validatorForFact(type: ProtectedFact["type"]) {
@@ -134,7 +164,7 @@ export async function persistAnalyzedDocument(
       version_id: versionId,
       node_id: nodeMap.get(item.blockId) ?? null,
       client_suggestion_id: item.id,
-      category: item.category,
+      category: normalizeReviewCategory(item.category),
       title: item.title,
       explanation: item.explanation,
       original_text: item.original,
@@ -270,7 +300,7 @@ export async function loadAnalyzedDocument(documentId: string) {
     blockId: fact.node_id
       ? nodeIdToLogical.get(fact.node_id) ?? ""
       : "",
-    type: fact.span_type,
+    type: normalizeProtectedFactType(fact.span_type),
     value: fact.surface_text
   }));
 
