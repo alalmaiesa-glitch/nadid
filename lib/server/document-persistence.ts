@@ -286,7 +286,7 @@ export async function loadAnalyzedDocument(documentId: string) {
       blockId: item.node_id
         ? nodeIdToLogical.get(item.node_id) ?? ""
         : "",
-      category: item.category,
+      category: normalizeReviewCategory(item.category),
       title: item.title,
       explanation: item.explanation,
       original: item.original_text,
