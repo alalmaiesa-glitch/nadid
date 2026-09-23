@@ -2,8 +2,9 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
 
-let cached: SupabaseClient | null | undefined;
+let cached: SupabaseClient<Database> | null | undefined;
 
 export function getSupabaseBrowser() {
   if (cached !== undefined) return cached;
@@ -16,6 +17,6 @@ export function getSupabaseBrowser() {
     return cached;
   }
 
-  cached = createBrowserClient(url, key);
+  cached = createBrowserClient<Database>(url, key);
   return cached;
 }
