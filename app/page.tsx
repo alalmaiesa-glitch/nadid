@@ -26,7 +26,7 @@ export default function HomePage() {
           <div className="shell hero-grid">
             <div>
               <span className="eyebrow">محرر عربي للمستند، لا للجملة وحدها</span>
-              <h1>نص أدق.<br /><em>سياق أتم.</em></h1>
+              <h1>نصٌّ أدقُّ.<br /><em>سياقٌ أتمُّ.</em></h1>
               <p className="hero-lead">
                 نَضِيد يراجع اللغة والصياغة والسياق والاتساق في المستندات العربية
                 الطويلة، ويحمي المعنى والحقائق أثناء التحرير.
@@ -126,7 +126,7 @@ export default function HomePage() {
           </div>
         </section>
       </main>
-      <footer className="site-footer"><div className="shell footer-inner"><span>نَضِيد — محرر العربية الذكي</span><span>نص أدق. سياق أتم.</span></div></footer>
+      <footer className="site-footer"><div className="shell footer-inner"><span>نَضِيد — محرر العربية الذكي</span><span>نصٌّ أدقُّ. سياقٌ أتمُّ.</span></div></footer>
     </>
   );
 }
