@@ -12,7 +12,9 @@ CURRENCY_RE = re.compile(
 )
 NUMBER_RE = re.compile(NUMBER_PATTERN)
 PERCENT_RE = re.compile(rf"{NUMBER_PATTERN}\s*[%٪]")
-DATE_RE = re.compile(rf"(?<![{DIGITS}])[12١٢][09٠٩][{DIGITS}]{{2}}(?![{DIGITS}])")
+DATE_RE = re.compile(
+    rf"(?<![{DIGITS}])(?:19|20|١٩|٢٠|۱۹|۲۰)[{DIGITS}]{{2}}(?![{DIGITS}])"
+)
 STANDARD_RE = re.compile(
     rf"\bISO\s*[{DIGITS}]{{3,6}}(?::[{DIGITS}]{{4}})?\b",
     re.IGNORECASE,
