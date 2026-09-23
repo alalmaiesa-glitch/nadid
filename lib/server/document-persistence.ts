@@ -209,7 +209,7 @@ export async function loadAnalyzedDocument(documentId: string) {
 
   const { data: version, error: versionError } = await supabase
     .from("document_versions")
-    .select("id")
+    .select("id, version_no")
     .eq("document_id", documentId)
     .eq("status", "ready")
     .order("version_no", { ascending: false })
@@ -274,6 +274,7 @@ export async function loadAnalyzedDocument(documentId: string) {
       filename: document.filename,
       wordCount: document.word_count,
       paragraphCount: document.paragraph_count,
+      versionNo: Number(version.version_no),
       blocks
     },
     suggestions: mappedSuggestions,
