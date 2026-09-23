@@ -619,6 +619,24 @@ export type Database = {
           },
         ]
       }
+      worker_heartbeats: {
+        Row: {
+          last_seen: string
+          metadata: Json
+          worker_id: string
+        }
+        Insert: {
+          last_seen?: string
+          metadata?: Json
+          worker_id: string
+        }
+        Update: {
+          last_seen?: string
+          metadata?: Json
+          worker_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
