@@ -11,9 +11,9 @@
     "@supabase/supabase-js": "2.117.0",
     "lucide-react": "^0.468.0",
     "mammoth": "^1.9.1",
-    "next": "15.5.9",
-    "react": "19.0.1",
-    "react-dom": "19.0.1",
+    "next": "15.5.26",
+    "react": "19.0.7",
+    "react-dom": "19.0.7",
     "@supabase/ssr": "0.12.7",
     "tus-js-client": "4.3.1"
   },
