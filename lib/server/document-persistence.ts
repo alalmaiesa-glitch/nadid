@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type {
   AnalyzeResponse,
+  DeepAnalysisResult,
+  DeepMemorySnapshot,
   DocumentBlock,
   ProtectedFact,
   QuickSuggestion
@@ -277,4 +279,277 @@ export async function loadAnalyzedDocument(documentId: string) {
   };
 
   return response;
+}
+
+
+export async function loadDocumentSource(documentId: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const { data: document, error: documentError } = await supabase
+    .from("documents")
+    .select("id, filename, storage_path")
+    .eq("id", documentId)
+    .single();
+
+  if (documentError || !document?.storage_path) return null;
+
+  const { data: version, error: versionError } = await supabase
+    .from("document_versions")
+    .select("id")
+    .eq("document_id", documentId)
+    .order("version_no", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (versionError || !version) return null;
+
+  const { data: source, error: storageError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .download(document.storage_path);
+
+  if (storageError || !source) return null;
+
+  return {
+    documentId,
+    versionId: version.id as string,
+    filename: document.filename as string,
+    buffer: Buffer.from(await source.arrayBuffer())
+  };
+}
+
+export async function persistDeepAnalysis(
+  documentId: string,
+  versionId: string,
+  deep: DeepAnalysisResult
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { persisted: false as const, reason: "supabase_not_configured" };
+  }
+
+  const { error: memoryStartError } = await supabase
+    .from("document_memory")
+    .upsert(
+      {
+        version_id: versionId,
+        state: "building",
+        headings: deep.memory.headings,
+        protected_count: deep.memory.protectedCount,
+        chunk_count: deep.memory.chunkCount,
+        engine_manifest: {
+          memory: "deterministic_v0.1",
+          facts: "deterministic_v0.1",
+          retrieval: "lexical_v0.1"
+        },
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: "version_id" }
+    );
+
+  if (memoryStartError) throw memoryStartError;
+
+  const cleanupTables = [
+    "fact_conflicts",
+    "fact_assertions",
+    "memory_terms",
+    "document_chunks"
+  ] as const;
+
+  for (const table of cleanupTables) {
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq("version_id", versionId);
+
+    if (error) throw error;
+  }
+
+  if (deep.chunks.length > 0) {
+    const { error } = await supabase.from("document_chunks").insert(
+      deep.chunks.map((chunk, index) => ({
+        version_id: versionId,
+        chunk_key: chunk.id,
+        sequence_no: index,
+        node_keys: chunk.nodeIds,
+        chunk_text: chunk.text,
+        token_estimate: chunk.tokenEstimate
+      }))
+    );
+
+    if (error) throw error;
+  }
+
+  if (deep.memory.terms.length > 0) {
+    const { error } = await supabase.from("memory_terms").insert(
+      deep.memory.terms.map((term) => ({
+        version_id: versionId,
+        term: term.term,
+        occurrence_count: term.count,
+        node_keys: term.nodeIds
+      }))
+    );
+
+    if (error) throw error;
+  }
+
+  if (deep.memory.facts.length > 0) {
+    const { error } = await supabase.from("fact_assertions").insert(
+      deep.memory.facts.map((fact) => ({
+        version_id: versionId,
+        client_fact_id: fact.id,
+        node_key: fact.nodeId,
+        fact_type: fact.factType,
+        claim_key: fact.claimKey,
+        surface_value: fact.value,
+        canonical_value: fact.canonicalValue,
+        context_text: fact.context,
+        confidence: fact.confidence,
+        authority: "extracted"
+      }))
+    );
+
+    if (error) throw error;
+  }
+
+  if (deep.memory.conflicts.length > 0) {
+    const { error } = await supabase.from("fact_conflicts").insert(
+      deep.memory.conflicts.map((conflict) => ({
+        version_id: versionId,
+        client_conflict_id: conflict.id,
+        claim_key: conflict.claimKey,
+        fact_ids: conflict.factIds,
+        values_found: conflict.values,
+        confidence: conflict.confidence,
+        status: "open"
+      }))
+    );
+
+    if (error) throw error;
+  }
+
+  const { error: memoryReadyError } = await supabase
+    .from("document_memory")
+    .update({
+      state: "ready",
+      built_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq("version_id", versionId);
+
+  if (memoryReadyError) throw memoryReadyError;
+
+  const { error: documentStatusError } = await supabase
+    .from("documents")
+    .update({
+      status: "ready",
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", documentId);
+
+  if (documentStatusError) throw documentStatusError;
+
+  const { error: runError } = await supabase.from("analysis_runs").insert({
+    version_id: versionId,
+    run_type: "deep",
+    state: "complete",
+    engine_manifest: {
+      memory: "deterministic_v0.1",
+      facts: "deterministic_v0.1",
+      retrieval: "lexical_v0.1"
+    },
+    metrics: {
+      chunks: deep.chunks.length,
+      terms: deep.memory.terms.length,
+      facts: deep.memory.facts.length,
+      conflicts: deep.memory.conflicts.length
+    },
+    completed_at: new Date().toISOString()
+  });
+
+  if (runError) throw runError;
+
+  return { persisted: true as const };
+}
+
+export async function loadDeepMemory(
+  documentId: string
+): Promise<DeepMemorySnapshot | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const { data: version, error: versionError } = await supabase
+    .from("document_versions")
+    .select("id")
+    .eq("document_id", documentId)
+    .order("version_no", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (versionError || !version) return null;
+
+  const { data: memory, error: memoryError } = await supabase
+    .from("document_memory")
+    .select("state, headings, protected_count, chunk_count")
+    .eq("version_id", version.id)
+    .single();
+
+  if (memoryError || !memory || memory.state !== "ready") return null;
+
+  const [
+    { data: terms, error: termsError },
+    { data: facts, error: factsError },
+    { data: conflicts, error: conflictsError }
+  ] = await Promise.all([
+    supabase
+      .from("memory_terms")
+      .select("term, occurrence_count, node_keys")
+      .eq("version_id", version.id)
+      .order("occurrence_count", { ascending: false }),
+    supabase
+      .from("fact_assertions")
+      .select(
+        "client_fact_id, node_key, fact_type, claim_key, surface_value, canonical_value, context_text, confidence"
+      )
+      .eq("version_id", version.id),
+    supabase
+      .from("fact_conflicts")
+      .select(
+        "client_conflict_id, claim_key, fact_ids, values_found, confidence"
+      )
+      .eq("version_id", version.id)
+      .eq("status", "open")
+  ]);
+
+  if (termsError || factsError || conflictsError) {
+    throw termsError ?? factsError ?? conflictsError;
+  }
+
+  return {
+    headings: Array.isArray(memory.headings) ? memory.headings : [],
+    terms: (terms ?? []).map((term) => ({
+      term: term.term,
+      count: term.occurrence_count,
+      nodeIds: term.node_keys ?? []
+    })),
+    facts: (facts ?? []).map((fact) => ({
+      id: fact.client_fact_id,
+      nodeId: fact.node_key,
+      factType: fact.fact_type,
+      claimKey: fact.claim_key,
+      value: fact.surface_value,
+      canonicalValue: fact.canonical_value,
+      context: fact.context_text,
+      confidence: Number(fact.confidence)
+    })),
+    conflicts: (conflicts ?? []).map((conflict) => ({
+      id: conflict.client_conflict_id,
+      claimKey: conflict.claim_key,
+      factIds: conflict.fact_ids ?? [],
+      values: conflict.values_found ?? [],
+      confidence: Number(conflict.confidence)
+    })),
+    protectedCount: memory.protected_count,
+    chunkCount: memory.chunk_count
+  };
 }
