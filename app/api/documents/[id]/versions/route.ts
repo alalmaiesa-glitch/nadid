@@ -1,5 +1,6 @@
 import {
   createDocumentVersion,
+  listDocumentVersions,
   loadAcceptedPatches,
   loadDocumentSource
 } from "@/lib/server/document-persistence";
@@ -109,6 +110,33 @@ export async function POST(
             : "version_creation_failed"
       },
       { status: 502 }
+    );
+  }
+}
+
+
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+
+  try {
+    const versions = await listDocumentVersions(id);
+
+    return Response.json({
+      versions: versions.map((version) => ({
+        ...version,
+        downloadUrl:
+          version.status === "ready"
+            ? `/api/documents/${id}/export?version=${version.versionNo}`
+            : null
+      }))
+    });
+  } catch {
+    return Response.json(
+      { error: "Could not load document versions." },
+      { status: 500 }
     );
   }
 }
