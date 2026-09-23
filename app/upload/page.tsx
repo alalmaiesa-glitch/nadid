@@ -25,8 +25,12 @@ export default function UploadPage() {
   const [error, setError] = useState("");
 
   const persistentMode = Boolean(getSupabaseBrowser());
+  const publicMaxMb = Math.max(
+    1,
+    Number(process.env.NEXT_PUBLIC_NADID_MAX_FILE_MB ?? 50)
+  );
   const maxBytes = persistentMode
-    ? 100 * 1024 * 1024
+    ? publicMaxMb * 1024 * 1024
     : 25 * 1024 * 1024;
 
   function validateFile(nextFile: File) {
@@ -38,7 +42,7 @@ export default function UploadPage() {
     if (nextFile.size > maxBytes) {
       setError(
         persistentMode
-          ? "الحد التشغيلي الحالي للرفع هو 100 ميجابايت."
+          ? `الحد التشغيلي الحالي للرفع هو ${publicMaxMb} ميجابايت.`
           : "الحد التجريبي المحلي الحالي هو 25 ميجابايت."
       );
       return false;
@@ -318,7 +322,7 @@ export default function UploadPage() {
                 : "وضع تطوير محلي"}
             </span>
             <span>
-              حتى {persistentMode ? "100" : "25"} MB حاليًا
+              حتى {persistentMode ? publicMaxMb : 25} MB حاليًا
             </span>
           </div>
         </div>
