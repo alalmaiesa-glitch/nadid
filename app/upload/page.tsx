@@ -111,8 +111,7 @@ export default function UploadPage() {
         upload.token,
         nextFile,
         {
-          contentType: nextFile.type || DOCX_MIME,
-          upsert: false
+          contentType: nextFile.type || DOCX_MIME
         }
       );
 
