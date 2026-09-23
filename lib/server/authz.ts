@@ -21,6 +21,16 @@ export async function authorizeUser(): Promise<
   Authorized | Unauthorized
 > {
   if (!isSupabaseConfigured()) {
+    if (process.env.NODE_ENV === "production") {
+      return {
+        ok: false,
+        response: Response.json(
+          { error: "Authentication service is not configured." },
+          { status: 503 }
+        )
+      };
+    }
+
     return { ok: true, userId: null };
   }
 
