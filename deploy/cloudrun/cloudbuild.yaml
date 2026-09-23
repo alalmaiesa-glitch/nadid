@@ -3,6 +3,7 @@ substitutions:
   _REPOSITORY: nadid
   _NEXT_PUBLIC_SUPABASE_URL: https://jcyfhfpulckpsdaiecoe.supabase.co
   _NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ""
+  _NEXT_PUBLIC_NADID_MAX_FILE_MB: "50"
 
 steps:
   - id: build-web
@@ -15,6 +16,8 @@ steps:
       - NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL}
       - --build-arg
       - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${_NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+      - --build-arg
+      - NEXT_PUBLIC_NADID_MAX_FILE_MB=${_NEXT_PUBLIC_NADID_MAX_FILE_MB}
       - .
 
   - id: build-aee
