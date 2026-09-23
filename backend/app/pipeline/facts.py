@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid5
 
 from app.contracts import DocumentNode, FactAssertion, FactConflict
 
@@ -40,7 +40,13 @@ def extract_facts(nodes: list[DocumentNode]) -> list[FactAssertion]:
 
             facts.append(
                 FactAssertion(
-                    id=str(uuid4()),
+                    id=str(
+                        uuid5(
+                            NAMESPACE_URL,
+                            f"{node.id}|{fact_type}|{claim_key}|"
+                            f"{_canonical_number(value)}|{match.start()}",
+                        )
+                    ),
                     node_id=node.id,
                     fact_type=fact_type,
                     claim_key=claim_key,
@@ -71,7 +77,14 @@ def detect_fact_conflicts(facts: list[FactAssertion]) -> list[FactConflict]:
 
         conflicts.append(
             FactConflict(
-                id=str(uuid4()),
+                id=str(
+                    uuid5(
+                        NAMESPACE_URL,
+                        claim_key + "|" + "|".join(
+                            sorted(fact.id for fact in group)
+                        ),
+                    )
+                ),
                 claim_key=claim_key,
                 fact_ids=[fact.id for fact in group],
                 values=values,
