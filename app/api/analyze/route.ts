@@ -6,6 +6,7 @@ import type {
   ProtectedFact,
   QuickSuggestion
 } from "@/lib/nadid-types";
+import { persistAnalyzedDocument } from "@/lib/server/document-persistence";
 
 export const runtime = "nodejs";
 
@@ -173,9 +174,15 @@ function extractProtectedFacts(blocks: DocumentBlock[]): ProtectedFact[] {
   for (const block of blocks) {
     const text = block.text;
 
-    for (const match of text.matchAll(/\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*(?:ريال|ر\.س)?/g)) {
+    for (const match of text.matchAll(
+      /\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*(?:ريال|ر\.س)?/g
+    )) {
       const value = match[0].trim();
-      push(block.id, /ريال|ر\.س/.test(value) ? "currency" : "number", value);
+      push(
+        block.id,
+        /ريال|ر\.س/.test(value) ? "currency" : "number",
+        value
+      );
     }
 
     for (const match of text.matchAll(/\b\d+(?:\.\d+)?\s*%/g)) {
@@ -186,11 +193,15 @@ function extractProtectedFacts(blocks: DocumentBlock[]): ProtectedFact[] {
       push(block.id, "date", match[0]);
     }
 
-    for (const match of text.matchAll(/\bISO\s*\d{3,6}(?::\d{4})?\b/gi)) {
+    for (const match of text.matchAll(
+      /\bISO\s*\d{3,6}(?::\d{4})?\b/gi
+    )) {
       push(block.id, "standard", match[0]);
     }
 
-    for (const match of text.matchAll(/(?:^|\s)(?:و|ف)?(?:لا|لم|لن|ليس|ليست)\s+[^،؛.!؟\n]{1,55}/g)) {
+    for (const match of text.matchAll(
+      /(?:^|\s)(?:و|ف)?(?:لا|لم|لن|ليس|ليست)\s+[^،؛.!؟\n]{1,55}/g
+    )) {
       push(block.id, "negation", match[0].trim());
     }
   }
@@ -243,13 +254,28 @@ export async function POST(request: Request) {
         id: randomUUID(),
         filename: value.name,
         wordCount,
-        paragraphCount: blocks.filter((block) => block.type === "paragraph").length,
+        paragraphCount: blocks.filter(
+          (block) => block.type === "paragraph"
+        ).length,
         blocks
       },
       suggestions: quickReview(blocks),
       protectedFacts: extractProtectedFacts(blocks),
       warnings: extraction.messages.map((message) => message.message)
     };
+
+    try {
+      const persistence = await persistAnalyzedDocument(response, buffer);
+      if (!persistence.persisted) {
+        response.warnings.push(
+          "يعمل نَضِيد حاليًا بوضع التخزين المحلي لأن قاعدة البيانات لم تُربط بعد."
+        );
+      }
+    } catch {
+      response.warnings.push(
+        "تم تحليل المستند بنجاح، لكن تعذر حفظه في التخزين الدائم؛ احتفظنا بالنتيجة محليًا في هذا المتصفح."
+      );
+    }
 
     return Response.json(response);
   } catch {
