@@ -36,3 +36,50 @@ export type AnalyzeResponse = {
   protectedFacts: ProtectedFact[];
   warnings: string[];
 };
+
+
+export type MemoryTerm = {
+  term: string;
+  count: number;
+  nodeIds: string[];
+};
+
+export type FactAssertion = {
+  id: string;
+  nodeId: string;
+  factType: string;
+  claimKey: string;
+  value: string;
+  canonicalValue: string;
+  context: string;
+  confidence: number;
+};
+
+export type FactConflict = {
+  id: string;
+  claimKey: string;
+  factIds: string[];
+  values: string[];
+  confidence: number;
+};
+
+export type MemoryChunk = {
+  id: string;
+  nodeIds: string[];
+  text: string;
+  tokenEstimate: number;
+};
+
+export type DeepMemorySnapshot = {
+  headings: string[];
+  terms: MemoryTerm[];
+  facts: FactAssertion[];
+  conflicts: FactConflict[];
+  protectedCount: number;
+  chunkCount: number;
+};
+
+export type DeepAnalysisResult = {
+  chunks: MemoryChunk[];
+  memory: DeepMemorySnapshot;
+};
