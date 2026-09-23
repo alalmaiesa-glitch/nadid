@@ -259,3 +259,44 @@ def test_fact_lock_blocks_changed_arabic_number():
     )
 
     assert result.status == "BLOCK"
+
+
+def test_docx_patch_preserves_surrounding_run_formatting():
+    from io import BytesIO
+    from docx import Document
+    from app.pipeline.docx_patch import apply_patches_to_docx
+    from app.pipeline.parser import parse_docx
+    from app.contracts import PatchOperation
+
+    document = Document()
+    paragraph = document.add_paragraph()
+    first = paragraph.add_run("بلغت التكلفة ")
+    first.bold = True
+    paragraph.add_run("38,771,251 ريال ، وهي معتمدة.")
+
+    source = BytesIO()
+    document.save(source)
+    payload = source.getvalue()
+
+    nodes = parse_docx(payload)
+    target = nodes[0]
+
+    output, report = apply_patches_to_docx(
+        payload,
+        [
+            PatchOperation(
+                node_id=target.id,
+                original="ريال ،",
+                replacement="ريال،",
+            )
+        ],
+    )
+
+    assert len(report.applied) == 1
+    assert not report.skipped
+
+    result = Document(BytesIO(output))
+    result_paragraph = result.paragraphs[0]
+
+    assert "38,771,251 ريال، وهي معتمدة." in result_paragraph.text
+    assert result_paragraph.runs[0].bold is True
