@@ -1,6 +1,5 @@
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
-import SupportDevelopment from "@/components/SupportDevelopment";
 
 const features = [
   ["01", "مراجعة لغوية شاملة", "إملاء ونحو وصرف وعلامات ترقيم، مع تفسير واضح للملاحظة بدل التصحيح الصامت."],
@@ -116,8 +115,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
-        <SupportDevelopment />
 
         <section className="cta">
           <div className="shell">
