@@ -48,3 +48,32 @@ jobs:
         env:
           PYTHONPATH: .
         run: pytest -q
+
+  aee-container:
+    runs-on: ubuntu-latest
+    needs: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build AEE image
+        run: docker build -t nadid-aee:ci ./backend
+
+      - name: Start AEE container
+        run: docker run -d --rm --name nadid-aee-ci -p 8000:8000 nadid-aee:ci
+
+      - name: Verify health endpoint
+        run: |
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8000/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs nadid-aee-ci
+          exit 1
+
+      - name: Stop container
+        if: always()
+        run: docker stop nadid-aee-ci || true
