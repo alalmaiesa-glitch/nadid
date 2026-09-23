@@ -1,10 +1,14 @@
 import { downloadDocumentVersion } from "@/lib/server/document-persistence";
+import { authorizeDocument } from "@/lib/server/authz";
 
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const auth = await authorizeDocument(id);
+  if (!auth.ok) return auth.response;
+
   const url = new URL(request.url);
   const requested = url.searchParams.get("version");
   const versionNo = requested ? Number(requested) : undefined;
