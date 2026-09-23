@@ -143,3 +143,47 @@ jobs:
 
       - name: Build worker image
         run: docker build -t nadid-worker:ci -f worker/Dockerfile .
+
+
+  web-container:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build web image
+        run: >-
+          docker build
+          --build-arg NEXT_PUBLIC_SUPABASE_URL=https://jcyfhfpulckpsdaiecoe.supabase.co
+          --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_placeholder
+          --build-arg NEXT_PUBLIC_APP_URL=http://localhost:8080
+          -t nadid-web:ci
+          .
+
+      - name: Start web container
+        run: >-
+          docker run -d --rm
+          --name nadid-web-ci
+          -p 8080:8080
+          -e NEXT_PUBLIC_SUPABASE_URL=https://jcyfhfpulckpsdaiecoe.supabase.co
+          -e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_placeholder
+          -e SUPABASE_SERVICE_ROLE_KEY=ci-placeholder
+          -e AEE_BACKEND_URL=http://127.0.0.1:9999
+          -e AEE_INTERNAL_TOKEN=ci-placeholder
+          nadid-web:ci
+
+      - name: Verify public homepage
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8080/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs nadid-web-ci
+          exit 1
+
+      - name: Stop web container
+        if: always()
+        run: docker stop nadid-web-ci || true
