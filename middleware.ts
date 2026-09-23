@@ -6,8 +6,21 @@ const protectedPrefixes = ["/documents", "/upload", "/editor"];
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const pathname = request.nextUrl.pathname;
+  const isProtected = protectedPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
+  );
+  const needsAuthConfig =
+    isProtected || pathname === "/login" || pathname.startsWith("/auth/");
 
   if (!url || !key) {
+    if (process.env.NODE_ENV === "production" && needsAuthConfig) {
+      return NextResponse.json(
+        { error: "Authentication service is not configured." },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.next();
   }
 
@@ -35,11 +48,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user }
   } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
-  const isProtected = protectedPrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
-  );
 
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone();
