@@ -230,13 +230,13 @@ export async function loadAnalyzedDocument(documentId: string) {
       supabase
         .from("suggestions")
         .select(
-          "client_suggestion_id, node_id, category, title, explanation, original_text, replacement_text, confidence, status"
+          "id, client_suggestion_id, node_id, category, title, explanation, original_text, replacement_text, confidence, status"
         )
         .eq("version_id", version.id)
         .eq("status", "pending"),
       supabase
         .from("protected_spans")
-        .select("client_fact_id, node_id, span_type, surface_text")
+        .select("id, client_fact_id, node_id, span_type, surface_text")
         .eq("version_id", version.id)
     ]);
 
@@ -252,8 +252,10 @@ export async function loadAnalyzedDocument(documentId: string) {
 
   const mappedSuggestions: QuickSuggestion[] = (suggestions ?? []).map(
     (item) => ({
-      id: item.client_suggestion_id,
-      blockId: nodeIdToLogical.get(item.node_id) ?? "",
+      id: item.client_suggestion_id ?? item.id,
+      blockId: item.node_id
+        ? nodeIdToLogical.get(item.node_id) ?? ""
+        : "",
       category: item.category,
       title: item.title,
       explanation: item.explanation,
@@ -264,8 +266,10 @@ export async function loadAnalyzedDocument(documentId: string) {
   );
 
   const protectedFacts: ProtectedFact[] = (facts ?? []).map((fact) => ({
-    id: fact.client_fact_id,
-    blockId: nodeIdToLogical.get(fact.node_id) ?? "",
+    id: fact.client_fact_id ?? fact.id,
+    blockId: fact.node_id
+      ? nodeIdToLogical.get(fact.node_id) ?? ""
+      : "",
     type: fact.span_type,
     value: fact.surface_text
   }));
