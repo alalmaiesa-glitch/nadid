@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   AnalyzeResponse,
+  DeepAnalysisResult,
   ProtectedFact
 } from "@/lib/nadid-types";
 
@@ -152,4 +153,108 @@ export async function validatePatchWithAee(input: {
   }
 
   return response.json();
+}
+
+
+type AeeDeepResponse = {
+  base: {
+    chunks: Array<{
+      id: string;
+      node_ids: string[];
+      text: string;
+      token_estimate: number;
+    }>;
+  };
+  memory: {
+    headings: string[];
+    terms: Array<{
+      term: string;
+      count: number;
+      node_ids: string[];
+    }>;
+    facts: Array<{
+      id: string;
+      node_id: string;
+      fact_type: string;
+      claim_key: string;
+      value: string;
+      canonical_value: string;
+      context: string;
+      confidence: number;
+    }>;
+    conflicts: Array<{
+      id: string;
+      claim_key: string;
+      fact_ids: string[];
+      values: string[];
+      confidence: number;
+    }>;
+    protected_count: number;
+    chunk_count: number;
+  };
+};
+
+export async function analyzeDocxDeepWithAee(
+  filename: string,
+  buffer: Buffer
+): Promise<DeepAnalysisResult> {
+  const body = new FormData();
+  const bytes = new Uint8Array(buffer.length);
+  bytes.set(buffer);
+
+  body.append(
+    "file",
+    new Blob([bytes.buffer], {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }),
+    filename
+  );
+
+  const response = await fetch(aeeUrl("/v1/analyze/docx/deep"), {
+    method: "POST",
+    body,
+    signal: AbortSignal.timeout(180_000)
+  });
+
+  if (!response.ok) {
+    throw new Error(`aee_deep_analyze_failed_${response.status}`);
+  }
+
+  const payload = (await response.json()) as AeeDeepResponse;
+
+  return {
+    chunks: payload.base.chunks.map((chunk) => ({
+      id: chunk.id,
+      nodeIds: chunk.node_ids,
+      text: chunk.text,
+      tokenEstimate: chunk.token_estimate
+    })),
+    memory: {
+      headings: payload.memory.headings,
+      terms: payload.memory.terms.map((term) => ({
+        term: term.term,
+        count: term.count,
+        nodeIds: term.node_ids
+      })),
+      facts: payload.memory.facts.map((fact) => ({
+        id: fact.id,
+        nodeId: fact.node_id,
+        factType: fact.fact_type,
+        claimKey: fact.claim_key,
+        value: fact.value,
+        canonicalValue: fact.canonical_value,
+        context: fact.context,
+        confidence: fact.confidence
+      })),
+      conflicts: payload.memory.conflicts.map((conflict) => ({
+        id: conflict.id,
+        claimKey: conflict.claim_key,
+        factIds: conflict.fact_ids,
+        values: conflict.values,
+        confidence: conflict.confidence
+      })),
+      protectedCount: payload.memory.protected_count,
+      chunkCount: payload.memory.chunk_count
+    }
+  };
 }
