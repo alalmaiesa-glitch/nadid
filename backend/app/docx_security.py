@@ -55,7 +55,7 @@ def validate_docx_payload(data: bytes) -> None:
 
                 normalized = entry.filename.replace("\\", "/")
 
-                if normalized.startswith("/") or "../" in normalized.split("/"):
+                if normalized.startswith("/") or ".." in normalized.split("/"):
                     raise UnsafeDocxError("unsafe_zip_path")
 
                 if entry.file_size > MAX_SINGLE_ENTRY_BYTES:
