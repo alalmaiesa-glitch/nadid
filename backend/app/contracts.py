@@ -63,3 +63,57 @@ class AnalyzeResponse(BaseModel):
     chunks: list[Chunk]
     suggestions: list[Suggestion]
     protected_spans: list[ProtectedSpan]
+
+
+class FactAssertion(BaseModel):
+    id: str
+    node_id: str
+    fact_type: str
+    claim_key: str
+    value: str
+    canonical_value: str
+    context: str
+    confidence: float = Field(default=0.9, ge=0, le=1)
+
+
+class FactConflict(BaseModel):
+    id: str
+    claim_key: str
+    fact_ids: list[str]
+    values: list[str]
+    confidence: float = Field(default=0.8, ge=0, le=1)
+
+
+class MemoryTerm(BaseModel):
+    term: str
+    count: int
+    node_ids: list[str]
+
+
+class DocumentMemory(BaseModel):
+    headings: list[str]
+    terms: list[MemoryTerm]
+    facts: list[FactAssertion]
+    conflicts: list[FactConflict]
+    protected_count: int
+    chunk_count: int
+
+
+class ContextRequest(BaseModel):
+    target_node_id: str
+    query: str | None = None
+    max_chunks: int = Field(default=5, ge=1, le=12)
+
+
+class ContextHit(BaseModel):
+    chunk_id: str
+    score: float
+    text: str
+    node_ids: list[str]
+
+
+class ContextPackage(BaseModel):
+    target_node_id: str
+    local_nodes: list[DocumentNode]
+    hits: list[ContextHit]
+    related_facts: list[FactAssertion]
