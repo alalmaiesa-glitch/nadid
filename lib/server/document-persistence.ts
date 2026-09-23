@@ -218,19 +218,19 @@ export async function loadAnalyzedDocument(documentId: string) {
       supabase
         .from("document_nodes")
         .select("id, logical_node_key, node_type, sequence_no, text")
-        .eq("version_id", versionId)
+        .eq("version_id", version.id)
         .order("sequence_no", { ascending: true }),
       supabase
         .from("suggestions")
         .select(
           "client_suggestion_id, node_id, category, title, explanation, original_text, replacement_text, confidence, status"
         )
-        .eq("version_id", versionId)
+        .eq("version_id", version.id)
         .eq("status", "pending"),
       supabase
         .from("protected_spans")
         .select("client_fact_id, node_id, span_type, surface_text")
-        .eq("version_id", versionId)
+        .eq("version_id", version.id)
     ]);
 
   const nodeIdToLogical = new Map(
