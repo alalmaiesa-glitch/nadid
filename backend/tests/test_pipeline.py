@@ -153,3 +153,44 @@ def test_context_retrieval_finds_related_chunk():
     )
 
     assert any("الطاقة الإنتاجية" in hit.text for hit in package.hits)
+
+
+def test_parser_node_ids_are_stable_for_same_docx():
+    from io import BytesIO
+    from docx import Document
+    from app.pipeline.parser import parse_docx
+
+    document = Document()
+    document.add_heading("مقدمة", level=1)
+    document.add_paragraph("هذا نص تجريبي ثابت.")
+    stream = BytesIO()
+    document.save(stream)
+    payload = stream.getvalue()
+
+    first = parse_docx(payload)
+    second = parse_docx(payload)
+
+    assert [item.id for item in first] == [item.id for item in second]
+
+
+def test_chunk_ids_are_stable():
+    nodes = [
+        node("الفقرة الأولى في المستند.", 0),
+        node("الفقرة الثانية في المستند.", 1),
+    ]
+
+    first = build_chunks(nodes, target_tokens=100)
+    second = build_chunks(nodes, target_tokens=100)
+
+    assert [item.id for item in first] == [item.id for item in second]
+
+
+def test_fact_ids_are_stable():
+    from app.pipeline.facts import extract_facts
+
+    nodes = [node("تبلغ الطاقة الإنتاجية 2000000 وحدة سنويًا.", 0)]
+
+    first = extract_facts(nodes)
+    second = extract_facts(nodes)
+
+    assert [item.id for item in first] == [item.id for item in second]
