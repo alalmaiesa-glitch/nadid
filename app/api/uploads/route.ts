@@ -45,9 +45,20 @@ export async function POST(request: Request) {
     );
   }
 
-  if (size > 100 * 1024 * 1024) {
+  const configuredMaxMb = Number(
+    process.env.NADID_MAX_FILE_MB ?? 100
+  );
+  const maxFileMb = Math.min(
+    100,
+    Math.max(1, Number.isFinite(configuredMaxMb) ? configuredMaxMb : 100)
+  );
+
+  if (size > maxFileMb * 1024 * 1024) {
     return Response.json(
-      { error: "File exceeds the 100 MB operational limit." },
+      {
+        error:
+          `File exceeds the ${maxFileMb} MB operational limit.`
+      },
       { status: 413 }
     );
   }
@@ -59,7 +70,27 @@ export async function POST(request: Request) {
     );
 
     return Response.json(upload, { status: 201 });
-  } catch {
+  } catch (error) {
+    const code =
+      error instanceof Error ? error.message : "upload_create_failed";
+
+    if (code === "upload_daily_limit") {
+      return Response.json(
+        { error: "Daily upload limit reached." },
+        { status: 429 }
+      );
+    }
+
+    if (code === "upload_active_limit") {
+      return Response.json(
+        {
+          error:
+            "Too many active uploads. Wait for current uploads to finish."
+        },
+        { status: 429 }
+      );
+    }
+
     return Response.json(
       { error: "Could not create upload." },
       { status: 500 }
