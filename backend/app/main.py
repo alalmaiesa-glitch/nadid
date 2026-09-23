@@ -3,14 +3,15 @@ from __future__ import annotations
 from hashlib import sha256
 from uuid import uuid4
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from pydantic import BaseModel
+from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
+from pydantic import BaseModel, TypeAdapter
 
 from app.contracts import (
     AnalyzeResponse,
     ContextPackage,
     ContextRequest,
     DeepAnalyzeResponse,
+    PatchOperation,
     ProtectedSpan,
 )
 from app.pipeline.chunker import build_chunks
@@ -20,6 +21,7 @@ from app.pipeline.protection import extract_protected_spans
 from app.pipeline.reviewer import fast_review
 from app.pipeline.memory import build_document_memory
 from app.pipeline.context import retrieve_context
+from app.pipeline.docx_patch import apply_patches_to_docx
 
 
 app = FastAPI(
@@ -189,3 +191,101 @@ def context_endpoint(envelope: ContextEnvelope):
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/v1/apply/docx")
+async def apply_docx_patches(
+    file: UploadFile = File(...),
+    patches: str = Form(...),
+):
+    if not file.filename or not file.filename.lower().endswith(".docx"):
+        raise HTTPException(status_code=415, detail="DOCX only.")
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty file.")
+
+    try:
+        patch_list = TypeAdapter(list[PatchOperation]).validate_json(patches)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid patch payload.",
+        ) from exc
+
+    nodes = parse_docx(data)
+    node_map = {node.id: node for node in nodes}
+    protected = extract_protected_spans(nodes)
+    protected_by_node: dict[str, list[ProtectedSpan]] = {}
+
+    for span in protected:
+        protected_by_node.setdefault(span.node_id, []).append(span)
+
+    working_text = {node.id: node.text for node in nodes}
+    validated: list[PatchOperation] = []
+    blocked: list[dict] = []
+
+    for patch in patch_list:
+        source_text = working_text.get(patch.node_id)
+
+        if source_text is None:
+            blocked.append(
+                {
+                    "node_id": patch.node_id,
+                    "reason": "NODE_NOT_FOUND",
+                }
+            )
+            continue
+
+        result = validate_patch(
+            block_text=source_text,
+            original=patch.original,
+            replacement=patch.replacement,
+            protected_spans=protected_by_node.get(patch.node_id, []),
+        )
+
+        if result.status != "PASS":
+            blocked.append(
+                {
+                    "node_id": patch.node_id,
+                    "reason": result.reason,
+                }
+            )
+            continue
+
+        working_text[patch.node_id] = result.candidate
+        validated.append(patch)
+
+    if blocked:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "PATCH_SET_REJECTED",
+                "blocked": blocked,
+            },
+        )
+
+    output, report = apply_patches_to_docx(data, validated)
+
+    if report.skipped:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "PATCH_APPLICATION_INCOMPLETE",
+                "skipped": report.skipped,
+            },
+        )
+
+    filename = file.filename.rsplit(".", 1)[0] + "-nadid.docx"
+
+    return Response(
+        content=output,
+        media_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "wordprocessingml.document"
+        ),
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Nadid-Applied-Patches": str(len(report.applied)),
+        },
+    )
