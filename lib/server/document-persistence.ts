@@ -637,7 +637,11 @@ export async function loadDeepMemory(
   }
 
   return {
-    headings: Array.isArray(memory.headings) ? memory.headings : [],
+    headings: Array.isArray(memory.headings)
+      ? memory.headings.filter(
+          (item): item is string => typeof item === "string"
+        )
+      : [],
     terms: (terms ?? []).map((term) => ({
       term: term.term,
       count: term.occurrence_count,
