@@ -52,3 +52,26 @@ export async function getAnalysis(documentId: string) {
   db.close();
   return result;
 }
+
+
+export async function listAnalyses() {
+  const db = await openDatabase();
+
+  const result = await new Promise<AnalyzeResponse[]>(
+    (resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, "readonly");
+      const request = transaction.objectStore(STORE_NAME).getAll();
+
+      request.onsuccess = () =>
+        resolve((request.result ?? []) as AnalyzeResponse[]);
+      request.onerror = () => reject(request.error);
+    }
+  );
+
+  db.close();
+
+  return result.sort(
+    (a, b) =>
+      b.document.filename.localeCompare(a.document.filename, "ar")
+  );
+}
