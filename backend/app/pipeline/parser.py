@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid5
 
 from docx import Document
 from docx.table import Table
@@ -31,6 +31,16 @@ def _heading_level(paragraph: Paragraph) -> int | None:
     return None
 
 
+def _stable_node_id(
+    sequence: int,
+    node_type: str,
+    text: str,
+    anchor: str,
+) -> str:
+    identity = f"{sequence}|{node_type}|{anchor}|{text}"
+    return str(uuid5(NAMESPACE_URL, identity))
+
+
 def parse_docx(data: bytes) -> list[DocumentNode]:
     document = Document(BytesIO(data))
     nodes: list[DocumentNode] = []
@@ -43,15 +53,22 @@ def parse_docx(data: bytes) -> list[DocumentNode]:
                 continue
 
             level = _heading_level(block)
+            node_type = "heading" if level else "paragraph"
+            style_name = block.style.name if block.style else None
             nodes.append(
                 DocumentNode(
-                    id=str(uuid4()),
-                    type="heading" if level else "paragraph",
+                    id=_stable_node_id(
+                        sequence,
+                        node_type,
+                        text,
+                        f"paragraph:{style_name}:{level}",
+                    ),
+                    type=node_type,
                     text=text,
                     sequence_no=sequence,
                     source_anchor={
                         "kind": "paragraph",
-                        "style": block.style.name if block.style else None,
+                        "style": style_name,
                         "heading_level": level,
                     },
                 )
@@ -67,7 +84,12 @@ def parse_docx(data: bytes) -> list[DocumentNode]:
                         continue
                     nodes.append(
                         DocumentNode(
-                            id=str(uuid4()),
+                            id=_stable_node_id(
+                                sequence,
+                                "table_cell",
+                                text,
+                                f"table:{row_index}:{cell_index}",
+                            ),
                             type="table_cell",
                             text=text,
                             sequence_no=sequence,
