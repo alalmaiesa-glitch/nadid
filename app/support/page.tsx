@@ -1,13 +1,16 @@
-"use client";
-
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Brand } from "@/components/SiteHeader";
 
-export default function SupportPage() {
-  const params = useSearchParams();
-  const raw = Number(params.get("amount") ?? "5");
+type SupportPageProps = {
+  searchParams: Promise<{ amount?: string; currency?: string }>;
+};
+
+export default async function SupportPage({ searchParams }: SupportPageProps) {
+  const params = await searchParams;
+  const raw = Number(params.amount ?? "5");
   const amount = Number.isFinite(raw) && raw > 0 ? raw : 5;
+  const currency = params.currency === "SAR" ? "SAR" : "USD";
+  const symbol = currency === "USD" ? "$" : "ر.س";
 
   return (
     <main className="support-page">
@@ -23,13 +26,19 @@ export default function SupportPage() {
           <span className="eyebrow">مساهمة اختيارية</span>
           <h1>شكرًا لدعمك تطوير نَضِيد.</h1>
           <p>
-            اخترت مساهمة بقيمة <strong>${amount}</strong>. ستستخدم هذه
-            المساهمة في استضافة الخدمة، وتحسين المحرك، وتطوير مزايا جديدة.
+            اخترت مساهمة بقيمة{" "}
+            <strong>
+              {currency === "USD" ? symbol + amount : amount + " " + symbol}
+            </strong>
+            . ستستخدم هذه المساهمة في استضافة الخدمة، وتحسين المحرك، وتطوير
+            مزايا جديدة.
           </p>
 
           <div className="support-summary">
             <span>دعم تطوير نَضِيد</span>
-            <strong>${amount}</strong>
+            <strong>
+              {currency === "USD" ? symbol + amount : amount + " " + symbol}
+            </strong>
           </div>
 
           <div className="payment-placeholder">
