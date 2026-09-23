@@ -4,7 +4,11 @@ import { ChangeEvent, DragEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Brand } from "@/components/SiteHeader";
 import { saveAnalysis } from "@/lib/browser-analysis-store";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/lib/nadid-types";
+
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -12,7 +16,13 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [progressLabel, setProgressLabel] = useState("");
   const [error, setError] = useState("");
+
+  const persistentMode = Boolean(getSupabaseBrowser());
+  const maxBytes = persistentMode
+    ? 100 * 1024 * 1024
+    : 25 * 1024 * 1024;
 
   function validateFile(nextFile: File) {
     if (!nextFile.name.toLowerCase().endsWith(".docx")) {
@@ -20,8 +30,12 @@ export default function UploadPage() {
       return false;
     }
 
-    if (nextFile.size > 25 * 1024 * 1024) {
-      setError("الحد التجريبي الحالي للرفع هو 25 ميجابايت.");
+    if (nextFile.size > maxBytes) {
+      setError(
+        persistentMode
+          ? "الحد التشغيلي الحالي للرفع هو 100 ميجابايت."
+          : "الحد التجريبي المحلي الحالي هو 25 ميجابايت."
+      );
       return false;
     }
 
@@ -42,6 +56,88 @@ export default function UploadPage() {
     if (nextFile) validateFile(nextFile);
   }
 
+  async function analyzeLocally(nextFile: File) {
+    setProgressLabel("نقرأ المستند الآن…");
+
+    const formData = new FormData();
+    formData.append("file", nextFile);
+
+    const response = await fetch("/api/analyze", {
+      method: "POST",
+      body: formData
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.error || "تعذر تحليل المستند.");
+    }
+
+    return payload as AnalyzeResponse;
+  }
+
+  async function uploadPersistently(nextFile: File) {
+    const supabase = getSupabaseBrowser();
+
+    if (!supabase) {
+      return analyzeLocally(nextFile);
+    }
+
+    setProgressLabel("نجهز مساحة المستند…");
+
+    const createResponse = await fetch("/api/uploads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: nextFile.name,
+        size: nextFile.size
+      })
+    });
+
+    const upload = await createResponse.json();
+
+    if (!createResponse.ok) {
+      throw new Error(
+        upload.error || "تعذر تجهيز مساحة رفع المستند."
+      );
+    }
+
+    setProgressLabel("نرفع الملف مباشرة إلى التخزين الآمن…");
+
+    const { error: uploadError } = await supabase.storage
+      .from("nadid-documents")
+      .uploadToSignedUrl(
+        upload.storagePath,
+        upload.token,
+        nextFile,
+        {
+          contentType: nextFile.type || DOCX_MIME,
+          upsert: false
+        }
+      );
+
+    if (uploadError) {
+      throw new Error("تعذر رفع الملف إلى التخزين.");
+    }
+
+    setProgressLabel("نحلل بنية المستند ونجهز المراجعة الأولى…");
+
+    const finalizeResponse = await fetch(
+      `/api/documents/${upload.documentId}/finalize-upload`,
+      { method: "POST" }
+    );
+
+    const payload = await finalizeResponse.json();
+
+    if (!finalizeResponse.ok) {
+      throw new Error(
+        payload.error || "تعذر تثبيت المستند بعد الرفع."
+      );
+    }
+
+    return payload as AnalyzeResponse;
+  }
+
   async function analyzeFile() {
     if (!file || isLoading) return;
 
@@ -49,22 +145,12 @@ export default function UploadPage() {
     setError("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const analysis = persistentMode
+        ? await uploadPersistently(file)
+        : await analyzeLocally(file);
 
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        body: formData
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error || "تعذر تحليل المستند.");
-      }
-
-      const analysis = payload as AnalyzeResponse;
       await saveAnalysis(analysis);
+      setProgressLabel("اكتملت المراجعة الأولى.");
       router.push(`/editor?id=${analysis.document.id}`);
     } catch (cause) {
       setError(
@@ -72,6 +158,7 @@ export default function UploadPage() {
           ? cause.message
           : "حدث خطأ أثناء قراءة المستند."
       );
+      setProgressLabel("");
       setIsLoading(false);
     }
   }
@@ -104,7 +191,7 @@ export default function UploadPage() {
           <input
             ref={inputRef}
             type="file"
-            accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept={`.docx,${DOCX_MIME}`}
             onChange={onFileChange}
             hidden
           />
@@ -125,7 +212,9 @@ export default function UploadPage() {
                   onClick={analyzeFile}
                   disabled={isLoading}
                 >
-                  {isLoading ? "نقرأ المستند الآن…" : "ابدأ المراجعة"}
+                  {isLoading
+                    ? progressLabel || "نجهز المستند…"
+                    : "ابدأ المراجعة"}
                 </button>
                 {!isLoading && (
                   <button
@@ -154,8 +243,14 @@ export default function UploadPage() {
 
           <div className="upload-meta">
             <span>DOCX</span>
-            <span>يبقى الأصل على جهازك في هذه النسخة التجريبية</span>
-            <span>حتى 25 MB حاليًا</span>
+            <span>
+              {persistentMode
+                ? "يرفع مباشرة إلى التخزين دون المرور عبر خادم الواجهة"
+                : "وضع تطوير محلي"}
+            </span>
+            <span>
+              حتى {persistentMode ? "100" : "25"} MB حاليًا
+            </span>
           </div>
         </div>
       </section>
