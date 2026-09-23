@@ -10,7 +10,7 @@ from app.contracts import DocumentNode, FactAssertion, FactConflict
 
 VALUE_RE = re.compile(
     rf"(?P<value>{NUMBER_PATTERN})"
-    r"\s*(?P<unit>ريال|ر\.س|[%٪]|وحدة|فرع|محور|محاور|صفحة|سنة|سنوات)?"
+    r"\s*(?P<unit>ريال|ر\.س|[%٪]|وحدة|فرع|محاور|محور|صفحة|سنوات|سنة)?"
 )
 WORD_RE = re.compile(r"[\u0600-\u06FF]{2,}")
 
@@ -35,7 +35,7 @@ def extract_facts(nodes: list[DocumentNode]) -> list[FactAssertion]:
             context = _claim_context(node.text, match.start())
 
             # Years alone are useful context but too weak for conflict detection.
-            canonical = canonical
+            canonical = _canonical_number(value)
             fact_type = (
                 "date"
                 if unit == "number"
