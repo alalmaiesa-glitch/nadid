@@ -1093,6 +1093,13 @@ export async function getDocumentProcessingStatus(documentId: string) {
 
   if (documentError || !document) return null;
 
+  const { data: job } = await supabase
+    .from("processing_jobs")
+    .select("status, attempts, max_attempts, last_error, updated_at")
+    .eq("document_id", documentId)
+    .eq("job_type", "initial_review")
+    .maybeSingle();
+
   const { data: version, error: versionError } = await supabase
     .from("document_versions")
     .select("id, version_no")
@@ -1110,6 +1117,10 @@ export async function getDocumentProcessingStatus(documentId: string) {
       fastState: "missing",
       deepState: "missing",
       pendingSuggestions: 0,
+      queueState: job?.status ?? "missing",
+      queueAttempts: Number(job?.attempts ?? 0),
+      queueMaxAttempts: Number(job?.max_attempts ?? 0),
+      queueError: job?.last_error ?? null,
       updatedAt: document.updated_at
     };
   }
@@ -1150,6 +1161,10 @@ export async function getDocumentProcessingStatus(documentId: string) {
     fastState: latestByType.get("fast") ?? "missing",
     deepState: latestByType.get("deep") ?? "missing",
     pendingSuggestions: pendingSuggestions ?? 0,
+    queueState: job?.status ?? "complete",
+    queueAttempts: Number(job?.attempts ?? 0),
+    queueMaxAttempts: Number(job?.max_attempts ?? 0),
+    queueError: job?.last_error ?? null,
     updatedAt: document.updated_at as string
   };
 }
@@ -1245,6 +1260,135 @@ export async function createPendingDocumentUpload(
     token: data.token
   };
 }
+
+export async function enqueueDocumentProcessing(
+  documentId: string,
+  ownerId: string
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("supabase_not_configured");
+
+  const { data: document, error: documentError } = await supabase
+    .from("documents")
+    .select("id, owner_id, storage_path, status")
+    .eq("id", documentId)
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+
+  if (documentError || !document?.storage_path) {
+    throw new Error("document_not_found");
+  }
+
+  const { data: readyVersion, error: versionError } = await supabase
+    .from("document_versions")
+    .select("id")
+    .eq("document_id", documentId)
+    .eq("version_no", 1)
+    .eq("status", "ready")
+    .maybeSingle();
+
+  if (versionError) throw versionError;
+
+  if (readyVersion?.id) {
+    return {
+      documentId,
+      status: "ready" as const
+    };
+  }
+
+  const storagePath = document.storage_path as string;
+  const segments = storagePath.split("/");
+  const filename = segments.pop();
+
+  if (!filename) throw new Error("uploaded_file_missing");
+
+  const folder = segments.join("/");
+  const { data: objects, error: listError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .list(folder, {
+      limit: 10,
+      search: filename
+    });
+
+  if (
+    listError ||
+    !(objects ?? []).some((item) => item.name === filename)
+  ) {
+    throw new Error("uploaded_file_missing");
+  }
+
+  const { data: existingJob, error: existingJobError } = await supabase
+    .from("processing_jobs")
+    .select("id, status, attempts, max_attempts")
+    .eq("document_id", documentId)
+    .eq("job_type", "initial_review")
+    .maybeSingle();
+
+  if (existingJobError) throw existingJobError;
+
+  let job = existingJob;
+
+  if (!job) {
+    const { data: created, error: createError } = await supabase
+      .from("processing_jobs")
+      .insert({
+        document_id: documentId,
+        owner_id: ownerId,
+        job_type: "initial_review",
+        status: "queued"
+      })
+      .select("id, status, attempts, max_attempts")
+      .single();
+
+    if (createError || !created) {
+      throw createError ?? new Error("processing_job_not_created");
+    }
+
+    job = created;
+  } else if (job.status === "failed") {
+    const { data: reset, error: resetError } = await supabase
+      .from("processing_jobs")
+      .update({
+        status: "queued",
+        attempts: 0,
+        available_at: new Date().toISOString(),
+        locked_at: null,
+        locked_by: null,
+        last_error: null,
+        completed_at: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", job.id)
+      .select("id, status, attempts, max_attempts")
+      .single();
+
+    if (resetError || !reset) {
+      throw resetError ?? new Error("processing_job_not_reset");
+    }
+
+    job = reset;
+  }
+
+  const { error: statusError } = await supabase
+    .from("documents")
+    .update({
+      status: job.status === "processing" ? "processing" : "queued",
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", documentId)
+    .eq("owner_id", ownerId);
+
+  if (statusError) throw statusError;
+
+  return {
+    documentId,
+    jobId: job.id as string,
+    status: job.status as "queued" | "processing",
+    attempts: Number(job.attempts ?? 0),
+    maxAttempts: Number(job.max_attempts ?? 3)
+  };
+}
+
 
 export async function loadPendingDocumentUpload(
   documentId: string,
