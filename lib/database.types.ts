@@ -55,6 +55,51 @@ export type Database = {
           },
         ]
       }
+      billing_plans: {
+        Row: {
+          active: boolean
+          ads_enabled: boolean
+          amount_minor: number
+          billing_interval: string
+          created_at: string
+          currency: string
+          description: string | null
+          entitlements: Json
+          id: string
+          name: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          ads_enabled?: boolean
+          amount_minor: number
+          billing_interval: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          entitlements?: Json
+          id: string
+          name: string
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          ads_enabled?: boolean
+          amount_minor?: number
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          entitlements?: Json
+          id?: string
+          name?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_chunks: {
         Row: {
           chunk_key: string
@@ -434,6 +479,54 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount_minor: number
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          metadata: Json
+          paid_at: string | null
+          provider: string
+          provider_payment_id: string | null
+          purpose: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_minor: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          provider?: string
+          provider_payment_id?: string | null
+          purpose: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_minor?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          provider?: string
+          provider_payment_id?: string | null
+          purpose?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       processing_jobs: {
         Row: {
           attempts: number
@@ -549,6 +642,53 @@ export type Database = {
             columns: ["version_id"]
             isOneToOne: false
             referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_id: string
+          provider: string
+          provider_reference: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_id: string
+          provider?: string
+          provider_reference?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_id?: string
+          provider?: string
+          provider_reference?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
             referencedColumns: ["id"]
           },
         ]
