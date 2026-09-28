@@ -100,6 +100,120 @@ export type Database = {
         }
         Relationships: []
       }
+      character_usage_monthly: {
+        Row: {
+          included_characters: number
+          period_start: string
+          updated_at: string
+          used_characters: number
+          user_id: string
+        }
+        Insert: {
+          included_characters?: number
+          period_start: string
+          updated_at?: string
+          used_characters?: number
+          user_id: string
+        }
+        Update: {
+          included_characters?: number
+          period_start?: string
+          updated_at?: string
+          used_characters?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credit_packs: {
+        Row: {
+          active: boolean
+          amount_minor: number
+          characters: number
+          created_at: string
+          currency: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount_minor: number
+          characters: number
+          created_at?: string
+          currency?: string
+          id: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount_minor?: number
+          characters?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      credit_topups: {
+        Row: {
+          activated_at: string | null
+          characters_remaining: number
+          characters_total: number
+          created_at: string
+          id: string
+          pack_id: string
+          payment_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          characters_remaining: number
+          characters_total: number
+          created_at?: string
+          id?: string
+          pack_id: string
+          payment_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          characters_remaining?: number
+          characters_total?: number
+          created_at?: string
+          id?: string
+          pack_id?: string
+          payment_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_topups_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_topups_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_chunks: {
         Row: {
           chunk_key: string
