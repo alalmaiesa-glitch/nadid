@@ -49,6 +49,12 @@ const plans = [
   }
 ];
 
+const topupPacks = [
+  { chars: "100,000", price: "9", note: "للاحتياج السريع" },
+  { chars: "500,000", price: "29", note: "للعمل الإضافي المتوسط" },
+  { chars: "1,000,000", price: "49", note: "للمستندات الكبيرة" }
+];
+
 const steps = [
   ["01", "ارفع المستند", "DOCX كاملًا دون تقسيم يدوي أو نقل الفصول واحدًا واحدًا."],
   ["02", "نقرأ بنيته", "نَضِيد يتعرف على الفصول والعناوين والفقرات والمصطلحات والحقائق."],
@@ -165,6 +171,31 @@ export default function HomePage() {
               ))}
             </div>
             <p className="pricing-footnote">أسعار الإطلاق قابلة للمراجعة بعد قياس تكلفة المعالجة والاستخدام الفعلي.</p>
+          </div>
+        </section>
+
+
+        <section className="topup-section">
+          <div className="shell">
+            <div className="topup-card">
+              <div className="topup-copy">
+                <span className="eyebrow">رصيد إضافي</span>
+                <h2>نفد رصيدك قبل نهاية الشهر؟</h2>
+                <p>يمكنك إضافة أحرف إلى رصيدك دون تغيير باقتك أو انتظار موعد التجديد الشهري.</p>
+              </div>
+              <div className="topup-grid">
+                {topupPacks.map((pack) => (
+                  <article className="topup-pack" key={pack.chars}>
+                    <strong>{pack.chars}</strong>
+                    <span>حرف إضافي</span>
+                    <b>{pack.price} ر.س</b>
+                    <small>{pack.note}</small>
+                    <Link href="/documents" className="button button-secondary">إضافة رصيد</Link>
+                  </article>
+                ))}
+              </div>
+              <p className="topup-note">الرصيد الإضافي لا يغيّر موعد تجديد الباقة، ويُستهلك بعد نفاد الرصيد الشهري.</p>
+            </div>
           </div>
         </section>
 
