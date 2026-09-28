@@ -23,11 +23,12 @@ export default function SiteHeader() {
         <Brand />
         <nav className="main-nav" aria-label="التنقل الرئيسي">
           <Link href="/#capabilities">المزايا</Link>
+          <Link href="/#pricing">الاشتراكات</Link>
           <Link href="/#how">كيف يعمل؟</Link>
           <Link href="/documents">مستنداتي</Link>
         </nav>
         <div className="header-actions">
-          <Link href="/login" className="text-button">تسجيل الدخول</Link>
+          <Link href="/documents" className="text-button">حسابي</Link>
           <Link href="/upload" className="button button-small button-primary">
             ابدأ المراجعة
           </Link>
