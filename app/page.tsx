@@ -165,7 +165,7 @@ export default function HomePage() {
                   <div className="pricing-annual">{plan.annual}</div>
                   <div className="pricing-character-quota"><strong>{plan.characters}</strong><span>حرف شهريًا</span></div>
                   <ul>{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
-                  {plan.ads && <div className="pricing-ad-note">تتضمن هذه الباقة إعلانات Google عند تفعيل AdSense للموقع.</div>}
+                  {plan.ads && <div className="pricing-ad-note">تتضمن هذه الباقة إعلانات.</div>}
                   <Link href={plan.href} className={"button " + (plan.featured ? "button-primary" : "button-secondary")}>{plan.cta}</Link>
                 </article>
               ))}
