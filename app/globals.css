@@ -2423,3 +2423,13 @@ body,
     padding: 20px;
   }
 }
+
+
+/* Single-column account entry while phone registration is deferred */
+.account-entry-shell-single {
+  width: min(100%, 620px);
+}
+.auth-method-card-single {
+  width: min(100%, 520px);
+  margin: 0 auto;
+}
