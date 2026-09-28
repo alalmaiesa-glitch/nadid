@@ -1,29 +1,5 @@
 import type { Metadata } from "next";
-import {
-  Alexandria,
-  Cairo,
-  Readex_Pro
-} from "next/font/google";
 import "./globals.css";
-
-const interfaceFont = Alexandria({
-  subsets: ["arabic"],
-  display: "swap",
-  variable: "--font-interface"
-});
-
-const heroFont = Cairo({
-  subsets: ["arabic"],
-  display: "swap",
-  weight: ["600", "700", "800"],
-  variable: "--font-hero"
-});
-
-const readingFont = Readex_Pro({
-  subsets: ["arabic"],
-  display: "swap",
-  variable: "--font-reading"
-});
 
 export const metadata: Metadata = {
   title: "نَضِيد | محرر العربية الذكي",
@@ -38,15 +14,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body
-        className={[
-          interfaceFont.variable,
-          heroFont.variable,
-          readingFont.variable
-        ].join(" ")}
-      >
-        {children}
-      </body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&family=Cairo:wght@600;700;800&family=Readex+Pro:wght@400;500;600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }
