@@ -2238,3 +2238,188 @@ body,
   .topup-grid { grid-template-columns: 1fr; }
   .topup-card { padding: 26px 20px; }
 }
+
+
+/* Account entry — Google, phone and email */
+.account-entry-page {
+  place-content: start center;
+  padding-top: 42px;
+}
+.account-entry-shell {
+  width: min(100%, 860px);
+}
+.account-entry-shell > .brand {
+  width: fit-content;
+  margin: 0 auto 28px;
+}
+.account-entry {
+  padding: 8px 0 44px;
+}
+.account-entry-heading {
+  margin-bottom: 22px;
+  text-align: center;
+}
+.account-entry-heading p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.social-auth-button {
+  width: min(100%, 520px);
+  min-height: 54px;
+  margin: 0 auto;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(28, 47, 40, .04);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.social-auth-button:hover {
+  transform: translateY(-1px);
+  border-color: #cbd9d2;
+  box-shadow: 0 13px 30px rgba(28, 47, 40, .07);
+}
+.social-auth-button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.google-mark {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-content: center;
+  border: 1px solid #e1e6e3;
+  border-radius: 50%;
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  color: #4285f4;
+  background: #fff;
+}
+.auth-divider {
+  width: min(100%, 520px);
+  margin: 20px auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #8a9590;
+  font-size: 11px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
+.auth-method-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.auth-method-card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 19px;
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 10px 32px rgba(28,47,40,.045);
+}
+.auth-method-title {
+  min-height: 72px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.auth-method-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-content: center;
+  border-radius: 10px;
+  background: var(--green-soft);
+  color: var(--green-deep);
+  font-weight: 800;
+}
+.auth-method-title h2 {
+  margin: 0 0 5px;
+  font-size: 17px;
+}
+.auth-method-title p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.75;
+}
+.email-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 15px;
+  padding: 4px;
+  border-radius: 11px;
+  background: #f0f4f1;
+}
+.email-mode-switch button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+.email-mode-switch button.active {
+  background: #fff;
+  color: var(--green-deep);
+  box-shadow: 0 4px 12px rgba(25,50,41,.06);
+  font-weight: 700;
+}
+.compact-auth-form {
+  gap: 8px;
+}
+.compact-auth-form label {
+  margin-top: 3px;
+}
+.compact-auth-form input {
+  height: 46px;
+}
+.phone-change {
+  margin-top: 4px;
+  font-size: 10px;
+}
+.account-message {
+  width: min(100%, 620px);
+  margin: 18px auto 0;
+  text-align: center;
+}
+.account-terms {
+  margin: 20px auto 0;
+  max-width: 610px;
+  color: #87928e;
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.8;
+}
+@media (max-width: 760px) {
+  .account-entry-page {
+    padding-top: 26px;
+  }
+  .account-entry-shell {
+    width: min(100%, 520px);
+  }
+  .auth-method-grid {
+    grid-template-columns: 1fr;
+  }
+  .auth-method-card {
+    padding: 20px;
+  }
+}
