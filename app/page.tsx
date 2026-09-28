@@ -17,6 +17,7 @@ const plans = [
     price: "0",
     period: "ر.س / شهر",
     annual: "بدون بطاقة دفع",
+    characters: "50,000",
     description: "للتجربة والاستخدام الخفيف.",
     features: ["المراجعة اللغوية الأساسية", "رفع مستندات DOCX", "الاحتفاظ بالأصل"],
     ads: true,
@@ -28,6 +29,7 @@ const plans = [
     price: "29",
     period: "ر.س / شهر",
     annual: "290 ر.س سنويًا · شهران دون تكلفة",
+    characters: "500,000",
     description: "لمن يراجع تقارير وبحوثًا ومستندات طويلة بانتظام.",
     features: ["كل مزايا المجاني بدون إعلانات", "مراجعة السياق والاتساق عبر المستند", "تحسين الصياغة وتصدير النسخ المنقحة"],
     featured: true,
@@ -39,6 +41,7 @@ const plans = [
     price: "59",
     period: "ر.س / شهر",
     annual: "590 ر.س سنويًا · شهران دون تكلفة",
+    characters: "2,000,000",
     description: "للمستندات الحساسة والمراجعة الأعمق.",
     features: ["كل مزايا الأساسي", "المراجعة العميقة للسياق", "حماية الحقائق والأرقام وسجل النسخ"],
     href: "/documents",
@@ -154,6 +157,7 @@ export default function HomePage() {
                   <p className="pricing-description">{plan.description}</p>
                   <div className="pricing-price"><strong>{plan.price}</strong><span>{plan.period}</span></div>
                   <div className="pricing-annual">{plan.annual}</div>
+                  <div className="pricing-character-quota"><strong>{plan.characters}</strong><span>حرف شهريًا</span></div>
                   <ul>{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
                   {plan.ads && <div className="pricing-ad-note">تتضمن هذه الباقة إعلانات Google عند تفعيل AdSense للموقع.</div>}
                   <Link href={plan.href} className={"button " + (plan.featured ? "button-primary" : "button-secondary")}>{plan.cta}</Link>
