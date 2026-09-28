@@ -1,4 +1,12 @@
 :root {
+  --font-interface: "Alexandria", Tahoma, Arial, sans-serif;
+  --font-hero: "Cairo", "Alexandria", Tahoma, Arial, sans-serif;
+  --font-reading: "Readex Pro", "Alexandria", Tahoma, Arial, sans-serif;
+  --font-display: "Cairo", "Alexandria", Tahoma, Arial, sans-serif;
+  --font-heading: "Alexandria", "Cairo", Tahoma, Arial, sans-serif;
+  --font-body: "Readex Pro", "Alexandria", Tahoma, Arial, sans-serif;
+  --font-ui: "Alexandria", Tahoma, Arial, sans-serif;
+  --font-short: "Alexandria", Tahoma, Arial, sans-serif;
   --ink: #17221f;
   --muted: #66736f;
   --paper: #fbfcfa;
