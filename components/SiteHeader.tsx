@@ -25,7 +25,6 @@ export default function SiteHeader() {
           <Link href="/#capabilities">المزايا</Link>
           <Link href="/#pricing">الاشتراكات</Link>
           <Link href="/#how">كيف يعمل؟</Link>
-          <Link href="/documents">مستنداتي</Link>
         </nav>
         <div className="header-actions">
           <Link href="/documents" className="text-button">حسابي</Link>
