@@ -2150,3 +2150,23 @@ body,
 @media (max-width: 900px) {
   .pricing-grid { grid-template-columns: 1fr; }
 }
+
+
+.pricing-character-quota {
+  margin: 18px 0 2px;
+  padding: 13px 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  border: 1px solid #e0e9e4;
+  border-radius: 12px;
+  background: #f4f8f5;
+}
+.pricing-character-quota strong {
+  color: var(--green-deep);
+  font-size: 22px;
+}
+.pricing-character-quota span {
+  color: var(--muted);
+  font-size: 11px;
+}
