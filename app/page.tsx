@@ -10,6 +10,42 @@ const features = [
   ["06", "صياغة محسوبة", "يحسن الركاكة والتكرار والحشو بدرجات تدخل مختلفة مع إبقاء القرار النهائي للكاتب."]
 ];
 
+
+const plans = [
+  {
+    name: "مجاني",
+    price: "0",
+    period: "ر.س / شهر",
+    annual: "بدون بطاقة دفع",
+    description: "للتجربة والاستخدام الخفيف.",
+    features: ["المراجعة اللغوية الأساسية", "رفع مستندات DOCX", "الاحتفاظ بالأصل"],
+    ads: true,
+    href: "/upload",
+    cta: "ابدأ مجانًا"
+  },
+  {
+    name: "أساسي",
+    price: "29",
+    period: "ر.س / شهر",
+    annual: "290 ر.س سنويًا · شهران دون تكلفة",
+    description: "لمن يراجع تقارير وبحوثًا ومستندات طويلة بانتظام.",
+    features: ["كل مزايا المجاني بدون إعلانات", "مراجعة السياق والاتساق عبر المستند", "تحسين الصياغة وتصدير النسخ المنقحة"],
+    featured: true,
+    href: "/documents",
+    cta: "اختر الأساسي"
+  },
+  {
+    name: "احترافي",
+    price: "59",
+    period: "ر.س / شهر",
+    annual: "590 ر.س سنويًا · شهران دون تكلفة",
+    description: "للمستندات الحساسة والمراجعة الأعمق.",
+    features: ["كل مزايا الأساسي", "المراجعة العميقة للسياق", "حماية الحقائق والأرقام وسجل النسخ"],
+    href: "/documents",
+    cta: "اختر الاحترافي"
+  }
+];
+
 const steps = [
   ["01", "ارفع المستند", "DOCX كاملًا دون تقسيم يدوي أو نقل الفصول واحدًا واحدًا."],
   ["02", "نقرأ بنيته", "نَضِيد يتعرف على الفصول والعناوين والفقرات والمصطلحات والحقائق."],
@@ -99,6 +135,32 @@ export default function HomePage() {
                 <span>إعادة فحص الأجزاء المتغيرة فقط</span>
               </div>
             </div>
+          </div>
+        </section>
+
+
+        <section className="pricing-section" id="pricing">
+          <div className="shell">
+            <div className="pricing-heading">
+              <span className="eyebrow">باقات نَضِيد</span>
+              <h2>ابدأ مجانًا، وترقَّ عندما تحتاج مراجعة أعمق.</h2>
+              <p>أسعار إطلاق للمستخدم الفردي، مع بقاء الباقة المجانية متاحة بوجود إعلانات Google بعد اعتماد الموقع للإعلانات.</p>
+            </div>
+            <div className="pricing-grid">
+              {plans.map((plan) => (
+                <article className={"pricing-card" + (plan.featured ? " pricing-card-featured" : "")} key={plan.name}>
+                  {plan.featured && <span className="pricing-badge">الأكثر توازنًا</span>}
+                  <h3>{plan.name}</h3>
+                  <p className="pricing-description">{plan.description}</p>
+                  <div className="pricing-price"><strong>{plan.price}</strong><span>{plan.period}</span></div>
+                  <div className="pricing-annual">{plan.annual}</div>
+                  <ul>{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
+                  {plan.ads && <div className="pricing-ad-note">تتضمن هذه الباقة إعلانات Google عند تفعيل AdSense للموقع.</div>}
+                  <Link href={plan.href} className={"button " + (plan.featured ? "button-primary" : "button-secondary")}>{plan.cta}</Link>
+                </article>
+              ))}
+            </div>
+            <p className="pricing-footnote">أسعار الإطلاق قابلة للمراجعة بعد قياس تكلفة المعالجة والاستخدام الفعلي.</p>
           </div>
         </section>
 
