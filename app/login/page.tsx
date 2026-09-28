@@ -47,12 +47,10 @@ export default function LoginPage() {
       <div className="auth-shell">
         <Brand />
 
-        <section className="auth-card">
-          <span className="eyebrow">حساب نَضِيد</span>
-          <h1>ادخل إلى مستنداتك</h1>
-          <p>
-            سنرسل إلى بريدك رابط دخول آمنًا. لا تحتاج إلى إنشاء كلمة مرور
-            إضافية لنَضِيد.
+        <section className="auth-card auth-card-plain">
+          <span className="eyebrow">حسابي</span>
+          <p className="auth-intro">
+            أدخل بريدك وسنرسل لك رابط دخول آمنًا إلى حساب نَضِيد.
           </p>
 
           {state === "sent" ? (
