@@ -299,6 +299,7 @@ body,
 .planName{font-size:18px;font-weight:700;margin:0 0 8px}.charQuota{margin:18px 0 2px;padding:13px 14px;border-radius:12px;background:#f4f8f5;border:1px solid #e0e9e4;display:flex;align-items:baseline;gap:7px}.charQuota strong{font-size:22px;color:var(--green2)}.charQuota span{font-size:10px;color:var(--muted)}.planDesc{font-size:11px;color:var(--muted);line-height:1.8;min-height:40px}.planPrice{display:flex;align-items:end;gap:6px;margin:20px 0 4px}.planPrice strong{font-size:36px;line-height:1;color:var(--green2)}.planPrice span{font-size:11px;color:var(--muted);padding-bottom:4px}.annual{font-size:9px;color:#82908b;min-height:18px}.plan ul{list-style:none;padding:0;margin:23px 0;display:grid;gap:11px}.plan li{font-size:11px;color:#53605b;line-height:1.7;padding-right:19px;position:relative}.plan li:before{content:"✓";position:absolute;right:0;color:var(--green);font-weight:800}.plan .adNote{background:#fff8e9;border:1px solid #efe0bd;color:#7b6537;border-radius:10px;padding:9px 10px;font-size:9px;margin-top:auto}.plan .btn{width:100%;margin-top:auto}.plan .adNote + .btn{margin-top:12px}.pricingNote{text-align:center;color:#87928e;font-size:9px;margin-top:18px}
 
 .topup{padding:48px 0 86px;background:#fff}.topupBox{border:1px solid rgba(13,107,80,.16);border-radius:24px;padding:34px;background:linear-gradient(180deg,#fbfdfc,#f5f9f6);box-shadow:0 18px 50px rgba(17,45,35,.06)}.topupHead{display:flex;justify-content:space-between;gap:30px;align-items:end;margin-bottom:24px}.topupHead h2{font-size:30px;margin:10px 0 6px}.topupHead p{margin:0;color:var(--muted);font-size:12px;line-height:1.8;max-width:620px}.topupGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.topupPack{background:#fff;border:1px solid var(--line);border-radius:15px;padding:18px;display:grid;gap:5px}.topupPack strong{font-size:23px;color:var(--green2)}.topupPack span,.topupPack small{font-size:9px;color:var(--muted)}.topupPack b{font-size:16px;margin:7px 0}.topupPack .btn{margin-top:8px;width:100%}.topupNote{margin:15px 0 0;color:#7b8782;font-size:9px;text-align:center}
+.accountPreview{min-height:100vh;background:radial-gradient(circle at 82% 8%,rgba(13,107,80,.08),transparent 24rem),#f7f9f7;padding:48px 20px}.accountPreviewShell{width:min(840px,100%);margin:auto}.accountPreviewShell>.brand{width:max-content;margin:0 auto 28px}.accountHeading{text-align:center;margin-bottom:22px}.accountHeading p{color:var(--muted);font-size:13px;margin:11px 0 0}.googleBtn{width:min(520px,100%);height:54px;margin:auto;border:1px solid var(--line);border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center;gap:11px;font-weight:600;cursor:pointer}.gmark{width:28px;height:28px;border:1px solid var(--line);border-radius:50%;display:grid;place-content:center;color:#4285f4;font-family:Arial;font-weight:700}.orLine{width:min(520px,100%);margin:19px auto;display:flex;align-items:center;gap:10px;color:#87928e;font-size:10px}.orLine:before,.orLine:after{content:"";height:1px;background:var(--line);flex:1}.accountMethods{display:grid;grid-template-columns:1fr 1fr;gap:14px}.accountMethod{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}.accountMethod h2{font-size:17px;margin:0 0 5px}.accountMethod>p{color:var(--muted);font-size:10px;line-height:1.7;margin:0 0 17px}.fakeField{height:46px;border:1px solid var(--line);border-radius:10px;background:#fcfdfc;margin-bottom:8px;display:flex;align-items:center;padding:0 12px;color:#8a9590;font-size:10px;direction:ltr}.methodSwitch{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#f0f4f1;padding:4px;border-radius:10px;margin-bottom:12px}.methodSwitch span{padding:8px;text-align:center;font-size:9px;color:var(--muted)}.methodSwitch span:first-child{background:#fff;color:var(--green2);border-radius:7px;font-weight:700}.accountMethod .btn{width:100%}@media(max-width:680px){.accountMethods{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -306,7 +307,7 @@ body,
 <header class="topbar"><div class="shell header">
 <div class="brand" data-go="home"><span class="mark"><i></i><i></i><i></i></span><span><b>نَضِيد</b><small>محرر العربية الذكي</small></span></div>
 <nav class="nav"><a href="#features">المزايا</a><a href="#pricing">الاشتراكات</a><a href="#how">كيف يعمل؟</a></nav>
-<div class="actions"><button class="btn ghost" data-go="documents">حسابي</button><button class="btn primary small" data-go="upload">ابدأ المراجعة</button></div>
+<div class="actions"><button class="btn ghost" data-go="account">حسابي</button><button class="btn primary small" data-go="upload">ابدأ المراجعة</button></div>
 </div></header>
 <main>
 <section class="hero"><div class="shell heroGrid"><div>
@@ -362,6 +363,21 @@ body,
 <div class="footerCol"><b>نَضِيد</b><a href="#features">المزايا</a><a href="#how">كيف يعمل؟</a><a href="#documents" data-go="documents">مستنداتي</a></div>
 <div class="footerCol"><b>معلومات</b><span>سياسة الخصوصية</span><span>شروط الاستخدام</span><span>nadidai.com</span></div>
 </div><div class="footerBottom"><span>© 2026 نَضِيد. جميع الحقوق محفوظة.</span><span>نص أدق. سياق أتم.</span></div></div></div></footer>
+</div>
+
+
+<div id="account" class="view accountPreview">
+<div class="accountPreviewShell">
+<div class="brand" data-go="home"><span class="mark"><i></i><i></i><i></i></span><span><b>نَضِيد</b><small>محرر العربية الذكي</small></span></div>
+<div class="accountHeading"><span class="eyebrow">حسابي</span><p>اختر الطريقة الأنسب لإنشاء حسابك أو الدخول إلى نَضِيد.</p></div>
+<button class="googleBtn"><span class="gmark">G</span><span>المتابعة باستخدام Google</span></button>
+<div class="orLine"><span>أو</span></div>
+<div class="accountMethods">
+<section class="accountMethod"><h2>البريد الإلكتروني</h2><p>أنشئ حسابًا بالبريد وكلمة مرور، أو ادخل إلى حساب موجود.</p><div class="methodSwitch"><span>إنشاء حساب</span><span>تسجيل الدخول</span></div><div class="fakeField">name@example.com</div><div class="fakeField">••••••••</div><button class="btn primary">إنشاء الحساب</button></section>
+<section class="accountMethod"><h2>رقم الجوال</h2><p>استقبل رمز تحقق لمرة واحدة على جوالك.</p><div class="fakeField">05xxxxxxxx</div><button class="btn secondary">إرسال رمز التحقق</button></section>
+</div>
+<div style="text-align:center;margin-top:18px"><button class="btn ghost small" data-go="home">العودة إلى الصفحة الرئيسية</button></div>
+</div>
 </div>
 
 <div id="upload" class="view">
