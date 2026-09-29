@@ -773,3 +773,61 @@ def test_semantic_context_matches_delay_paraphrase():
 
     assert any("تعثر الجدول الزمني" in hit.text for hit in package.hits)
 
+def test_arabic_review_detects_common_orthography_errors():
+    issues = fast_review([
+        node("هاذا التقرير يوضح مسؤوليه الجهة، لاكن المعلومة صحيحة.", 0)
+    ])
+    replacements = {issue.replacement for issue in issues}
+    assert "هذا" in replacements
+    assert "مسؤولية" in replacements
+    assert "لكن" in replacements
+
+
+def test_arabic_review_detects_punctuation_spacing():
+    issues = fast_review([
+        node("تم اعتماد الخطة ،ثم بدأت المرحلة التالية.", 0)
+    ])
+    assert any(issue.title == "مسافة قبل علامة ترقيم" for issue in issues)
+    assert any(issue.title == "مسافة بعد علامة ترقيم" for issue in issues)
+
+
+def test_arabic_review_detects_style_redundancy():
+    issues = fast_review([
+        node("تم تحليل النتائج من خلال استخدام النموذج في الوقت الراهن.", 0)
+    ])
+    replacements = {issue.replacement for issue in issues}
+    assert "باستخدام" in replacements
+    assert "حاليًا" in replacements
+
+
+def test_arabic_review_skips_discretionary_style_in_full_quote():
+    issues = fast_review([
+        node("«في الوقت الراهن نستخدم هذا التعبير كما ورد في المصدر»", 0)
+    ])
+    assert not any(issue.category == "style" for issue in issues)
+
+
+def test_arabic_review_keeps_style_off_headings():
+    heading = DocumentNode(
+        id="heading-1",
+        type="heading",
+        text="في الوقت الراهن",
+        sequence_no=0,
+    )
+    issues = fast_review([heading])
+    assert not any(issue.category == "style" for issue in issues)
+
+
+def test_arabic_review_suggestion_ids_are_stable():
+    nodes = [node("هاذا التقرير يحتاج إلى مراجعة.", 0)]
+    first = fast_review(nodes)
+    second = fast_review(nodes)
+    assert [issue.id for issue in first] == [issue.id for issue in second]
+
+
+def test_arabic_review_does_not_flag_clean_sentence():
+    issues = fast_review([
+        node("تم اعتماد الخطة وفق نتائج الدراسة، وسيبدأ التنفيذ لاحقًا.", 0)
+    ])
+    assert issues == []
+
