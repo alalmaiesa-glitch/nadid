@@ -6,11 +6,14 @@ from uuid import NAMESPACE_URL, uuid5
 
 from app.arabic_numbers import NUMBER_PATTERN, canonical_decimal
 from app.contracts import DocumentNode, FactAssertion, FactConflict
+from app.pipeline.semantic_utils import semantic_claim_key
 
 
 VALUE_RE = re.compile(
     rf"(?P<value>{NUMBER_PATTERN})"
-    r"\s*(?P<unit>ريال|ر\.س|[%٪]|وحدة|فرع|محاور|محور|صفحة|سنوات|سنة)?"
+    r"\s*(?P<unit>ريال|ر\.س|[%٪]|وحدة|وحدات|فرع|فروع|"
+    r"محاور|محور|صفحة|صفحات|سنوات|سنة|"
+    r"شهر(?:ًا|اً|ا)?|أشهر|اشهر|يوم(?:ًا|اً|ا)?|أيام|ايام)?"
 )
 WORD_RE = re.compile(r"[\u0600-\u06FF]{2,}")
 
@@ -45,7 +48,10 @@ def extract_facts(nodes: list[DocumentNode]) -> list[FactAssertion]:
                 else ("%" if unit == "٪" else unit)
             )
             normalized_context = " ".join(context.split())
-            claim_key = f"{normalized_context}|{fact_type}".strip("|")
+            claim_key = semantic_claim_key(
+                f"{normalized_context} {node.text}",
+                fact_type,
+            )
 
             facts.append(
                 FactAssertion(

@@ -170,19 +170,22 @@ def _aggregate_protected(
 
 
 def _extract_abbreviations(nodes: list[DocumentNode]) -> list[MemoryItem]:
-    grouped: dict[str, dict] = {}
+    grouped: dict[tuple[str, str], dict] = {}
 
     for node in nodes:
         for match in LATIN_ACRONYM_RE.finditer(node.text):
             long_name = " ".join(match.group("long").split())
-            # Limit the captured Arabic prefix to the last plausible name words.
             words = long_name.split()
             if len(words) > 8:
                 long_name = " ".join(words[-8:])
+
             short = match.group("short").strip()
-            key = short.casefold()
+            group_key = (
+                short.casefold(),
+                _normalize(long_name),
+            )
             entry = grouped.setdefault(
-                key,
+                group_key,
                 {
                     "short": short,
                     "long": long_name,
@@ -190,8 +193,6 @@ def _extract_abbreviations(nodes: list[DocumentNode]) -> list[MemoryItem]:
                 },
             )
             entry["node_ids"].append(node.id)
-            if len(long_name) > len(entry["long"]):
-                entry["long"] = long_name
 
     return [
         _item(

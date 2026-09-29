@@ -157,9 +157,30 @@ class ContextPackage(BaseModel):
     related_facts: list[FactAssertion]
 
 
+SemanticIssueType = Literal[
+    "definition_conflict",
+    "abbreviation_conflict",
+    "polarity_conflict",
+    "decision_conflict",
+]
+
+
+class SemanticIssue(BaseModel):
+    id: str
+    node_id: str
+    issue_type: SemanticIssueType
+    title: str
+    explanation: str
+    original: str
+    evidence_node_ids: list[str]
+    evidence_values: list[str] = Field(default_factory=list)
+    confidence: float = Field(default=0.9, ge=0, le=1)
+
+
 class DeepAnalyzeResponse(BaseModel):
     base: AnalyzeResponse
     memory: DocumentMemory
+    semantic_issues: list[SemanticIssue] = Field(default_factory=list)
 
 
 class PatchOperation(BaseModel):
