@@ -33,7 +33,8 @@ export type ProtectedFact = {
     | "obligation"
     | "condition"
     | "qualifier"
-    | "quotation";
+    | "quotation"
+    | "quantity";
   value: string;
 };
 
