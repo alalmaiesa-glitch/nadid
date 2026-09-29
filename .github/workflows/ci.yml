@@ -85,13 +85,6 @@ jobs:
           name: nadid-quality-benchmark
           path: benchmark/report.json
 
-      - name: Upload temporary corpus-runner source snapshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: nadid-corpus-runner-source
-          path: |
-            backend
-            benchmark/run_corpus_regression.py
 
   aee-container:
     runs-on: ubuntu-latest
