@@ -141,7 +141,8 @@ function validatorKey(type: ProtectedFact["type"]) {
     type === "entity" ||
     type === "legal_reference" ||
     type === "role" ||
-    type === "quotation"
+    type === "quotation" ||
+    type === "quantity"
   ) {
     return "exact_or_normalized_identifier";
   }
