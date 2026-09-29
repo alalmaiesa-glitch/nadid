@@ -9,6 +9,7 @@ from app.contracts import (
     DocumentMemory,
     DocumentNode,
 )
+from app.pipeline.semantic_utils import semantic_similarity, semantic_tokens
 
 
 TOKEN_RE = re.compile(r"[\u0600-\u06FFA-Za-z0-9]{2,}")
@@ -20,14 +21,34 @@ def _tokens(text: str) -> set[str]:
 
 def _score(query: str, chunk: Chunk) -> float:
     query_tokens = _tokens(query)
-    if not query_tokens:
+    semantic_query_tokens = semantic_tokens(query)
+
+    if not query_tokens and not semantic_query_tokens:
         return 0.0
 
     chunk_tokens = _tokens(chunk.text)
-    overlap = len(query_tokens & chunk_tokens) / max(1, len(query_tokens))
+    lexical_overlap = (
+        len(query_tokens & chunk_tokens) / max(1, len(query_tokens))
+        if query_tokens
+        else 0.0
+    )
 
-    phrase_bonus = 0.25 if query.strip() and query.strip() in chunk.text else 0.0
-    return min(1.0, overlap + phrase_bonus)
+    semantic_score = semantic_similarity(query, chunk.text)
+    phrase_bonus = (
+        0.25
+        if query.strip() and query.strip() in chunk.text
+        else 0.0
+    )
+
+    # Exact lexical evidence remains strongest, but semantic equivalence can
+    # retrieve related passages even when their wording differs.
+    return min(
+        1.0,
+        max(
+            lexical_overlap + phrase_bonus,
+            semantic_score * 0.9,
+        ),
+    )
 
 
 def retrieve_context(
