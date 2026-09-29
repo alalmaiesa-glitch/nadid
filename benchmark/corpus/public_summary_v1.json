@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "corpus_version": "private-professional-arabic-v1",
+  "privacy": "aggregate-only; source filenames and document text are not stored in the public repository",
+  "documents": 8,
+  "word_count": 51194,
+  "nodes": 8020,
+  "headings": 152,
+  "table_cells": 5745,
+  "processing_errors": 0,
+  "deterministic_documents": 8,
+  "suggestions": 420,
+  "protected_spans": 4627,
+  "knowledge_items": 529,
+  "semantic_issues_after_hardening": 0,
+  "semantic_issues_before_hardening": 272,
+  "derived_public_regression_cases": 9,
+  "genres": [
+    "feasibility_study",
+    "project_charter",
+    "project_execution_file",
+    "project_portfolio",
+    "cooperative_implementation_file",
+    "licensing_forms_package",
+    "product_idea_proposal",
+    "social_project_study"
+  ],
+  "notes": [
+    "Suggestion count is an observation, not an accuracy score.",
+    "Raw professional documents remain private and are excluded from git.",
+    "The corpus exposed layout-spacing false positives and generic colon-definition false positives; both were converted into regression guards."
+  ]
+}
