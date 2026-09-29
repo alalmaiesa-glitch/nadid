@@ -86,3 +86,32 @@
 {"id":"SEM-010","dimension":"semantic_review","nodes":[{"id":"h1","type":"heading","text":"الجدول الزمني"},{"id":"n1","text":"تأخر التسليم يستلزم تدخلًا إداريًا مباشرًا."},{"id":"h2","type":"heading","text":"المعالجة"},{"id":"n2","text":"تعثر الجدول الزمني يستدعي تصعيد القرار إلى الإدارة التنفيذية."}],"expect":{"context":{"target_node_id":"n1","query":"تأخر التسليم","expected_node_ids":["n2"]}}}
 {"id":"SEM-011","dimension":"semantic_review","nodes":[{"id":"n1","text":"بلغت تكلفة الإنشاء للمبنى 500 ريال."},{"id":"n2","text":"بلغت تكلفة التشغيل السنوية للخدمة 500 ريال."}],"expect":{"no_conflicts":true,"max_semantic_issues":0}}
 {"id":"SEM-012","dimension":"semantic_review","nodes":[{"id":"n1","text":"يعتمد المستند مصطلح مقدم الخدمة في جميع أجزائه."},{"id":"n2","text":"يتولى مقدم الخدمة تنفيذ العمليات المتفق عليها مع الجهة."}],"expect":{"max_semantic_issues":0}}
+{"id":"LANG-006","dimension":"language","nodes":[{"id":"n1","text":"لاكن الخطة تحتاج إلى مراجعة إضافية."}],"expect":{"suggestion_contains":["لكن"],"min_suggestions":1}}
+{"id":"LANG-007","dimension":"language","nodes":[{"id":"n1","text":"هذا هو التقرير اللذي تم اعتماده."}],"expect":{"suggestion_contains":["الذي"],"min_suggestions":1}}
+{"id":"LANG-008","dimension":"language","nodes":[{"id":"n1","text":"هذه هي الخطة اللتي ستطبق لاحقًا."}],"expect":{"suggestion_contains":["التي"],"min_suggestions":1}}
+{"id":"LANG-009","dimension":"language","nodes":[{"id":"n1","text":"لم يتبق أي شئ يحتاج إلى تعديل."}],"expect":{"suggestion_contains":["شيء"],"min_suggestions":1}}
+{"id":"LANG-010","dimension":"language","nodes":[{"id":"n1","text":"تحسن الأداء،لكن زمن الاستجابة لم يتغير."}],"expect":{"suggestion_contains":["مسافة بعد علامة ترقيم"],"min_suggestions":1}}
+{"id":"LANG-011","dimension":"language","nodes":[{"id":"n1","text":"تم اعتماد  الخطة بعد المراجعة."}],"expect":{"suggestion_contains":["مسافات متكررة"],"min_suggestions":1}}
+{"id":"LANG-012","dimension":"language","nodes":[{"id":"n1","text":"هل اكتملت المراجعة؟؟"}],"expect":{"suggestion_contains":["علامة ترقيم مكررة"],"min_suggestions":1}}
+{"id":"LANG-013","dimension":"language","nodes":[{"id":"n1","text":"حيث أن النتيجة واضحة، تم اعتماد التوصية."}],"expect":{"suggestion_contains":["حيث إن"],"min_suggestions":1}}
+{"id":"LANG-014","dimension":"language","nodes":[{"id":"n1","text":"هاذا التقرير يوضح مسؤوليه الجهة."}],"expect":{"suggestion_contains":["هذا","مسؤولية"],"min_suggestions":2}}
+{"id":"LANG-015","dimension":"language","nodes":[{"id":"n1","text":"بناءاً على ذلك؛تم تحديث الخطة."}],"expect":{"suggestion_contains":["بناءً","مسافة بعد علامة ترقيم"],"min_suggestions":2}}
+{"id":"LANG-016","dimension":"language","nodes":[{"id":"h1","type":"heading","text":"هاذا هو الملخص التنفيذي"}],"expect":{"suggestion_contains":["هذا"],"min_suggestions":1}}
+{"id":"STYLE-005","dimension":"style","nodes":[{"id":"n1","text":"تمت المعالجة في الوقت الراهن وفق الإجراء المعتمد."}],"expect":{"suggestion_contains":["حاليًا"],"min_suggestions":1}}
+{"id":"STYLE-006","dimension":"style","nodes":[{"id":"n1","text":"تم تحليل النتائج من خلال استخدام النموذج الجديد."}],"expect":{"suggestion_contains":["باستخدام"],"min_suggestions":1}}
+{"id":"STYLE-007","dimension":"style","nodes":[{"id":"n1","text":"ننفذ الخطة بهدف العمل على رفع كفاءة الخدمة."}],"expect":{"suggestion_contains":["بهدف"],"min_suggestions":1}}
+{"id":"STYLE-008","dimension":"style","nodes":[{"id":"n1","text":"تشمل الدراسة كافة جميع عناصر النطاق."}],"expect":{"suggestion_contains":["جميع"],"min_suggestions":1}}
+{"id":"STYLE-009","dimension":"style","nodes":[{"id":"n1","text":"تم توثيق هذه المعلومة مسبقًا من قبل الفريق."}],"expect":{"suggestion_contains":["مسبقًا"],"min_suggestions":1}}
+{"id":"STYLE-010","dimension":"style","nodes":[{"id":"n1","text":"بصورة عامة بشكل عام، النتائج مستقرة."}],"expect":{"suggestion_contains":["بشكل عام"],"min_suggestions":1}}
+{"id":"STYLE-011","dimension":"style","nodes":[{"id":"n1","text":"فيما يخص الميزانية، لم يطرأ تغيير."}],"expect":{"suggestion_contains":["بشأن"],"min_suggestions":1}}
+{"id":"STYLE-012","dimension":"style","nodes":[{"id":"n1","text":"نعمل من أجل أن نرفع جودة الخدمة."}],"expect":{"suggestion_contains":["لنرفع"],"min_suggestions":1}}
+{"id":"STYLE-013","dimension":"style","nodes":[{"id":"n1","text":"في هذه المرحلة الحالية يتم تحديث البيانات."}],"expect":{"suggestion_contains":["في هذه المرحلة"],"min_suggestions":1}}
+{"id":"STYLE-014","dimension":"style","nodes":[{"id":"n1","text":"قام الفريق بالعمل على القيام بمراجعة الإجراءات الحالية."}],"expect":{"suggestion_contains":["بمراجعة الإجراءات"],"min_suggestions":1}}
+{"id":"STYLE-015","dimension":"style","nodes":[{"id":"n1","text":"يستهدف المشروع المشروع تحسين تجربة المستفيد."}],"expect":{"suggestion_contains":["تكرار كلمة"],"min_suggestions":1}}
+{"id":"NEG-005","dimension":"negative","nodes":[{"id":"n1","text":"لكن الخطة تحتاج إلى مراجعة إضافية."}],"expect":{"max_suggestions":0}}
+{"id":"NEG-006","dimension":"negative","nodes":[{"id":"n1","text":"حيث إن النتيجة واضحة، تم اعتماد التوصية."}],"expect":{"max_suggestions":0}}
+{"id":"NEG-007","dimension":"negative","nodes":[{"id":"n1","text":"تم اعتماد الخطة بعد المراجعة."}],"expect":{"max_suggestions":0}}
+{"id":"NEG-008","dimension":"negative","nodes":[{"id":"n1","text":"يمكن الاطلاع على المرجع عبر https://example.com/report."}],"expect":{"max_suggestions":0}}
+{"id":"NEG-009","dimension":"negative","nodes":[{"id":"n1","text":"«في الوقت الراهن تُطبق هذه القاعدة كما وردت في النص الأصلي»"}],"expect":{"max_suggestions":0}}
+{"id":"NEG-010","dimension":"negative","nodes":[{"id":"h1","type":"heading","text":"في الوقت الراهن"}],"expect":{"max_suggestions":0}}
+{"id":"NEG-011","dimension":"negative","nodes":[{"id":"n1","text":"هذه المرحلة الحالية من المشروع موثقة في العقد باسمها الرسمي."}],"expect":{"max_suggestions":0}}
