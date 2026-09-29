@@ -71,6 +71,9 @@ jobs:
       - name: Install backend dependencies
         run: pip install -r backend/requirements.txt
 
+      - name: Compile private corpus regression harness
+        run: python -m py_compile benchmark/run_corpus_regression.py
+
       - name: Run Nadid Quality Benchmark
         env:
           PYTHONPATH: backend
@@ -81,6 +84,14 @@ jobs:
         with:
           name: nadid-quality-benchmark
           path: benchmark/report.json
+
+      - name: Upload temporary corpus-runner source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: nadid-corpus-runner-source
+          path: |
+            backend
+            benchmark/run_corpus_regression.py
 
   aee-container:
     runs-on: ubuntu-latest
