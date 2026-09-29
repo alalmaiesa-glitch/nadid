@@ -67,7 +67,8 @@ export type MemoryItemKind =
   | "reference"
   | "concept"
   | "obligation"
-  | "condition";
+  | "condition"
+  | "relation";
 
 export type MemoryItem = {
   id: string;
