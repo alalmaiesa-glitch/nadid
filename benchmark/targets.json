@@ -39,7 +39,9 @@
     "Document Memory regression",
     "Semantic Review regression",
     "Semantic conflict regression",
-    "Semantic context regression"
+    "Semantic context regression",
+    "Arabic language review regression",
+    "Arabic style review regression"
   ],
   "critical_dimensions": [
     "meaning_lock",
@@ -48,6 +50,8 @@
     "document_memory",
     "semantic_review",
     "conflict",
-    "context"
+    "context",
+    "language",
+    "style"
   ]
 }
