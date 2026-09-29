@@ -175,7 +175,11 @@ def semantic_claim_key(text: str, fact_type: str) -> str:
     if "execution_duration" in concepts:
         return f"execution_duration|{fact_type}"
 
-    tokens = sorted(semantic_tokens(text))
+    tokens = sorted(
+        token
+        for token in semantic_tokens(text)
+        if not token.isdigit()
+    )
     if not tokens:
         return fact_type
 
