@@ -30,7 +30,7 @@ ROLE_RE = re.compile(
 QUOTE_RE = re.compile(r"«[^»\n]{1,500}»")
 
 NEGATION_MARKERS = re.compile(
-    r"(?:^|\s)(?:و|ف)?(?:لا|لم|لن|ليس|ليست|دون|ما\s+لم)\b"
+    r"(?:^|\s)(?:و|ف)?(?:لا|لم|لن|ليس|ليست|غير|دون|ما\s+لم)\b"
 )
 OBLIGATION_MARKERS = re.compile(
     r"\b(?:يجب|يتعين|يلتزم|تلتزم|يلزم|يحظر|"
