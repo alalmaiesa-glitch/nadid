@@ -119,7 +119,24 @@ export type DeepMemorySnapshot = {
   chunkCount: number;
 };
 
+export type SemanticIssue = {
+  id: string;
+  nodeId: string;
+  issueType:
+    | "definition_conflict"
+    | "abbreviation_conflict"
+    | "polarity_conflict"
+    | "decision_conflict";
+  title: string;
+  explanation: string;
+  original: string;
+  evidenceNodeIds: string[];
+  evidenceValues: string[];
+  confidence: number;
+};
+
 export type DeepAnalysisResult = {
   chunks: MemoryChunk[];
   memory: DeepMemorySnapshot;
+  semanticIssues: SemanticIssue[];
 };
