@@ -7,7 +7,20 @@ from pydantic import BaseModel, Field
 NodeType = Literal["heading", "paragraph", "table_cell"]
 ReviewCategory = Literal["language", "style", "consistency", "protection"]
 ProtectedType = Literal[
-    "number", "currency", "percentage", "date", "standard", "negation"
+    "number",
+    "currency",
+    "percentage",
+    "date",
+    "standard",
+    "negation",
+    "entity",
+    "legal_reference",
+    "role",
+    "obligation",
+    "condition",
+    "qualifier",
+    "quotation",
+    "quantity",
 ]
 
 

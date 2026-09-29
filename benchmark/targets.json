@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "policy": "target thresholds; CI enforcement starts after baseline approval",
+  "policy": "critical dimensions are enforced in CI; remaining targets are tracked until strengthened",
   "dimensions": {
     "language": {
       "target": 0.95
@@ -19,12 +19,21 @@
     },
     "negative": {
       "target": 0.98
+    },
+    "meaning_lock": {
+      "target": 0.99
     }
   },
   "overall_target": 0.95,
   "release_blockers": [
     "protection regression",
     "negative-control regression",
-    "loss of previously passing benchmark case"
+    "loss of previously passing benchmark case",
+    "Meaning Lock regression"
+  ],
+  "critical_dimensions": [
+    "meaning_lock",
+    "protection",
+    "negative"
   ]
 }

@@ -1,27 +1,124 @@
 from __future__ import annotations
 
 import re
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid5
 
 from app.arabic_numbers import DIGITS, NUMBER_PATTERN
 from app.contracts import DocumentNode, ProtectedSpan
 
 
 CURRENCY_RE = re.compile(
-    rf"(?P<number>{NUMBER_PATTERN})\s*(?:ريال|ر\.س)"
+    rf"(?P<number>{NUMBER_PATTERN})\s*(?P<unit>ريال|ر\.س|SAR|دولار|USD|يورو|EUR)",
+    re.IGNORECASE,
 )
 NUMBER_RE = re.compile(NUMBER_PATTERN)
 PERCENT_RE = re.compile(rf"{NUMBER_PATTERN}\s*[%٪]")
-DATE_RE = re.compile(
+FULL_DATE_RE = re.compile(
+    rf"(?<![{DIGITS}])"
+    rf"{NUMBER_PATTERN}\s*[/\-]\s*{NUMBER_PATTERN}\s*[/\-]\s*"
+    rf"(?:19|20|١٩|٢٠|۱۹|۲۰)[{DIGITS}]{{2}}"
+    rf"(?![{DIGITS}])"
+)
+YEAR_RE = re.compile(
     rf"(?<![{DIGITS}])(?:19|20|١٩|٢٠|۱۹|۲۰)[{DIGITS}]{{2}}(?![{DIGITS}])"
+)
+QUANTITY_RE = re.compile(
+    rf"{NUMBER_PATTERN}\s*(?:"
+    r"كجم|كيلوجرام|جرام|طن|متر|كم|كيلومتر|"
+    r"م²|م2|م3|ساعة|ساعات|يوم|أيام|شهر|أشهر|"
+    r"سنة|سنوات|وحدة|وحدات|قطعة|قطع|مستفيد|مستفيدين|"
+    r"فرع|فروع|محور|محاور|صفحة|صفحات"
+    r")\b"
 )
 STANDARD_RE = re.compile(
     rf"\bISO\s*[{DIGITS}]{{3,6}}(?::[{DIGITS}]{{4}})?\b",
     re.IGNORECASE,
 )
-NEGATION_RE = re.compile(
-    r"(?:^|\s)(?:و|ف)?(?:لا|لم|لن|ليس|ليست)\s+[^،؛.!؟\n]{1,55}"
+LEGAL_REFERENCE_RE = re.compile(
+    rf"(?:المادة|مادة|البند|بند|الفقرة|فقرة|الفصل|فصل)"
+    rf"\s*(?:رقم\s*)?[\(\[]?\s*{NUMBER_PATTERN}\s*[\)\]]?"
 )
+ROLE_RE = re.compile(
+    r"\bالطرف\s+(?:الأول|الثاني|الثالث|الرابع)\b"
+)
+QUOTE_RE = re.compile(r"«[^»\n]{1,500}»")
+
+NEGATION_MARKERS = re.compile(
+    r"(?:^|\s)(?:و|ف)?(?:لا|لم|لن|ليس|ليست|غير|دون|ما\s+لم)\b"
+)
+OBLIGATION_MARKERS = re.compile(
+    r"\b(?:يجب|ينبغي|يتعين|يتوجب|يلتزم|تلتزم|يلزم|يحظر|"
+    r"لا\s+يجوز|يجوز|يمكن|يحق|يتحمل|تتحمل|يتولى|تتولى)\b"
+)
+CONDITION_MARKERS = re.compile(
+    r"\b(?:إذا|في\s+حال|في\s+حالة|بشرط|شريطة|ما\s+لم)\b"
+)
+QUALIFIER_RE = re.compile(
+    r"\b(?:فقط|حصراً|حصرًا|جميع|كافة|بعض|معظم|باستثناء|عدا|سوى|إلا|"
+    r"بحد\s+أقصى|بحد\s+أدنى|لا\s+يقل\s+عن|لا\s+يزيد\s+عن)\b"
+)
+EPISTEMIC_MARKERS = re.compile(
+    r"\b(?:قد|ربما|لعل|من\s+المحتمل|من\s+المؤكد|"
+    r"تقريباً|تقريبًا|حوالي|نحو|يحتمل|متوقع|متوقعة)\b"
+)
+RELATION_MARKERS = re.compile(
+    r"\b(?:قبل|بعد|أكثر\s+من|أقل\s+من|على\s+الأقل|"
+    r"على\s+الأكثر|حتى|منذ|خلال)\b"
+)
+LOGIC_MARKERS = re.compile(
+    r"\b(?:أو|إما|وإما|كلا|كليهما|أحدهما)\b"
+)
+
+ENTITY_HEADS = {
+    "وزارة",
+    "الوزارة",
+    "هيئة",
+    "الهيئة",
+    "شركة",
+    "الشركة",
+    "مؤسسة",
+    "المؤسسة",
+    "جمعية",
+    "الجمعية",
+    "جامعة",
+    "الجامعة",
+    "صندوق",
+    "الصندوق",
+    "مركز",
+    "المركز",
+    "مجلس",
+    "المجلس",
+    "بنك",
+    "البنك",
+}
+
+ENTITY_STOPWORDS = {
+    "تتولى",
+    "يتولى",
+    "تقوم",
+    "يقوم",
+    "تعمل",
+    "يعمل",
+    "تشرف",
+    "يشرف",
+    "الإشراف",
+    "مسؤولة",
+    "مسؤول",
+    "هي",
+    "هو",
+    "تم",
+    "يتم",
+    "على",
+    "في",
+    "من",
+    "إلى",
+    "عن",
+    "وفق",
+    "بموجب",
+}
+
+ARABIC_WORD_RE = re.compile(r"[\u0600-\u06FF]+")
+CLAUSE_RE = re.compile(r"[^.!؟؛\n]+(?:[.!؟؛]|$)")
 
 
 def _span(
@@ -31,14 +128,124 @@ def _span(
     validator_key: str,
     lock_policy: str = "normalize_only",
 ) -> ProtectedSpan:
+    clean_value = value.strip()
+    stable_id = str(
+        uuid5(
+            NAMESPACE_URL,
+            f"{node_id}|{span_type}|{validator_key}|{clean_value}",
+        )
+    )
     return ProtectedSpan(
-        id=str(uuid4()),
+        id=stable_id,
         node_id=node_id,
         type=span_type,
-        value=value.strip(),
+        value=clean_value,
         validator_key=validator_key,
         lock_policy=lock_policy,
     )
+
+
+def _extract_entities(node_id: str, text: str) -> list[ProtectedSpan]:
+    matches = list(ARABIC_WORD_RE.finditer(text))
+    output: list[ProtectedSpan] = []
+
+    for index, token in enumerate(matches):
+        if token.group() not in ENTITY_HEADS:
+            continue
+
+        selected = [token]
+        for next_token in matches[index + 1:index + 6]:
+            word = next_token.group()
+            if word in ENTITY_STOPWORDS:
+                break
+            selected.append(next_token)
+
+        if len(selected) < 2:
+            continue
+
+        value = text[selected[0].start():selected[-1].end()].strip()
+        output.append(
+            _span(
+                node_id,
+                "entity",
+                value,
+                "exact_or_normalized_identifier",
+                "identity",
+            )
+        )
+
+    return output
+
+
+def _critical_clause_spans(
+    node_id: str,
+    text: str,
+) -> list[ProtectedSpan]:
+    output: list[ProtectedSpan] = []
+
+    for match in CLAUSE_RE.finditer(text):
+        clause = match.group().strip().rstrip(".!?;؟؛").strip()
+        if not clause:
+            continue
+
+        if NEGATION_MARKERS.search(clause):
+            output.append(
+                _span(
+                    node_id,
+                    "negation",
+                    clause,
+                    "normalized_clause_preservation",
+                    "semantic_strict",
+                )
+            )
+
+        if OBLIGATION_MARKERS.search(clause):
+            output.append(
+                _span(
+                    node_id,
+                    "obligation",
+                    clause,
+                    "normalized_clause_preservation",
+                    "semantic_strict",
+                )
+            )
+
+        if CONDITION_MARKERS.search(clause):
+            output.append(
+                _span(
+                    node_id,
+                    "condition",
+                    clause,
+                    "normalized_clause_preservation",
+                    "semantic_strict",
+                )
+            )
+
+    return output
+
+
+def _marker_spans(
+    node_id: str,
+    text: str,
+) -> list[ProtectedSpan]:
+    output: list[ProtectedSpan] = []
+    for pattern in (
+        QUALIFIER_RE,
+        EPISTEMIC_MARKERS,
+        RELATION_MARKERS,
+        LOGIC_MARKERS,
+    ):
+        output += [
+            _span(
+                node_id,
+                "qualifier",
+                match.group(),
+                "meaning_marker_preservation",
+                "semantic_marker",
+            )
+            for match in pattern.finditer(text)
+        ]
+    return output
 
 
 def extract_protected_spans(nodes: list[DocumentNode]) -> list[ProtectedSpan]:
@@ -50,20 +257,63 @@ def extract_protected_spans(nodes: list[DocumentNode]) -> list[ProtectedSpan]:
         candidates: list[ProtectedSpan] = []
 
         candidates += [
-            _span(node.id, "currency", m.group(), "numeric_equivalence")
+            _span(
+                node.id,
+                "currency",
+                m.group(),
+                "numeric_unit_equivalence",
+                "value_and_unit",
+            )
             for m in CURRENCY_RE.finditer(text)
         ]
         candidates += [
-            _span(node.id, "number", m.group(), "numeric_equivalence")
+            _span(
+                node.id,
+                "number",
+                m.group(),
+                "numeric_equivalence",
+            )
             for m in NUMBER_RE.finditer(text)
         ]
         candidates += [
-            _span(node.id, "percentage", m.group(), "numeric_equivalence")
+            _span(
+                node.id,
+                "percentage",
+                m.group(),
+                "numeric_unit_equivalence",
+                "value_and_unit",
+            )
             for m in PERCENT_RE.finditer(text)
         ]
         candidates += [
-            _span(node.id, "date", m.group(), "date_equivalence")
-            for m in DATE_RE.finditer(text)
+            _span(
+                node.id,
+                "date",
+                m.group(),
+                "date_equivalence",
+                "date_identity",
+            )
+            for m in FULL_DATE_RE.finditer(text)
+        ]
+        candidates += [
+            _span(
+                node.id,
+                "date",
+                m.group(),
+                "date_equivalence",
+                "date_identity",
+            )
+            for m in YEAR_RE.finditer(text)
+        ]
+        candidates += [
+            _span(
+                node.id,
+                "quantity",
+                m.group(),
+                "exact_or_normalized_identifier",
+                "value_and_unit",
+            )
+            for m in QUANTITY_RE.finditer(text)
         ]
         candidates += [
             _span(
@@ -71,20 +321,43 @@ def extract_protected_spans(nodes: list[DocumentNode]) -> list[ProtectedSpan]:
                 "standard",
                 m.group(),
                 "exact_or_normalized_identifier",
-                "exact",
+                "identity",
             )
             for m in STANDARD_RE.finditer(text)
         ]
         candidates += [
             _span(
                 node.id,
-                "negation",
+                "legal_reference",
                 m.group(),
-                "negation_preservation",
-                "semantic_exact",
+                "exact_or_normalized_identifier",
+                "identity",
             )
-            for m in NEGATION_RE.finditer(text)
+            for m in LEGAL_REFERENCE_RE.finditer(text)
         ]
+        candidates += [
+            _span(
+                node.id,
+                "role",
+                m.group(),
+                "exact_or_normalized_identifier",
+                "identity",
+            )
+            for m in ROLE_RE.finditer(text)
+        ]
+        candidates += [
+            _span(
+                node.id,
+                "quotation",
+                m.group(),
+                "exact_or_normalized_identifier",
+                "exact",
+            )
+            for m in QUOTE_RE.finditer(text)
+        ]
+        candidates += _marker_spans(node.id, text)
+        candidates += _extract_entities(node.id, text)
+        candidates += _critical_clause_spans(node.id, text)
 
         for candidate in candidates:
             key = (candidate.node_id, candidate.type, candidate.value)

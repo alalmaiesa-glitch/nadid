@@ -74,7 +74,7 @@ jobs:
       - name: Run Nadid Quality Benchmark
         env:
           PYTHONPATH: backend
-        run: python benchmark/run_benchmark.py --report benchmark/report.json
+        run: python benchmark/run_benchmark.py --report benchmark/report.json --enforce-critical
 
       - name: Upload benchmark report
         uses: actions/upload-artifact@v4

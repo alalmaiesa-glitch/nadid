@@ -10,6 +10,7 @@ from app.pipeline.chunker import build_chunks
 from app.pipeline.context import retrieve_context
 from app.pipeline.memory import build_document_memory
 from app.pipeline.protection import extract_protected_spans
+from app.pipeline.patch_validator import validate_patch
 from app.pipeline.reviewer import fast_review
 
 
@@ -98,6 +99,20 @@ def evaluate_case(case):
     if expected.get("no_conflicts") and memory.conflicts:
         failures.append("unexpected_conflict")
 
+    patch = expected.get("patch")
+    if patch:
+        result = validate_patch(
+            block_text=patch.get("block_text", nodes[0].text if nodes else ""),
+            original=patch["original"],
+            replacement=patch["replacement"],
+            protected_spans=protected,
+        )
+        wanted_status = patch["status"]
+        if result.status != wanted_status:
+            failures.append(
+                f"patch_status:{result.status}!={wanted_status}"
+            )
+
     context = expected.get("context")
     if context:
         package = retrieve_context(
@@ -138,6 +153,8 @@ def main():
         default="benchmark/cases/core_v1.jsonl",
     )
     parser.add_argument("--report")
+    parser.add_argument("--enforce-critical", action="store_true")
+    parser.add_argument("--targets", default="benchmark/targets.json")
     args = parser.parse_args()
 
     cases = load_cases(Path(args.suite))
@@ -195,6 +212,25 @@ def main():
             json.dumps(summary, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+
+    if args.enforce_critical:
+        targets = json.loads(
+            Path(args.targets).read_text(encoding="utf-8")
+        )
+        gate_failures = []
+        for name in targets.get("critical_dimensions", []):
+            actual = summary["dimensions"].get(name, {}).get("score", 0.0)
+            target = targets["dimensions"][name]["target"]
+            if actual < target:
+                gate_failures.append(
+                    f"{name}:{actual:.1%}<{target:.1%}"
+                )
+
+        if gate_failures:
+            print("\nCritical quality gate failed:")
+            for failure in gate_failures:
+                print(f"- {failure}")
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":

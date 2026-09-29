@@ -20,7 +20,21 @@ export type QuickSuggestion = {
 export type ProtectedFact = {
   id: string;
   blockId: string;
-  type: "number" | "currency" | "percentage" | "date" | "standard" | "negation";
+  type:
+    | "number"
+    | "currency"
+    | "percentage"
+    | "date"
+    | "standard"
+    | "negation"
+    | "entity"
+    | "legal_reference"
+    | "role"
+    | "obligation"
+    | "condition"
+    | "qualifier"
+    | "quotation"
+    | "quantity";
   value: string;
 };
 
