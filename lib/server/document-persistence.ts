@@ -4,6 +4,7 @@ import type {
   DeepAnalysisResult,
   DeepMemorySnapshot,
   DocumentBlock,
+  MemoryItemKind,
   ProtectedFact,
   QuickSuggestion,
   ReviewCategory
@@ -26,6 +27,24 @@ function normalizeReviewCategory(value: string): ReviewCategory {
       return value;
     default:
       return "language";
+  }
+}
+
+
+function normalizeMemoryItemKind(value: string): MemoryItemKind | null {
+  switch (value) {
+    case "entity":
+    case "definition":
+    case "abbreviation":
+    case "decision":
+    case "reference":
+    case "concept":
+    case "obligation":
+    case "condition":
+    case "relation":
+      return value;
+    default:
+      return null;
   }
 }
 
@@ -721,16 +740,20 @@ export async function loadDeepMemory(
       values: conflict.values_found ?? [],
       confidence: Number(conflict.confidence)
     })),
-    knowledgeItems: (knowledgeItems ?? []).map((item) => ({
-      id: item.client_item_id,
-      kind: item.kind,
-      key: item.item_key,
-      value: item.item_value,
-      nodeIds: item.node_keys ?? [],
-      aliases: item.aliases ?? [],
-      confidence: Number(item.confidence),
-      metadata: item.metadata ?? {}
-    })),
+    knowledgeItems: (knowledgeItems ?? []).flatMap((item) => {
+      const kind = normalizeMemoryItemKind(item.kind);
+      if (!kind) return [];
+      return [{
+        id: item.client_item_id,
+        kind,
+        key: item.item_key,
+        value: item.item_value,
+        nodeIds: item.node_keys ?? [],
+        aliases: item.aliases ?? [],
+        confidence: Number(item.confidence),
+        metadata: item.metadata ?? {}
+      }];
+    }),
     protectedCount: memory.protected_count,
     chunkCount: memory.chunk_count
   };
