@@ -40,3 +40,21 @@
 {"id":"ML-013","dimension":"meaning_lock","nodes":[{"id":"n1","text":"ورد في القرار: «يبدأ التنفيذ فور الاعتماد»."}],"expect":{"patch":{"original":"يبدأ التنفيذ فور الاعتماد","replacement":"يؤجل التنفيذ حتى إشعار آخر","status":"BLOCK"}}}
 {"id":"ML-014","dimension":"meaning_lock","nodes":[{"id":"n1","text":"تبلغ التكلفة 100 ريال ، وهي معتمدة."}],"expect":{"patch":{"original":"ريال ،","replacement":"ريال،","status":"PASS"}}}
 {"id":"ML-015","dimension":"meaning_lock","nodes":[{"id":"n1","text":"المشروع مكتمل وفق المحضر النهائي."}],"expect":{"patch":{"original":"مكتمل","replacement":"غير مكتمل","status":"BLOCK"}}}
+{"id":"ML-016","dimension":"meaning_lock","nodes":[{"id":"n1","text":"موعد التسليم هو 15/10/2026."}],"expect":{"patch":{"original":"15/10/2026","replacement":"10/15/2026","status":"BLOCK"}}}
+{"id":"ML-017","dimension":"meaning_lock","nodes":[{"id":"n1","text":"موعد التسليم هو ١٥/١٠/٢٠٢٦."}],"expect":{"patch":{"original":"١٥/١٠/٢٠٢٦","replacement":"15/10/2026","status":"PASS"}}}
+{"id":"ML-018","dimension":"meaning_lock","nodes":[{"id":"n1","text":"مدة التنفيذ 12 شهر."}],"expect":{"patch":{"original":"12 شهر","replacement":"12 يوم","status":"BLOCK"}}}
+{"id":"ML-019","dimension":"meaning_lock","nodes":[{"id":"n1","text":"المشروع مكتمل وفق المحضر."}],"expect":{"patch":{"original":"مكتمل","replacement":"قد يكون مكتمل","status":"BLOCK"}}}
+{"id":"ML-020","dimension":"meaning_lock","nodes":[{"id":"n1","text":"القيمة المعتمدة 100 ريال."}],"expect":{"patch":{"original":"100 ريال","replacement":"حوالي 100 ريال","status":"BLOCK"}}}
+{"id":"ML-021","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يبدأ التنفيذ قبل اعتماد العقد."}],"expect":{"patch":{"original":"قبل","replacement":"بعد","status":"BLOCK"}}}
+{"id":"ML-022","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يشمل النطاق النقل أو التخزين."}],"expect":{"patch":{"original":"أو","replacement":"و","status":"BLOCK"}}}
+{"id":"ML-023","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يشمل النطاق جميع المناطق باستثناء المنطقة التجريبية."}],"expect":{"patch":{"original":"باستثناء ","replacement":"","status":"BLOCK"}}}
+{"id":"ML-024","dimension":"meaning_lock","nodes":[{"id":"n1","text":"تبلغ التكلفة 100 ريال، والصياغة واضحه."}],"expect":{"patch":{"original":"واضحه","replacement":"واضحة","status":"PASS"}}}
+{"id":"ML-025","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يجب على المورد التسليم ، خلال 5 أيام."}],"expect":{"patch":{"original":"التسليم ،","replacement":"التسليم،","status":"PASS"}}}
+{"id":"ML-026","dimension":"meaning_lock","nodes":[{"id":"n1","text":"بلغ الإنجاز ٨٧٫٥٪."}],"expect":{"patch":{"original":"٨٧٫٥٪","replacement":"87.5%","status":"PASS"}}}
+{"id":"ML-027","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يجب على المورد تقديم التقرير."}],"expect":{"patch":{"original":"يجب","replacement":"ينبغي","status":"BLOCK"}}}
+{"id":"ML-028","dimension":"meaning_lock","nodes":[{"id":"n1","text":"تشمل الخدمة جميع المستفيدين المؤهلين."}],"expect":{"patch":{"original":"جميع","replacement":"بعض","status":"BLOCK"}}}
+{"id":"ML-029","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يصدر التقرير بعد 30 يوم."}],"expect":{"patch":{"original":"بعد","replacement":"قبل","status":"BLOCK"}}}
+{"id":"ML-030","dimension":"meaning_lock","nodes":[{"id":"n1","text":"موعد الإغلاق 15/10/2026."}],"expect":{"patch":{"original":"15/10/2026","replacement":"15-10-2026","status":"PASS"}}}
+{"id":"ML-031","dimension":"meaning_lock","nodes":[{"id":"n1","text":"المسافة المعتمدة 100 متر."}],"expect":{"patch":{"original":"100 متر","replacement":"100 كيلومتر","status":"BLOCK"}}}
+{"id":"ML-032","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يشمل العقد النقل والتخزين."}],"expect":{"patch":{"original":"النقل والتخزين","replacement":"النقل أو التخزين","status":"BLOCK"}}}
+{"id":"ML-033","dimension":"meaning_lock","nodes":[{"id":"n1","text":"قد تصل التكلفة إلى 100 ريال."}],"expect":{"patch":{"original":"قد ","replacement":"","status":"BLOCK"}}}
