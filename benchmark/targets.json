@@ -12,10 +12,10 @@
       "target": 0.99
     },
     "conflict": {
-      "target": 0.9
+      "target": 0.95
     },
     "context": {
-      "target": 0.9
+      "target": 0.95
     },
     "negative": {
       "target": 0.98
@@ -27,7 +27,7 @@
       "target": 0.95
     },
     "semantic_review": {
-      "target": 0.9
+      "target": 0.95
     }
   },
   "overall_target": 0.95,
@@ -36,12 +36,18 @@
     "negative-control regression",
     "loss of previously passing benchmark case",
     "Meaning Lock regression",
-    "Document Memory regression"
+    "Document Memory regression",
+    "Semantic Review regression",
+    "Semantic conflict regression",
+    "Semantic context regression"
   ],
   "critical_dimensions": [
     "meaning_lock",
     "protection",
     "negative",
-    "document_memory"
+    "document_memory",
+    "semantic_review",
+    "conflict",
+    "context"
   ]
 }
