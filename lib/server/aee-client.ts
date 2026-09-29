@@ -131,12 +131,28 @@ export async function analyzeDocxWithAee(
 }
 
 function validatorKey(type: ProtectedFact["type"]) {
-  if (["number", "currency", "percentage"].includes(type)) {
-    return "numeric_equivalence";
+  if (type === "number") return "numeric_equivalence";
+  if (type === "currency" || type === "percentage") {
+    return "numeric_unit_equivalence";
   }
   if (type === "date") return "date_equivalence";
-  if (type === "standard") return "exact_or_normalized_identifier";
-  if (type === "negation") return "negation_preservation";
+  if (
+    type === "standard" ||
+    type === "entity" ||
+    type === "legal_reference" ||
+    type === "role" ||
+    type === "quotation"
+  ) {
+    return "exact_or_normalized_identifier";
+  }
+  if (
+    type === "negation" ||
+    type === "obligation" ||
+    type === "condition"
+  ) {
+    return "normalized_clause_preservation";
+  }
+  if (type === "qualifier") return "meaning_marker_preservation";
   return "exact_text";
 }
 
@@ -160,7 +176,9 @@ export async function validatePatchWithAee(input: {
         value: fact.value,
         validator_key: validatorKey(fact.type),
         lock_policy:
-          fact.type === "negation" ? "semantic_exact" : "normalize_only",
+          ["negation", "obligation", "condition"].includes(fact.type)
+            ? "semantic_strict"
+            : "normalize_only",
         lock_mode: "block"
       }))
     }),
