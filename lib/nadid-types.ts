@@ -1,3 +1,5 @@
+import type { Json } from "@/lib/database.types";
+
 export type ReviewCategory = "language" | "style" | "consistency" | "protection";
 
 export type DocumentBlock = {
@@ -78,7 +80,7 @@ export type MemoryItem = {
   nodeIds: string[];
   aliases: string[];
   confidence: number;
-  metadata: Record<string, unknown>;
+  metadata: Json;
 };
 
 export type FactAssertion = {
