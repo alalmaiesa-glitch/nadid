@@ -112,6 +112,7 @@ MemoryItemKind = Literal[
     "concept",
     "obligation",
     "condition",
+    "relation",
 ]
 
 
