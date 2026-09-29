@@ -25,6 +25,9 @@
     },
     "document_memory": {
       "target": 0.95
+    },
+    "semantic_review": {
+      "target": 0.9
     }
   },
   "overall_target": 0.95,
