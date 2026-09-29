@@ -210,7 +210,7 @@ STYLE_RULES: tuple[ReviewRule, ...] = (
         category="style",
         title="تكرار كلمة",
         explanation="وردت الكلمة نفسها مرتين متتاليتين.",
-        pattern=re.compile(r"\b([\u0600-\u06FF]{3,})\s+\1\b"),
+        pattern=re.compile(r"\b([\u0600-\u06FF]{3,})[ \t]+\1\b"),
         replacement=lambda m: m.group(1),
         confidence=0.96,
         apply_to_headings=False,
@@ -360,6 +360,12 @@ def _apply_rule(
 
     suggestions: list[Suggestion] = []
     for index, match in enumerate(rule.pattern.finditer(node.text)):
+        if rule.id == "spacing.repeated":
+            if node.type == "table_cell":
+                continue
+            previous = node.text[match.start() - 1] if match.start() > 0 else ""
+            if previous in "◆•▪◦●○■□–—-":
+                continue
         if index >= rule.max_matches:
             break
 
