@@ -500,3 +500,115 @@ def test_meaning_lock_blocks_logic_operator_change():
     )
     assert result.status == "BLOCK"
 
+def test_document_memory_extracts_definition_and_abbreviation():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [
+        node("يقصد بمصطلح «مقدم الخدمة»: الجهة المتعاقدة لتنفيذ الأعمال.", 0),
+        node("الهيئة العامة للعقار (REGA) تشرف على تنظيم القطاع.", 1),
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+
+    assert any(
+        item.kind == "definition"
+        and "مقدم الخدمة" in item.key
+        and "الجهة المتعاقدة" in item.value
+        for item in memory.knowledge_items
+    )
+    assert any(
+        item.kind == "abbreviation"
+        and item.key == "REGA"
+        and "الهيئة العامة للعقار" in item.value
+        for item in memory.knowledge_items
+    )
+
+
+def test_document_memory_aggregates_entity_mentions():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [
+        node("تعمل وزارة الصحة على تطوير الخدمة.", 0),
+        node("تتولى وزارة الصحة الإشراف على التنفيذ.", 1),
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+
+    item = next(
+        item
+        for item in memory.knowledge_items
+        if item.kind == "entity" and item.key == "وزارة الصحة"
+    )
+    assert set(item.node_ids) == {"n-0", "n-1"}
+
+
+def test_document_memory_extracts_decisions_obligations_and_conditions():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [
+        node("تم اعتماد الخطة التشغيلية في الاجتماع الأخير.", 0),
+        node("يجب على المورد تسليم التقرير خلال خمسة أيام.", 1),
+        node("إذا تأخر المورد، يطبق الإجراء التصحيحي.", 2),
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+
+    kinds = {item.kind for item in memory.knowledge_items}
+    assert "decision" in kinds
+    assert "obligation" in kinds
+    assert "condition" in kinds
+
+
+def test_document_memory_promotes_repeated_multiword_concept():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [
+        node("يعتمد المشروع على الذكاء الاصطناعي في التحليل.", 0),
+        node("يساعد الذكاء الاصطناعي في تحسين جودة المراجعة.", 1),
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+
+    assert any(
+        item.kind == "concept"
+        and "الذكاء الاصطناعي" in item.key
+        and len(item.node_ids) == 2
+        for item in memory.knowledge_items
+    )
+
+
+def test_document_memory_does_not_treat_heading_colon_as_definition():
+    from app.contracts import DocumentNode
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [
+        DocumentNode(
+            id="h-1",
+            type="heading",
+            text="مقدمة: خلفية المشروع",
+            sequence_no=0,
+        )
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+
+    assert not any(
+        item.kind == "definition" and "مقدمة" in item.key
+        for item in memory.knowledge_items
+    )
+
