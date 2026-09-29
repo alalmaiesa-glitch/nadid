@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { Json } from "@/lib/database.types";
 import type {
   AnalyzeResponse,
   DeepAnalysisResult,
@@ -244,7 +245,7 @@ type AeeDeepResponse = {
       node_ids: string[];
       aliases: string[];
       confidence: number;
-      metadata: Record<string, unknown>;
+      metadata: Json;
     }>;
     protected_count: number;
     chunk_count: number;
