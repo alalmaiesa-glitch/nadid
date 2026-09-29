@@ -11,3 +11,5 @@ pnpm-debug.log*
 benchmark/corpus/private/
 benchmark/corpus/reports/
 benchmark/corpus/*.private.json
+benchmark/gold/private/
+benchmark/gold/reports/

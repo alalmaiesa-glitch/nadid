@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "purpose": "human_gold_set_example",
+  "units": [
+    {
+      "unit_id": "u1",
+      "doc_id": "EX1",
+      "node_id": "n1",
+      "node_type": "paragraph",
+      "sequence_no": 0,
+      "text": "هاذا التقرير واضح.",
+      "text_sha256": "example",
+      "word_count": 3,
+      "stratum": "predicted",
+      "population_size": 2,
+      "sample_size": 2,
+      "inclusion_probability": 1,
+      "weight": 1,
+      "predictions": [
+        {
+          "suggestion_id": "s1",
+          "category": "language",
+          "title": "رسم إملائي",
+          "original": "هاذا",
+          "replacement": "هذا",
+          "confidence": 0.99,
+          "label": "correct",
+          "review_note": ""
+        }
+      ],
+      "missed": [],
+      "review": {
+        "status": "adjudicated",
+        "reviewer": "example",
+        "reviewed_at": "2026-01-01",
+        "note": ""
+      }
+    },
+    {
+      "unit_id": "u2",
+      "doc_id": "EX1",
+      "node_id": "n2",
+      "node_type": "paragraph",
+      "sequence_no": 1,
+      "text": "النص سليم.",
+      "text_sha256": "example2",
+      "word_count": 2,
+      "stratum": "predicted",
+      "population_size": 2,
+      "sample_size": 2,
+      "inclusion_probability": 1,
+      "weight": 1,
+      "predictions": [
+        {
+          "suggestion_id": "s2",
+          "category": "style",
+          "title": "اقتراح غير لازم",
+          "original": "النص",
+          "replacement": "المحتوى",
+          "confidence": 0.9,
+          "label": "wrong",
+          "review_note": ""
+        }
+      ],
+      "missed": [],
+      "review": {
+        "status": "adjudicated",
+        "reviewer": "example",
+        "reviewed_at": "2026-01-01",
+        "note": ""
+      }
+    },
+    {
+      "unit_id": "u3",
+      "doc_id": "EX1",
+      "node_id": "n3",
+      "node_type": "paragraph",
+      "sequence_no": 2,
+      "text": "لاكن القرار معتمد.",
+      "text_sha256": "example3",
+      "word_count": 3,
+      "stratum": "clean",
+      "population_size": 1,
+      "sample_size": 1,
+      "inclusion_probability": 1,
+      "weight": 1,
+      "predictions": [],
+      "missed": [
+        {
+          "label": "missed",
+          "category": "language",
+          "original": "لاكن",
+          "replacement": "لكن",
+          "note": ""
+        }
+      ],
+      "review": {
+        "status": "adjudicated",
+        "reviewer": "example",
+        "reviewed_at": "2026-01-01",
+        "note": ""
+      }
+    }
+  ]
+}

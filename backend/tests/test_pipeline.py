@@ -831,3 +831,27 @@ def test_arabic_review_does_not_flag_clean_sentence():
     ])
     assert issues == []
 
+def test_arabic_review_replaces_colon_between_number_and_unit():
+    issues = fast_review([
+        node("المدة: 8 :أشهر.", 0)
+    ])
+    assert any(
+        issue.title == "علامة ترقيم زائدة بين العدد والوحدة"
+        and issue.replacement == "8 أشهر"
+        for issue in issues
+    )
+    assert not any(
+        issue.title in {
+            "مسافة قبل علامة ترقيم",
+            "مسافة بعد علامة ترقيم",
+        }
+        for issue in issues
+    )
+
+
+def test_arabic_review_keeps_correct_number_unit_phrase():
+    issues = fast_review([
+        node("المدة: 6 أشهر.", 0)
+    ])
+    assert issues == []
+

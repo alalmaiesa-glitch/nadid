@@ -71,8 +71,21 @@ jobs:
       - name: Install backend dependencies
         run: pip install -r backend/requirements.txt
 
-      - name: Compile private corpus regression harness
-        run: python -m py_compile benchmark/run_corpus_regression.py
+      - name: Compile private quality harnesses
+        run: >-
+          python -m py_compile
+          benchmark/run_corpus_regression.py
+          benchmark/build_gold_sample.py
+          benchmark/evaluate_gold.py
+          benchmark/review_gold_cli.py
+          benchmark/compare_gold_reviews.py
+
+      - name: Verify Gold Set evaluator fixture
+        run: >-
+          python benchmark/evaluate_gold.py
+          --gold benchmark/gold/example_adjudicated_v1.json
+          --report /tmp/gold-example-report.json
+          --require-complete
 
       - name: Run Nadid Quality Benchmark
         env:

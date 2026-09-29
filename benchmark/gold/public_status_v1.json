@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "corpus_documents": 8,
+  "eligible_nodes": 6586,
+  "predicted_node_population": 137,
+  "clean_node_population": 6449,
+  "candidate_sample": {
+    "predicted_nodes": 120,
+    "clean_nodes": 120,
+    "sampled_predictions": 340,
+    "seed": 20260929
+  },
+  "human_adjudication": "pending",
+  "precision": null,
+  "recall": null,
+  "f1": null,
+  "preaudit": {
+    "type": "AI-assisted pre-audit; not human gold",
+    "findings_fixed": [
+      "colon between a number and its unit was being re-spaced instead of removed",
+      "missing space after a sentence period was not detected"
+    ]
+  }
+}
