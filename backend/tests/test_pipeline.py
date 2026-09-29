@@ -445,3 +445,58 @@ def test_meaning_lock_blocks_introduced_negation():
 
     assert result.status == "BLOCK"
 
+def test_meaning_lock_blocks_full_date_reordering():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "موعد التسليم هو 15/10/2026."
+    spans = extract_protected_spans([node(text, 0)])
+    result = validate_patch(
+        block_text=text,
+        original="15/10/2026",
+        replacement="10/15/2026",
+        protected_spans=spans,
+    )
+    assert result.status == "BLOCK"
+
+
+def test_meaning_lock_blocks_quantity_unit_change():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "المسافة المعتمدة 100 متر."
+    spans = extract_protected_spans([node(text, 0)])
+    result = validate_patch(
+        block_text=text,
+        original="100 متر",
+        replacement="100 كيلومتر",
+        protected_spans=spans,
+    )
+    assert result.status == "BLOCK"
+
+
+def test_meaning_lock_blocks_added_uncertainty():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "المشروع مكتمل وفق المحضر."
+    spans = extract_protected_spans([node(text, 0)])
+    result = validate_patch(
+        block_text=text,
+        original="مكتمل",
+        replacement="قد يكون مكتمل",
+        protected_spans=spans,
+    )
+    assert result.status == "BLOCK"
+
+
+def test_meaning_lock_blocks_logic_operator_change():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "يشمل النطاق النقل أو التخزين."
+    spans = extract_protected_spans([node(text, 0)])
+    result = validate_patch(
+        block_text=text,
+        original="أو",
+        replacement="و",
+        protected_spans=spans,
+    )
+    assert result.status == "BLOCK"
+
