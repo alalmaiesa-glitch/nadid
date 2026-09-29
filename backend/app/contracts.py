@@ -20,6 +20,7 @@ ProtectedType = Literal[
     "condition",
     "qualifier",
     "quotation",
+    "quantity",
 ]
 
 
