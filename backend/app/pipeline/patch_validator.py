@@ -8,9 +8,12 @@ from app.arabic_numbers import canonical_decimal, normalize_numeric_text, preser
 from app.contracts import ProtectedSpan
 from app.pipeline.protection import (
     CONDITION_MARKERS,
+    EPISTEMIC_MARKERS,
+    LOGIC_MARKERS,
     NEGATION_MARKERS,
     OBLIGATION_MARKERS,
     QUALIFIER_RE,
+    RELATION_MARKERS,
 )
 
 
@@ -94,6 +97,9 @@ def _semantic_marker_signature(text: str) -> tuple[tuple[str, ...], ...]:
         OBLIGATION_MARKERS,
         CONDITION_MARKERS,
         QUALIFIER_RE,
+        EPISTEMIC_MARKERS,
+        RELATION_MARKERS,
+        LOGIC_MARKERS,
     )
     return tuple(
         tuple(
@@ -123,7 +129,7 @@ def _check_span(
     if protected.validator_key == "numeric_unit_equivalence":
         return _preserves_numeric_unit(protected, candidate)
     if protected.validator_key == "date_equivalence":
-        return preserves_numeric_value(protected.value, candidate)
+        return _normalized_present(protected.value, candidate)
     if protected.validator_key in {
         "exact_or_normalized_identifier",
         "meaning_marker_preservation",
