@@ -103,11 +103,36 @@ class MemoryTerm(BaseModel):
     node_ids: list[str]
 
 
+MemoryItemKind = Literal[
+    "entity",
+    "definition",
+    "abbreviation",
+    "decision",
+    "reference",
+    "concept",
+    "obligation",
+    "condition",
+    "relation",
+]
+
+
+class MemoryItem(BaseModel):
+    id: str
+    kind: MemoryItemKind
+    key: str
+    value: str
+    node_ids: list[str]
+    aliases: list[str] = Field(default_factory=list)
+    confidence: float = Field(default=0.9, ge=0, le=1)
+    metadata: dict = Field(default_factory=dict)
+
+
 class DocumentMemory(BaseModel):
     headings: list[str]
     terms: list[MemoryTerm]
     facts: list[FactAssertion]
     conflicts: list[FactConflict]
+    knowledge_items: list[MemoryItem] = Field(default_factory=list)
     protected_count: int
     chunk_count: int
 

@@ -11,6 +11,7 @@ from app.contracts import (
     ProtectedSpan,
 )
 from app.pipeline.facts import detect_fact_conflicts, extract_facts
+from app.pipeline.knowledge_memory import build_knowledge_memory
 
 
 WORD_RE = re.compile(r"[\u0600-\u06FF]{4,}")
@@ -70,12 +71,14 @@ def build_document_memory(
 
     facts = extract_facts(nodes)
     conflicts = detect_fact_conflicts(facts)
+    knowledge_items = build_knowledge_memory(nodes, protected)
 
     return DocumentMemory(
         headings=headings,
         terms=terms,
         facts=facts,
         conflicts=conflicts,
+        knowledge_items=knowledge_items,
         protected_count=len(protected),
         chunk_count=len(chunks),
     )

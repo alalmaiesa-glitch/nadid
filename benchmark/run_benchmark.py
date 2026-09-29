@@ -87,6 +87,34 @@ def evaluate_case(case):
         if normalize_text(value) in protected_values:
             failures.append(f"unexpected_protected:{value}")
 
+    for wanted in expected.get("memory_items", []):
+        matched = False
+        for item in memory.knowledge_items:
+            if wanted.get("kind") and item.kind != wanted["kind"]:
+                continue
+            if wanted.get("key_contains") and wanted["key_contains"] not in item.key:
+                continue
+            if wanted.get("value_contains") and wanted["value_contains"] not in item.value:
+                continue
+            min_nodes = wanted.get("min_nodes")
+            if min_nodes is not None and len(item.node_ids) < min_nodes:
+                continue
+            matched = True
+            break
+        if not matched:
+            failures.append(f"missing_memory_item:{wanted}")
+
+    for unwanted in expected.get("memory_absent", []):
+        for item in memory.knowledge_items:
+            if unwanted.get("kind") and item.kind != unwanted["kind"]:
+                continue
+            if unwanted.get("key_contains") and unwanted["key_contains"] not in item.key:
+                continue
+            if unwanted.get("value_contains") and unwanted["value_contains"] not in item.value:
+                continue
+            failures.append(f"unexpected_memory_item:{unwanted}")
+            break
+
     conflict_values = [
         sorted(normalize_text(v) for v in conflict.values)
         for conflict in memory.conflicts
@@ -141,6 +169,7 @@ def evaluate_case(case):
             "suggestions": len(suggestions),
             "protected": len(protected),
             "conflicts": len(memory.conflicts),
+            "knowledge_items": len(memory.knowledge_items),
             "chunks": len(chunks),
         },
     }

@@ -638,7 +638,7 @@ async function processDeepReview(job) {
         protected_count: Number(memory.protected_count ?? 0),
         chunk_count: Number(memory.chunk_count ?? chunks.length),
         engine_manifest: {
-          memory: "deterministic_v0.1",
+          memory: "knowledge_memory_v0.1",
           facts: "deterministic_v0.1",
           retrieval: "lexical_v0.1"
         },
@@ -652,6 +652,7 @@ async function processDeepReview(job) {
   for (const table of [
     "fact_conflicts",
     "fact_assertions",
+    "document_memory_items",
     "memory_terms",
     "document_chunks"
   ]) {
@@ -696,6 +697,27 @@ async function processDeepReview(job) {
         node_keys: term.node_ids ?? []
       }))
     );
+
+    if (error) throw error;
+  }
+
+  const knowledgeItems = memory.knowledge_items ?? [];
+  if (knowledgeItems.length > 0) {
+    const { error } = await supabase
+      .from("document_memory_items")
+      .insert(
+        knowledgeItems.map((item) => ({
+          version_id: version.id,
+          client_item_id: item.id,
+          kind: item.kind,
+          item_key: item.key,
+          item_value: item.value,
+          node_keys: item.node_ids ?? [],
+          aliases: item.aliases ?? [],
+          confidence: Number(item.confidence ?? 0),
+          metadata: item.metadata ?? {}
+        }))
+      );
 
     if (error) throw error;
   }
@@ -816,7 +838,8 @@ async function processDeepReview(job) {
         chunks: chunks.length,
         terms: terms.length,
         facts: facts.length,
-        conflicts: conflicts.length
+        conflicts: conflicts.length,
+        knowledge_items: knowledgeItems.length
       },
       completed_at: new Date().toISOString()
     });

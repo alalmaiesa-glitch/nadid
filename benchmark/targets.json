@@ -22,6 +22,9 @@
     },
     "meaning_lock": {
       "target": 0.99
+    },
+    "document_memory": {
+      "target": 0.95
     }
   },
   "overall_target": 0.95,
@@ -29,11 +32,13 @@
     "protection regression",
     "negative-control regression",
     "loss of previously passing benchmark case",
-    "Meaning Lock regression"
+    "Meaning Lock regression",
+    "Document Memory regression"
   ],
   "critical_dimensions": [
     "meaning_lock",
     "protection",
-    "negative"
+    "negative",
+    "document_memory"
   ]
 }
