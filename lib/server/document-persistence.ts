@@ -407,7 +407,7 @@ export async function persistDeepAnalysis(
         protected_count: deep.memory.protectedCount,
         chunk_count: deep.memory.chunkCount,
         engine_manifest: {
-          memory: "deterministic_v0.1",
+          memory: "knowledge_memory_v0.1",
           facts: "deterministic_v0.1",
           retrieval: "lexical_v0.1"
         },
@@ -421,6 +421,7 @@ export async function persistDeepAnalysis(
   const cleanupTables = [
     "fact_conflicts",
     "fact_assertions",
+    "document_memory_items",
     "memory_terms",
     "document_chunks"
   ] as const;
@@ -456,6 +457,24 @@ export async function persistDeepAnalysis(
         term: term.term,
         occurrence_count: term.count,
         node_keys: term.nodeIds
+      }))
+    );
+
+    if (error) throw error;
+  }
+
+  if (deep.memory.knowledgeItems.length > 0) {
+    const { error } = await supabase.from("document_memory_items").insert(
+      deep.memory.knowledgeItems.map((item) => ({
+        version_id: versionId,
+        client_item_id: item.id,
+        kind: item.kind,
+        item_key: item.key,
+        item_value: item.value,
+        node_keys: item.nodeIds,
+        aliases: item.aliases,
+        confidence: item.confidence,
+        metadata: item.metadata
       }))
     );
 
@@ -592,7 +611,8 @@ export async function persistDeepAnalysis(
       chunks: deep.chunks.length,
       terms: deep.memory.terms.length,
       facts: deep.memory.facts.length,
-      conflicts: deep.memory.conflicts.length
+      conflicts: deep.memory.conflicts.length,
+      knowledge_items: deep.memory.knowledgeItems.length
     },
     completed_at: new Date().toISOString()
   });
@@ -630,7 +650,8 @@ export async function loadDeepMemory(
   const [
     { data: terms, error: termsError },
     { data: facts, error: factsError },
-    { data: conflicts, error: conflictsError }
+    { data: conflicts, error: conflictsError },
+    { data: knowledgeItems, error: knowledgeItemsError }
   ] = await Promise.all([
     supabase
       .from("memory_terms")
@@ -649,11 +670,27 @@ export async function loadDeepMemory(
         "client_conflict_id, claim_key, fact_ids, values_found, confidence"
       )
       .eq("version_id", version.id)
-      .eq("status", "open")
+      .eq("status", "open"),
+    supabase
+      .from("document_memory_items")
+      .select(
+        "client_item_id, kind, item_key, item_value, node_keys, aliases, confidence, metadata"
+      )
+      .eq("version_id", version.id)
   ]);
 
-  if (termsError || factsError || conflictsError) {
-    throw termsError ?? factsError ?? conflictsError;
+  if (
+    termsError ||
+    factsError ||
+    conflictsError ||
+    knowledgeItemsError
+  ) {
+    throw (
+      termsError ??
+      factsError ??
+      conflictsError ??
+      knowledgeItemsError
+    );
   }
 
   return {
@@ -683,6 +720,16 @@ export async function loadDeepMemory(
       factIds: conflict.fact_ids ?? [],
       values: conflict.values_found ?? [],
       confidence: Number(conflict.confidence)
+    })),
+    knowledgeItems: (knowledgeItems ?? []).map((item) => ({
+      id: item.client_item_id,
+      kind: item.kind,
+      key: item.item_key,
+      value: item.item_value,
+      nodeIds: item.node_keys ?? [],
+      aliases: item.aliases ?? [],
+      confidence: Number(item.confidence),
+      metadata: item.metadata ?? {}
     })),
     protectedCount: memory.protected_count,
     chunkCount: memory.chunk_count
