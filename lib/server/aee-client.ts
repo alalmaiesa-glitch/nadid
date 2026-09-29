@@ -250,6 +250,21 @@ type AeeDeepResponse = {
     protected_count: number;
     chunk_count: number;
   };
+  semantic_issues: Array<{
+    id: string;
+    node_id: string;
+    issue_type:
+      | "definition_conflict"
+      | "abbreviation_conflict"
+      | "polarity_conflict"
+      | "decision_conflict";
+    title: string;
+    explanation: string;
+    original: string;
+    evidence_node_ids: string[];
+    evidence_values: string[];
+    confidence: number;
+  }>;
 };
 
 export async function analyzeDocxDeepWithAee(
@@ -324,7 +339,18 @@ export async function analyzeDocxDeepWithAee(
       })),
       protectedCount: payload.memory.protected_count,
       chunkCount: payload.memory.chunk_count
-    }
+    },
+    semanticIssues: (payload.semantic_issues ?? []).map((issue) => ({
+      id: issue.id,
+      nodeId: issue.node_id,
+      issueType: issue.issue_type,
+      title: issue.title,
+      explanation: issue.explanation,
+      original: issue.original,
+      evidenceNodeIds: issue.evidence_node_ids ?? [],
+      evidenceValues: issue.evidence_values ?? [],
+      confidence: issue.confidence
+    }))
   };
 }
 
