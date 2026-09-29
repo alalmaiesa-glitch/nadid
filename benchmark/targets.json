@@ -22,6 +22,9 @@
     },
     "meaning_lock": {
       "target": 0.99
+    },
+    "document_memory": {
+      "target": 0.95
     }
   },
   "overall_target": 0.95,
