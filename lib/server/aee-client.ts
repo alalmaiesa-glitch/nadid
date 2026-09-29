@@ -237,7 +237,8 @@ type AeeDeepResponse = {
         | "reference"
         | "concept"
         | "obligation"
-        | "condition";
+        | "condition"
+        | "relation";
       key: string;
       value: string;
       node_ids: string[];
