@@ -77,6 +77,8 @@ jobs:
           benchmark/run_corpus_regression.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
+          benchmark/review_gold_cli.py
+          benchmark/compare_gold_reviews.py
 
       - name: Verify Gold Set evaluator fixture
         run: >-
