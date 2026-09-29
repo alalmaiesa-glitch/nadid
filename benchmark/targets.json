@@ -19,12 +19,16 @@
     },
     "negative": {
       "target": 0.98
+    },
+    "meaning_lock": {
+      "target": 0.99
     }
   },
   "overall_target": 0.95,
   "release_blockers": [
     "protection regression",
     "negative-control regression",
-    "loss of previously passing benchmark case"
+    "loss of previously passing benchmark case",
+    "Meaning Lock regression"
   ]
 }
