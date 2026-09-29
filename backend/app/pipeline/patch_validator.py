@@ -6,6 +6,12 @@ from dataclasses import dataclass
 
 from app.arabic_numbers import canonical_decimal, normalize_numeric_text, preserves_numeric_value
 from app.contracts import ProtectedSpan
+from app.pipeline.protection import (
+    CONDITION_MARKERS,
+    NEGATION_MARKERS,
+    OBLIGATION_MARKERS,
+    QUALIFIER_RE,
+)
 
 
 DIACRITICS_RE = re.compile(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]")
@@ -37,7 +43,11 @@ def _normalize_identity(text: str) -> str:
     value = normalize_numeric_text(value)
     value = DIACRITICS_RE.sub("", value)
     value = value.replace("ـ", "")
-    value = value.translate(str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", "ى": "ي"}))
+    value = value.translate(
+        str.maketrans(
+            {"أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", "ى": "ي"}
+        )
+    )
     return NON_WORD_RE.sub("", value.casefold())
 
 
@@ -56,10 +66,16 @@ def _currency_unit(value: str) -> str | None:
 
 def _has_currency_unit(candidate: str, unit: str) -> bool:
     normalized = normalize_numeric_text(candidate).casefold()
-    return any(alias.casefold() in normalized for alias in CURRENCY_UNITS.get(unit, ()))
+    return any(
+        alias.casefold() in normalized
+        for alias in CURRENCY_UNITS.get(unit, ())
+    )
 
 
-def _preserves_numeric_unit(protected: ProtectedSpan, candidate: str) -> bool:
+def _preserves_numeric_unit(
+    protected: ProtectedSpan,
+    candidate: str,
+) -> bool:
     if canonical_decimal(protected.value) is None:
         return False
     if not preserves_numeric_value(protected.value, candidate):
@@ -72,8 +88,33 @@ def _preserves_numeric_unit(protected: ProtectedSpan, candidate: str) -> bool:
     return True
 
 
-def _check_span(protected: ProtectedSpan, block_text: str, candidate: str) -> bool:
-    existed_before = protected.value in block_text or _normalized_present(protected.value, block_text)
+def _semantic_marker_signature(text: str) -> tuple[tuple[str, ...], ...]:
+    patterns = (
+        NEGATION_MARKERS,
+        OBLIGATION_MARKERS,
+        CONDITION_MARKERS,
+        QUALIFIER_RE,
+    )
+    return tuple(
+        tuple(
+            sorted(
+                _normalize_identity(match.group())
+                for match in pattern.finditer(text)
+            )
+        )
+        for pattern in patterns
+    )
+
+
+def _check_span(
+    protected: ProtectedSpan,
+    block_text: str,
+    candidate: str,
+) -> bool:
+    existed_before = (
+        protected.value in block_text
+        or _normalized_present(protected.value, block_text)
+    )
     if not existed_before:
         return True
 
@@ -109,6 +150,18 @@ def validate_patch(
 
     candidate = block_text.replace(original, replacement, 1)
     checks: list[ValidationCheck] = []
+
+    marker_signature_preserved = (
+        _semantic_marker_signature(block_text)
+        == _semantic_marker_signature(candidate)
+    )
+    checks.append(
+        ValidationCheck(
+            protected_id="semantic-marker-signature",
+            value="semantic_markers",
+            status="PASS" if marker_signature_preserved else "BLOCK",
+        )
+    )
 
     for protected in protected_spans:
         passed = _check_span(protected, block_text, candidate)
