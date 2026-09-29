@@ -640,7 +640,8 @@ async function processDeepReview(job) {
         engine_manifest: {
           memory: "knowledge_memory_v0.1",
           facts: "deterministic_v0.1",
-          retrieval: "lexical_v0.1"
+          retrieval: "semantic_hybrid_v0.1",
+          semantic_review: "semantic_review_v0.1"
         },
         updated_at: new Date().toISOString()
       },
@@ -668,96 +669,18 @@ async function processDeepReview(job) {
     .from("suggestions")
     .delete()
     .eq("version_id", version.id)
-    .eq("source_engine", "deep_consistency_v0.1");
+    .in("source_engine", [
+      "deep_consistency_v0.1",
+      "semantic_review_v0.1"
+    ]);
 
   if (oldDeepSuggestionError) throw oldDeepSuggestionError;
 
-  if (chunks.length > 0) {
-    const { error } = await supabase.from("document_chunks").insert(
-      chunks.map((chunk, index) => ({
-        version_id: version.id,
-        chunk_key: chunk.id,
-        sequence_no: index,
-        node_keys: chunk.node_ids ?? [],
-        chunk_text: chunk.text,
-        token_estimate: Number(chunk.token_estimate ?? 0)
-      }))
-    );
+  const semanticIssues = deep.semantic_issues ?? [];
+  const needsDeepSuggestions =
+    conflicts.length > 0 || semanticIssues.length > 0;
 
-    if (error) throw error;
-  }
-
-  const terms = memory.terms ?? [];
-  if (terms.length > 0) {
-    const { error } = await supabase.from("memory_terms").insert(
-      terms.map((term) => ({
-        version_id: version.id,
-        term: term.term,
-        occurrence_count: Number(term.count ?? 0),
-        node_keys: term.node_ids ?? []
-      }))
-    );
-
-    if (error) throw error;
-  }
-
-  const knowledgeItems = memory.knowledge_items ?? [];
-  if (knowledgeItems.length > 0) {
-    const { error } = await supabase
-      .from("document_memory_items")
-      .insert(
-        knowledgeItems.map((item) => ({
-          version_id: version.id,
-          client_item_id: item.id,
-          kind: item.kind,
-          item_key: item.key,
-          item_value: item.value,
-          node_keys: item.node_ids ?? [],
-          aliases: item.aliases ?? [],
-          confidence: Number(item.confidence ?? 0),
-          metadata: item.metadata ?? {}
-        }))
-      );
-
-    if (error) throw error;
-  }
-
-  const facts = memory.facts ?? [];
-  if (facts.length > 0) {
-    const { error } = await supabase.from("fact_assertions").insert(
-      facts.map((fact) => ({
-        version_id: version.id,
-        client_fact_id: fact.id,
-        node_key: fact.node_id,
-        fact_type: fact.fact_type,
-        claim_key: fact.claim_key,
-        surface_value: fact.value,
-        canonical_value: fact.canonical_value,
-        context_text: fact.context ?? "",
-        confidence: Number(fact.confidence ?? 0),
-        authority: "extracted"
-      }))
-    );
-
-    if (error) throw error;
-  }
-
-  const conflicts = memory.conflicts ?? [];
-  if (conflicts.length > 0) {
-    const { error } = await supabase.from("fact_conflicts").insert(
-      conflicts.map((conflict) => ({
-        version_id: version.id,
-        client_conflict_id: conflict.id,
-        claim_key: conflict.claim_key,
-        fact_ids: conflict.fact_ids ?? [],
-        values_found: conflict.values ?? [],
-        confidence: Number(conflict.confidence ?? 0),
-        status: "open"
-      }))
-    );
-
-    if (error) throw error;
-
+  if (needsDeepSuggestions) {
     const { data: nodes, error: nodesError } = await supabase
       .from("document_nodes")
       .select("id, logical_node_key")
@@ -771,50 +694,88 @@ async function processDeepReview(job) {
         node.id
       ])
     );
-    const factMap = new Map(
-      facts.map((fact) => [fact.id, fact])
-    );
 
-    const { error: suggestionError } = await supabase
-      .from("suggestions")
-      .insert(
-        conflicts.map((conflict) => {
-          const firstFact = (conflict.fact_ids ?? [])
-            .map((factId) => factMap.get(factId))
-            .find(Boolean);
-
-          return {
-            version_id: version.id,
-            node_id: firstFact
-              ? nodeMap.get(firstFact.node_id) ?? null
-              : null,
-            client_suggestion_id:
-              `deep-conflict-${version.id}-${conflict.id}`,
-            category: "consistency",
-            title: "تعارض محتمل في حقيقة",
-            explanation:
-              "وجد نَضِيد قيمًا مختلفة لادعاء يبدو متطابقًا عبر المستند: " +
-              (conflict.values ?? []).join(" / "),
-            original_text:
-              firstFact?.value ??
-              (conflict.values ?? []).join(" / "),
-            replacement_text: null,
-            confidence: Number(conflict.confidence ?? 0),
-            status: "pending",
-            source_engine: "deep_consistency_v0.1",
-            evidence: [
-              {
-                type: "fact_conflict",
-                conflict_id: conflict.id,
-                fact_ids: conflict.fact_ids ?? [],
-                values: conflict.values ?? []
-              }
-            ]
-          };
-        })
+    if (conflicts.length > 0) {
+      const factMap = new Map(
+        facts.map((fact) => [fact.id, fact])
       );
 
-    if (suggestionError) throw suggestionError;
+      const { error: suggestionError } = await supabase
+        .from("suggestions")
+        .insert(
+          conflicts.map((conflict) => {
+            const firstFact = (conflict.fact_ids ?? [])
+              .map((factId) => factMap.get(factId))
+              .find(Boolean);
+
+            return {
+              version_id: version.id,
+              node_id: firstFact
+                ? nodeMap.get(firstFact.node_id) ?? null
+                : null,
+              client_suggestion_id:
+                `deep-conflict-${version.id}-${conflict.id}`,
+              category: "consistency",
+              title: "تعارض محتمل في حقيقة",
+              explanation:
+                "وجد نَضِيد قيمًا مختلفة لادعاء يبدو متطابقًا عبر المستند: " +
+                (conflict.values ?? []).join(" / "),
+              original_text:
+                firstFact?.value ??
+                (conflict.values ?? []).join(" / "),
+              replacement_text: null,
+              confidence: Number(conflict.confidence ?? 0),
+              status: "pending",
+              source_engine: "deep_consistency_v0.1",
+              evidence: [
+                {
+                  type: "fact_conflict",
+                  conflict_id: conflict.id,
+                  fact_ids: conflict.fact_ids ?? [],
+                  values: conflict.values ?? []
+                }
+              ]
+            };
+          })
+        );
+
+      if (suggestionError) throw suggestionError;
+    }
+
+    if (semanticIssues.length > 0) {
+      const { error: semanticSuggestionError } = await supabase
+        .from("suggestions")
+        .insert(
+          semanticIssues.map((issue) => ({
+            version_id: version.id,
+            node_id: nodeMap.get(issue.node_id) ?? null,
+            client_suggestion_id:
+              `semantic-${version.id}-${issue.id}`,
+            category: "consistency",
+            title: issue.title,
+            explanation: issue.explanation,
+            original_text: issue.original,
+            replacement_text: null,
+            confidence: Number(issue.confidence ?? 0),
+            status: "pending",
+            source_engine: "semantic_review_v0.1",
+            evidence: [
+              {
+                type: "semantic_issue",
+                issue_type: issue.issue_type,
+                evidence_node_ids:
+                  issue.evidence_node_ids ?? [],
+                evidence_values:
+                  issue.evidence_values ?? []
+              }
+            ]
+          }))
+        );
+
+      if (semanticSuggestionError) {
+        throw semanticSuggestionError;
+      }
+    }
   }
 
   await supabase
@@ -832,14 +793,16 @@ async function processDeepReview(job) {
       engine_manifest: {
         memory: "deterministic_v0.1",
         facts: "deterministic_v0.1",
-        retrieval: "lexical_v0.1"
+        retrieval: "semantic_hybrid_v0.1",
+        semantic_review: "semantic_review_v0.1"
       },
       metrics: {
         chunks: chunks.length,
         terms: terms.length,
         facts: facts.length,
         conflicts: conflicts.length,
-        knowledge_items: knowledgeItems.length
+        knowledge_items: knowledgeItems.length,
+        semantic_issues: semanticIssues.length
       },
       completed_at: new Date().toISOString()
     });
