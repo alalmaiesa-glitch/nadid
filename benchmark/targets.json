@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "policy": "target thresholds; CI enforcement starts after baseline approval",
+  "dimensions": {
+    "language": {
+      "target": 0.95
+    },
+    "style": {
+      "target": 0.9
+    },
+    "protection": {
+      "target": 0.99
+    },
+    "conflict": {
+      "target": 0.9
+    },
+    "context": {
+      "target": 0.9
+    },
+    "negative": {
+      "target": 0.98
+    }
+  },
+  "overall_target": 0.95,
+  "release_blockers": [
+    "protection regression",
+    "negative-control regression",
+    "loss of previously passing benchmark case"
+  ]
+}
