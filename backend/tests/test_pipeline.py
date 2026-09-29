@@ -612,3 +612,24 @@ def test_document_memory_does_not_treat_heading_colon_as_definition():
         for item in memory.knowledge_items
     )
 
+def test_document_memory_extracts_explicit_relation():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [
+        node("وزارة الحج والعمرة تشرف على برنامج خدمة ضيوف الرحمن.", 0)
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+
+    relation = next(
+        item
+        for item in memory.knowledge_items
+        if item.kind == "relation"
+    )
+    assert relation.key == "وزارة الحج والعمرة"
+    assert "برنامج خدمة ضيوف الرحمن" in relation.value
+    assert relation.metadata["predicate"] == "تشرف على"
+
