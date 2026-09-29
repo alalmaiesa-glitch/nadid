@@ -10,6 +10,7 @@ from app.pipeline.chunker import build_chunks
 from app.pipeline.context import retrieve_context
 from app.pipeline.memory import build_document_memory
 from app.pipeline.protection import extract_protected_spans
+from app.pipeline.patch_validator import validate_patch
 from app.pipeline.reviewer import fast_review
 
 
@@ -97,6 +98,20 @@ def evaluate_case(case):
 
     if expected.get("no_conflicts") and memory.conflicts:
         failures.append("unexpected_conflict")
+
+    patch = expected.get("patch")
+    if patch:
+        result = validate_patch(
+            block_text=patch.get("block_text", nodes[0].text if nodes else ""),
+            original=patch["original"],
+            replacement=patch["replacement"],
+            protected_spans=protected,
+        )
+        wanted_status = patch["status"]
+        if result.status != wanted_status:
+            failures.append(
+                f"patch_status:{result.status}!={wanted_status}"
+            )
 
     context = expected.get("context")
     if context:
