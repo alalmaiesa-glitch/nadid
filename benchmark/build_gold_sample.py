@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import json
 import random
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from app.pipeline.parser import parse_docx
@@ -27,16 +27,23 @@ def _eligible(node) -> bool:
     )
 
 
-def _sample_grouped(items, wanted, rng):
-    if wanted <= 0 or not items:
-        return []
+def _group_key(item: dict) -> str:
+    return f"{item['doc_id']}|{item['node_type']}"
 
+
+def _sample_grouped(items, wanted, rng):
     groups = defaultdict(list)
     for item in items:
-        groups[(item["doc_id"], item["node_type"])].append(item)
+        groups[_group_key(item)].append(item)
 
+    group_population = {
+        key: len(rows)
+        for key, rows in groups.items()
+    }
+    group_sample = Counter()
     selected = []
     keys = sorted(groups)
+
     while len(selected) < min(wanted, len(items)):
         progressed = False
         for key in keys:
@@ -44,13 +51,20 @@ def _sample_grouped(items, wanted, rng):
             if not pool:
                 continue
             index = rng.randrange(len(pool))
-            selected.append(pool.pop(index))
+            row = pool.pop(index)
+            row = {
+                **row,
+                "_sample_group": key,
+            }
+            selected.append(row)
+            group_sample[key] += 1
             progressed = True
             if len(selected) >= min(wanted, len(items)):
                 break
         if not progressed:
             break
-    return selected
+
+    return selected, group_population, dict(group_sample)
 
 
 def build_sample(manifest, predicted_nodes, clean_nodes, seed):
@@ -114,12 +128,14 @@ def build_sample(manifest, predicted_nodes, clean_nodes, seed):
             }
         )
 
-    predicted_sample = _sample_grouped(
-        predicted,
-        min(predicted_nodes, len(predicted)),
-        rng,
+    predicted_sample, predicted_group_population, predicted_group_sample = (
+        _sample_grouped(
+            predicted,
+            min(predicted_nodes, len(predicted)),
+            rng,
+        )
     )
-    clean_sample = _sample_grouped(
+    clean_sample, clean_group_population, clean_group_sample = _sample_grouped(
         clean,
         min(clean_nodes, len(clean)),
         rng,
@@ -133,22 +149,35 @@ def build_sample(manifest, predicted_nodes, clean_nodes, seed):
         "predicted": len(predicted_sample),
         "clean": len(clean_sample),
     }
+    group_populations = {
+        "predicted": predicted_group_population,
+        "clean": clean_group_population,
+    }
+    group_samples = {
+        "predicted": predicted_group_sample,
+        "clean": clean_group_sample,
+    }
 
     units = []
     for stratum, rows in (
         ("predicted", predicted_sample),
         ("clean", clean_sample),
     ):
-        population = populations[stratum]
-        sample_size = sample_sizes[stratum]
-        inclusion_probability = (
-            sample_size / population if population else 0.0
-        )
-        weight = (
-            population / sample_size if sample_size else 0.0
-        )
-
         for row in rows:
+            sample_group = row.pop("_sample_group")
+            group_population = group_populations[stratum][sample_group]
+            group_sample_size = group_samples[stratum][sample_group]
+            inclusion_probability = (
+                group_sample_size / group_population
+                if group_population
+                else 0.0
+            )
+            weight = (
+                group_population / group_sample_size
+                if group_sample_size
+                else 0.0
+            )
+
             units.append(
                 {
                     "unit_id": _digest(
@@ -156,10 +185,12 @@ def build_sample(manifest, predicted_nodes, clean_nodes, seed):
                     )[:20],
                     **row,
                     "stratum": stratum,
-                    "population_size": population,
-                    "sample_size": sample_size,
+                    "sample_group": sample_group,
+                    "group_population_size": group_population,
+                    "group_sample_size": group_sample_size,
                     "inclusion_probability": round(
-                        inclusion_probability, 8
+                        inclusion_probability,
+                        8,
                     ),
                     "weight": round(weight, 8),
                     "missed": [],
@@ -189,6 +220,14 @@ def build_sample(manifest, predicted_nodes, clean_nodes, seed):
             "clean_population": populations["clean"],
             "predicted_sample": sample_sizes["predicted"],
             "clean_sample": sample_sizes["clean"],
+            "sampled_predictions": sum(
+                len(row["predictions"])
+                for row in predicted_sample
+            ),
+            "weighting": (
+                "inverse inclusion probability by doc_id and node_type "
+                "within predicted/clean strata"
+            ),
         },
         "documents": document_stats,
         "units": units,
@@ -221,7 +260,8 @@ def main():
     print(
         "Gold candidate sample: "
         f"{sample['sampling']['predicted_sample']} predicted nodes + "
-        f"{sample['sampling']['clean_sample']} clean nodes"
+        f"{sample['sampling']['clean_sample']} clean nodes, "
+        f"{sample['sampling']['sampled_predictions']} predictions"
     )
 
 
