@@ -59,6 +59,27 @@ export type MemoryTerm = {
   nodeIds: string[];
 };
 
+export type MemoryItemKind =
+  | "entity"
+  | "definition"
+  | "abbreviation"
+  | "decision"
+  | "reference"
+  | "concept"
+  | "obligation"
+  | "condition";
+
+export type MemoryItem = {
+  id: string;
+  kind: MemoryItemKind;
+  key: string;
+  value: string;
+  nodeIds: string[];
+  aliases: string[];
+  confidence: number;
+  metadata: Record<string, unknown>;
+};
+
 export type FactAssertion = {
   id: string;
   nodeId: string;
@@ -90,6 +111,7 @@ export type DeepMemorySnapshot = {
   terms: MemoryTerm[];
   facts: FactAssertion[];
   conflicts: FactConflict[];
+  knowledgeItems: MemoryItem[];
   protectedCount: number;
   chunkCount: number;
 };
