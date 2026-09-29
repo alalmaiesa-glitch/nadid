@@ -39,6 +39,13 @@ function normalizeProtectedFactType(
     case "date":
     case "standard":
     case "negation":
+    case "entity":
+    case "legal_reference":
+    case "role":
+    case "obligation":
+    case "condition":
+    case "qualifier":
+    case "quotation":
       return value;
     default:
       return "standard";
@@ -47,16 +54,25 @@ function normalizeProtectedFactType(
 
 function validatorForFact(type: ProtectedFact["type"]) {
   switch (type) {
-    case "currency":
     case "number":
-    case "percentage":
       return "numeric_equivalence";
+    case "currency":
+    case "percentage":
+      return "numeric_unit_equivalence";
     case "date":
       return "date_equivalence";
     case "standard":
+    case "entity":
+    case "legal_reference":
+    case "role":
+    case "quotation":
       return "exact_or_normalized_identifier";
     case "negation":
-      return "negation_preservation";
+    case "obligation":
+    case "condition":
+      return "normalized_clause_preservation";
+    case "qualifier":
+      return "meaning_marker_preservation";
     default:
       return "exact_text";
   }
@@ -115,7 +131,7 @@ export async function persistAnalyzedDocument(
       engine_manifest: {
         parser: "mammoth",
         fast_review: "fast_rules_v0.1",
-        protected_spans: "atomic_guard_v0.1"
+        protected_spans: "meaning_lock_v0.1"
       }
     })
     .select("id")
@@ -191,7 +207,9 @@ export async function persistAnalyzedDocument(
       canonical_value: { surface: fact.value },
       validator_key: validatorForFact(fact.type),
       lock_policy:
-        fact.type === "negation" ? "semantic_exact" : "normalize_only",
+        ["negation", "obligation", "condition"].includes(fact.type)
+          ? "semantic_strict"
+          : "normalize_only",
       lock_mode: "block",
       confidence: 1
     }));
@@ -1531,7 +1549,7 @@ export async function finalizePendingDocument(
       engine_manifest: {
         parser: "aee_docx_v0.1",
         fast_review: "fast_rules_v0.1",
-        protected_spans: "atomic_guard_v0.1"
+        protected_spans: "meaning_lock_v0.1"
       }
     })
     .select("id")
