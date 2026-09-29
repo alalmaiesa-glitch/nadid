@@ -326,7 +326,7 @@ def test_meaning_lock_extracts_entity_and_legal_reference():
     from app.pipeline.protection import extract_protected_spans
 
     spans = extract_protected_spans([
-        node("تتولى وزارة الحج والعمرة تطبيق الحكم الوارد في المادة (12).", 0)
+        node("تتولى وزارة الحج والعمرة الإشراف وفق المادة (12).", 0)
     ])
     values = {(span.type, span.value) for span in spans}
 
