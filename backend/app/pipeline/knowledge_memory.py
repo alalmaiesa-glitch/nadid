@@ -28,6 +28,12 @@ DECISION_MARKERS = re.compile(
     r"\b(?:تم\s+اعتماد|تم\s+إقرار|تمت\s+الموافقة\s+على|"
     r"قرر|اعتمد|أقر|وافق\s+على)\b"
 )
+RELATION_RE = re.compile(
+    r"^(?P<subject>[\u0600-\u06FF][\u0600-\u06FF\s]{1,70}?)\s+"
+    r"(?P<predicate>تشرف\s+على|يشرف\s+على|تتبع|يتبع|"
+    r"تدير|يدير|تملك|يملك|مسؤولة\s+عن|مسؤول\s+عن)\s+"
+    r"(?P<object>[^،؛.!؟\n]{2,120})"
+)
 OBLIGATION_MARKERS = re.compile(
     r"\b(?:يجب|يتعين|يتوجب|يلتزم|تلتزم|يلزم|يحظر|لا\s+يجوز)\b"
 )
@@ -237,6 +243,47 @@ def _extract_definitions(nodes: list[DocumentNode]) -> list[MemoryItem]:
     return output
 
 
+def _extract_relations(nodes: list[DocumentNode]) -> list[MemoryItem]:
+    output: list[MemoryItem] = []
+    seen: set[tuple[str, str, str]] = set()
+
+    for node in nodes:
+        for clause_match in CLAUSE_RE.finditer(node.text):
+            clause = clause_match.group().strip().rstrip(".!؟؛").strip()
+            relation = RELATION_RE.match(clause)
+            if not relation:
+                continue
+
+            subject = " ".join(relation.group("subject").split())
+            predicate = " ".join(relation.group("predicate").split())
+            obj = " ".join(relation.group("object").split())
+
+            if len(subject.split()) > 10 or len(obj) > 140:
+                continue
+
+            key = (_normalize(subject), _normalize(predicate), _normalize(obj))
+            if key in seen:
+                continue
+            seen.add(key)
+
+            output.append(
+                _item(
+                    kind="relation",
+                    key=subject,
+                    value=obj,
+                    node_ids=[node.id],
+                    confidence=0.9,
+                    metadata={
+                        "subject": subject,
+                        "predicate": predicate,
+                        "object": obj,
+                    },
+                )
+            )
+
+    return output
+
+
 def _extract_clause_items(nodes: list[DocumentNode]) -> list[MemoryItem]:
     output: list[MemoryItem] = []
     seen: set[tuple[str, str]] = set()
@@ -347,6 +394,7 @@ def build_knowledge_memory(
     items.extend(_aggregate_protected(protected))
     items.extend(_extract_abbreviations(nodes))
     items.extend(_extract_definitions(nodes))
+    items.extend(_extract_relations(nodes))
     items.extend(_extract_clause_items(nodes))
     items.extend(_extract_concepts(nodes))
 
@@ -379,7 +427,8 @@ def build_knowledge_memory(
         "decision": 4,
         "obligation": 5,
         "condition": 6,
-        "concept": 7,
+        "relation": 7,
+        "concept": 8,
     }
 
     result = list(deduped.values())
