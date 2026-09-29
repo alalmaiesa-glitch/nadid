@@ -72,19 +72,43 @@ def retrieve_context(
     end = min(len(nodes), target_index + 2)
     local_nodes = nodes[start:end]
 
+    nodes_by_id = {node.id: node for node in nodes}
     ranked: list[ContextHit] = []
     for chunk in chunks:
+        candidate_chunk = chunk
+
         if target_node_id in chunk.node_ids:
-            continue
-        score = _score(search_query, chunk)
+            other_node_ids = [
+                node_id
+                for node_id in chunk.node_ids
+                if node_id != target_node_id
+            ]
+            if not other_node_ids:
+                continue
+
+            other_text = "\n".join(
+                nodes_by_id[node_id].text
+                for node_id in other_node_ids
+                if node_id in nodes_by_id
+            )
+            candidate_chunk = Chunk(
+                id=chunk.id,
+                node_ids=other_node_ids,
+                text=other_text,
+                token_estimate=max(1, len(other_text) // 4),
+                previous_chunk_id=chunk.previous_chunk_id,
+                next_chunk_id=chunk.next_chunk_id,
+            )
+
+        score = _score(search_query, candidate_chunk)
         if score <= 0:
             continue
         ranked.append(
             ContextHit(
-                chunk_id=chunk.id,
+                chunk_id=candidate_chunk.id,
                 score=round(score, 4),
-                text=chunk.text,
-                node_ids=chunk.node_ids,
+                text=candidate_chunk.text,
+                node_ids=candidate_chunk.node_ids,
             )
         )
 
