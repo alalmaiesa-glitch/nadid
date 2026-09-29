@@ -12,7 +12,8 @@ create table if not exists public.document_memory_items (
         'reference',
         'concept',
         'obligation',
-        'condition'
+        'condition',
+        'relation'
       )
     ),
   item_key text not null,
