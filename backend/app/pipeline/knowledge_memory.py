@@ -24,6 +24,9 @@ COLON_DEFINITION_RE = re.compile(
     r"^[«\"]?(?P<term>[\u0600-\u06FF][\u0600-\u06FF\s]{1,45}?)[»\"]?"
     r"\s*:\s*(?P<definition>[^\n]{4,240})$"
 )
+COLON_DEFINITION_TERM_RE = re.compile(
+    r"\b(?:نطاق|مفهوم|تعريف|مصطلح|المقصود|المراد)\b"
+)
 DECISION_MARKERS = re.compile(
     r"\b(?:تم\s+اعتماد|تم\s+إقرار|تمت\s+الموافقة\s+على|"
     r"قرر|اعتمد|أقر|وافق\s+على)\b"
@@ -213,7 +216,7 @@ def _extract_definitions(nodes: list[DocumentNode]) -> list[MemoryItem]:
 
     for node in nodes:
         patterns = [DEFINITION_RE]
-        if node.type != "heading":
+        if node.type == "paragraph":
             patterns.append(COLON_DEFINITION_RE)
 
         for pattern in patterns:
@@ -225,6 +228,11 @@ def _extract_definitions(nodes: list[DocumentNode]) -> list[MemoryItem]:
                 if not term or not definition:
                     continue
                 if len(term.split()) > 8:
+                    continue
+                if (
+                    pattern is COLON_DEFINITION_RE
+                    and not COLON_DEFINITION_TERM_RE.search(term)
+                ):
                     continue
                 key = (_normalize(term), _normalize(definition))
                 if key in seen:
