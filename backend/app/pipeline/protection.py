@@ -13,8 +13,22 @@ CURRENCY_RE = re.compile(
 )
 NUMBER_RE = re.compile(NUMBER_PATTERN)
 PERCENT_RE = re.compile(rf"{NUMBER_PATTERN}\s*[%٪]")
-DATE_RE = re.compile(
+FULL_DATE_RE = re.compile(
+    rf"(?<![{DIGITS}])"
+    rf"{NUMBER_PATTERN}\s*[/\-]\s*{NUMBER_PATTERN}\s*[/\-]\s*"
+    rf"(?:19|20|١٩|٢٠|۱۹|۲۰)[{DIGITS}]{{2}}"
+    rf"(?![{DIGITS}])"
+)
+YEAR_RE = re.compile(
     rf"(?<![{DIGITS}])(?:19|20|١٩|٢٠|۱۹|۲۰)[{DIGITS}]{{2}}(?![{DIGITS}])"
+)
+QUANTITY_RE = re.compile(
+    rf"{NUMBER_PATTERN}\s*(?:"
+    r"كجم|كيلوجرام|جرام|طن|متر|كم|كيلومتر|"
+    r"م²|م2|م3|ساعة|ساعات|يوم|أيام|شهر|أشهر|"
+    r"سنة|سنوات|وحدة|وحدات|قطعة|قطع|مستفيد|مستفيدين|"
+    r"فرع|فروع|محور|محاور|صفحة|صفحات"
+    r")\b"
 )
 STANDARD_RE = re.compile(
     rf"\bISO\s*[{DIGITS}]{{3,6}}(?::[{DIGITS}]{{4}})?\b",
@@ -33,15 +47,26 @@ NEGATION_MARKERS = re.compile(
     r"(?:^|\s)(?:و|ف)?(?:لا|لم|لن|ليس|ليست|غير|دون|ما\s+لم)\b"
 )
 OBLIGATION_MARKERS = re.compile(
-    r"\b(?:يجب|يتعين|يلتزم|تلتزم|يلزم|يحظر|"
-    r"لا\s+يجوز|يحق|يتحمل|تتحمل|يتولى|تتولى)\b"
+    r"\b(?:يجب|ينبغي|يتعين|يتوجب|يلتزم|تلتزم|يلزم|يحظر|"
+    r"لا\s+يجوز|يجوز|يمكن|يحق|يتحمل|تتحمل|يتولى|تتولى)\b"
 )
 CONDITION_MARKERS = re.compile(
     r"\b(?:إذا|في\s+حال|في\s+حالة|بشرط|شريطة|ما\s+لم)\b"
 )
 QUALIFIER_RE = re.compile(
-    r"\b(?:فقط|حصراً|حصرًا|جميع|كافة|باستثناء|"
+    r"\b(?:فقط|حصراً|حصرًا|جميع|كافة|بعض|معظم|باستثناء|عدا|سوى|إلا|"
     r"بحد\s+أقصى|بحد\s+أدنى|لا\s+يقل\s+عن|لا\s+يزيد\s+عن)\b"
+)
+EPISTEMIC_MARKERS = re.compile(
+    r"\b(?:قد|ربما|لعل|من\s+المحتمل|من\s+المؤكد|"
+    r"تقريباً|تقريبًا|حوالي|نحو|يحتمل|متوقع|متوقعة)\b"
+)
+RELATION_MARKERS = re.compile(
+    r"\b(?:قبل|بعد|أكثر\s+من|أقل\s+من|على\s+الأقل|"
+    r"على\s+الأكثر|حتى|منذ|خلال)\b"
+)
+LOGIC_MARKERS = re.compile(
+    r"\b(?:أو|إما|وإما|كلا|كليهما|أحدهما)\b"
 )
 
 ENTITY_HEADS = {
@@ -159,8 +184,7 @@ def _critical_clause_spans(
     output: list[ProtectedSpan] = []
 
     for match in CLAUSE_RE.finditer(text):
-        clause = match.group().strip()
-        clause = clause.rstrip(".!?;").strip()
+        clause = match.group().strip().rstrip(".!?;؟؛").strip()
         if not clause:
             continue
 
@@ -197,6 +221,30 @@ def _critical_clause_spans(
                 )
             )
 
+    return output
+
+
+def _marker_spans(
+    node_id: str,
+    text: str,
+) -> list[ProtectedSpan]:
+    output: list[ProtectedSpan] = []
+    for pattern in (
+        QUALIFIER_RE,
+        EPISTEMIC_MARKERS,
+        RELATION_MARKERS,
+        LOGIC_MARKERS,
+    ):
+        output += [
+            _span(
+                node_id,
+                "qualifier",
+                match.group(),
+                "meaning_marker_preservation",
+                "semantic_marker",
+            )
+            for match in pattern.finditer(text)
+        ]
     return output
 
 
@@ -243,8 +291,29 @@ def extract_protected_spans(nodes: list[DocumentNode]) -> list[ProtectedSpan]:
                 "date",
                 m.group(),
                 "date_equivalence",
+                "date_identity",
             )
-            for m in DATE_RE.finditer(text)
+            for m in FULL_DATE_RE.finditer(text)
+        ]
+        candidates += [
+            _span(
+                node.id,
+                "date",
+                m.group(),
+                "date_equivalence",
+                "date_identity",
+            )
+            for m in YEAR_RE.finditer(text)
+        ]
+        candidates += [
+            _span(
+                node.id,
+                "quantity",
+                m.group(),
+                "exact_or_normalized_identifier",
+                "value_and_unit",
+            )
+            for m in QUANTITY_RE.finditer(text)
         ]
         candidates += [
             _span(
@@ -286,16 +355,7 @@ def extract_protected_spans(nodes: list[DocumentNode]) -> list[ProtectedSpan]:
             )
             for m in QUOTE_RE.finditer(text)
         ]
-        candidates += [
-            _span(
-                node.id,
-                "qualifier",
-                m.group(),
-                "meaning_marker_preservation",
-                "semantic_marker",
-            )
-            for m in QUALIFIER_RE.finditer(text)
-        ]
+        candidates += _marker_spans(node.id, text)
         candidates += _extract_entities(node.id, text)
         candidates += _critical_clause_spans(node.id, text)
 
