@@ -124,3 +124,6 @@
 {"id":"CORPUS-007","dimension":"corpus_regression","nodes":[{"id":"n1","text":"المدة: الشهر الثالث"}],"expect":{"memory_absent":[{"kind":"definition","key_contains":"المدة"}]}}
 {"id":"CORPUS-008","dimension":"corpus_regression","nodes":[{"id":"n1","type":"table_cell","text":"المتابعة الشهرية: الجدول والميزانية والمخاطر"}],"expect":{"memory_absent":[{"kind":"definition","key_contains":"المتابعة الشهرية"}]}}
 {"id":"CORPUS-009","dimension":"corpus_regression","nodes":[{"id":"n1","text":"نطاق المشروع: الأعمال والخدمات المشمولة في العقد."}],"expect":{"memory_items":[{"kind":"definition","key_contains":"نطاق المشروع","value_contains":"الأعمال والخدمات"}]}}
+{"id":"CORPUS-010","dimension":"corpus_regression","nodes":[{"id":"n1","text":"المدة: 8 :أشهر."}],"expect":{"suggestion_contains":["علامة ترقيم زائدة بين العدد والوحدة","8 أشهر"],"suggestion_absent":["مسافة قبل علامة ترقيم","مسافة بعد علامة ترقيم"],"min_suggestions":1}}
+{"id":"CORPUS-011","dimension":"corpus_regression","nodes":[{"id":"n1","text":"المدة: 6 أشهر."}],"expect":{"max_suggestions":0}}
+{"id":"CORPUS-012","dimension":"corpus_regression","nodes":[{"id":"n1","text":"الكمية المعتمدة: 100 :وحدة."}],"expect":{"suggestion_contains":["علامة ترقيم زائدة بين العدد والوحدة","100 وحدة"],"min_suggestions":1}}
