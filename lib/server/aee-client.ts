@@ -227,6 +227,24 @@ type AeeDeepResponse = {
       values: string[];
       confidence: number;
     }>;
+    knowledge_items: Array<{
+      id: string;
+      kind:
+        | "entity"
+        | "definition"
+        | "abbreviation"
+        | "decision"
+        | "reference"
+        | "concept"
+        | "obligation"
+        | "condition";
+      key: string;
+      value: string;
+      node_ids: string[];
+      aliases: string[];
+      confidence: number;
+      metadata: Record<string, unknown>;
+    }>;
     protected_count: number;
     chunk_count: number;
   };
@@ -291,6 +309,16 @@ export async function analyzeDocxDeepWithAee(
         factIds: conflict.fact_ids,
         values: conflict.values,
         confidence: conflict.confidence
+      })),
+      knowledgeItems: (payload.memory.knowledge_items ?? []).map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        key: item.key,
+        value: item.value,
+        nodeIds: item.node_ids,
+        aliases: item.aliases ?? [],
+        confidence: item.confidence,
+        metadata: item.metadata ?? {}
       })),
       protectedCount: payload.memory.protected_count,
       chunkCount: payload.memory.chunk_count
