@@ -37,4 +37,4 @@ Meaning Lock يمنع أي تعديل يغير معنى محميًا.
 - ربط الادعاءات المتكافئة بصياغات مختلفة.
 - استرجاع السياق الدلالي.
 
-الهدف الأولي: 90%، ولا يتحول إلى Quality Gate قبل اجتياز مجموعة الاختبار بثبات دون Regression في Meaning Lock أو Protection أو Negative Controls أو Document Memory.
+الحد الأدنى المعتمد بعد اجتياز V0.1: 95%. أصبح Semantic Review وSemantic Context وSemantic Conflict أبعادًا حرجة داخل CI؛ أي هبوط تحت الحدود المعتمدة يمنع اجتياز الاختبارات.
