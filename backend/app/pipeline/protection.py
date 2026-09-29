@@ -160,6 +160,7 @@ def _critical_clause_spans(
 
     for match in CLAUSE_RE.finditer(text):
         clause = match.group().strip()
+        clause = clause.rstrip(".!?;").strip()
         if not clause:
             continue
 
