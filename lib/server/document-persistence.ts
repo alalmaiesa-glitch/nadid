@@ -428,7 +428,8 @@ export async function persistDeepAnalysis(
         engine_manifest: {
           memory: "knowledge_memory_v0.1",
           facts: "deterministic_v0.1",
-          retrieval: "lexical_v0.1"
+          retrieval: "semantic_hybrid_v0.1",
+      semantic_review: "semantic_review_v0.1"
         },
         updated_at: new Date().toISOString()
       },
@@ -539,11 +540,18 @@ export async function persistDeepAnalysis(
     .from("suggestions")
     .delete()
     .eq("version_id", versionId)
-    .eq("source_engine", "deep_consistency_v0.1");
+    .in("source_engine", [
+      "deep_consistency_v0.1",
+      "semantic_review_v0.1"
+    ]);
 
   if (oldDeepSuggestionError) throw oldDeepSuggestionError;
 
-  if (deep.memory.conflicts.length > 0) {
+  const needsDeepSuggestions =
+    deep.memory.conflicts.length > 0 ||
+    deep.semanticIssues.length > 0;
+
+  if (needsDeepSuggestions) {
     const { data: nodes, error: nodeLookupError } = await supabase
       .from("document_nodes")
       .select("id, logical_node_key")
@@ -554,46 +562,83 @@ export async function persistDeepAnalysis(
     const nodeMap = new Map(
       (nodes ?? []).map((node) => [node.logical_node_key, node.id])
     );
-    const factMap = new Map(
-      deep.memory.facts.map((fact) => [fact.id, fact])
-    );
 
-    const rows = deep.memory.conflicts.map((conflict) => {
-      const firstFact = conflict.factIds
-        .map((factId) => factMap.get(factId))
-        .find(Boolean);
+    if (deep.memory.conflicts.length > 0) {
+      const factMap = new Map(
+        deep.memory.facts.map((fact) => [fact.id, fact])
+      );
 
-      return {
+      const conflictRows = deep.memory.conflicts.map((conflict) => {
+        const firstFact = conflict.factIds
+          .map((factId) => factMap.get(factId))
+          .find(Boolean);
+
+        return {
+          version_id: versionId,
+          node_id: firstFact
+            ? nodeMap.get(firstFact.nodeId) ?? null
+            : null,
+          client_suggestion_id:
+            `deep-conflict-${versionId}-${conflict.id}`,
+          category: "consistency",
+          title: "تعارض محتمل في حقيقة",
+          explanation:
+            "وجد نَضِيد قيمًا مختلفة لادعاء يبدو متطابقًا عبر المستند: " +
+            conflict.values.join(" / "),
+          original_text:
+            firstFact?.value ?? conflict.values.join(" / "),
+          replacement_text: null,
+          confidence: conflict.confidence,
+          status: "pending",
+          source_engine: "deep_consistency_v0.1",
+          evidence: [
+            {
+              type: "fact_conflict",
+              conflict_id: conflict.id,
+              fact_ids: conflict.factIds,
+              values: conflict.values
+            }
+          ]
+        };
+      });
+
+      const { error: conflictSuggestionError } = await supabase
+        .from("suggestions")
+        .insert(conflictRows);
+
+      if (conflictSuggestionError) throw conflictSuggestionError;
+    }
+
+    if (deep.semanticIssues.length > 0) {
+      const semanticRows = deep.semanticIssues.map((issue) => ({
         version_id: versionId,
-        node_id: firstFact ? nodeMap.get(firstFact.nodeId) ?? null : null,
+        node_id: nodeMap.get(issue.nodeId) ?? null,
         client_suggestion_id:
-          `deep-conflict-${versionId}-${conflict.id}`,
+          `semantic-${versionId}-${issue.id}`,
         category: "consistency",
-        title: "تعارض محتمل في حقيقة",
-        explanation:
-          "وجد نَضِيد قيمًا مختلفة لادعاء يبدو متطابقًا عبر المستند: " +
-          conflict.values.join(" / "),
-        original_text: firstFact?.value ?? conflict.values.join(" / "),
+        title: issue.title,
+        explanation: issue.explanation,
+        original_text: issue.original,
         replacement_text: null,
-        confidence: conflict.confidence,
+        confidence: issue.confidence,
         status: "pending",
-        source_engine: "deep_consistency_v0.1",
+        source_engine: "semantic_review_v0.1",
         evidence: [
           {
-            type: "fact_conflict",
-            conflict_id: conflict.id,
-            fact_ids: conflict.factIds,
-            values: conflict.values
+            type: "semantic_issue",
+            issue_type: issue.issueType,
+            evidence_node_ids: issue.evidenceNodeIds,
+            evidence_values: issue.evidenceValues
           }
         ]
-      };
-    });
+      }));
 
-    const { error: deepSuggestionError } = await supabase
-      .from("suggestions")
-      .insert(rows);
+      const { error: semanticSuggestionError } = await supabase
+        .from("suggestions")
+        .insert(semanticRows);
 
-    if (deepSuggestionError) throw deepSuggestionError;
+      if (semanticSuggestionError) throw semanticSuggestionError;
+    }
   }
 
   const { error: memoryReadyError } = await supabase
@@ -631,7 +676,8 @@ export async function persistDeepAnalysis(
       terms: deep.memory.terms.length,
       facts: deep.memory.facts.length,
       conflicts: deep.memory.conflicts.length,
-      knowledge_items: deep.memory.knowledgeItems.length
+      knowledge_items: deep.memory.knowledgeItems.length,
+      semantic_issues: deep.semanticIssues.length
     },
     completed_at: new Date().toISOString()
   });
