@@ -28,6 +28,9 @@
     },
     "semantic_review": {
       "target": 0.95
+    },
+    "corpus_regression": {
+      "target": 1
     }
   },
   "overall_target": 0.95,
@@ -41,7 +44,8 @@
     "Semantic conflict regression",
     "Semantic context regression",
     "Arabic language review regression",
-    "Arabic style review regression"
+    "Arabic style review regression",
+    "Real corpus regression case failure"
   ],
   "critical_dimensions": [
     "meaning_lock",
@@ -52,6 +56,7 @@
     "conflict",
     "context",
     "language",
-    "style"
+    "style",
+    "corpus_regression"
   ]
 }
