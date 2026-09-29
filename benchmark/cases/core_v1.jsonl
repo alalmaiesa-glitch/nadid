@@ -73,3 +73,4 @@
 {"id":"MEM-013","dimension":"document_memory","nodes":[{"id":"h1","type":"heading","text":"مقدمة: خلفية المشروع"}],"expect":{"memory_absent":[{"kind":"definition","key_contains":"مقدمة"}]}}
 {"id":"MEM-014","dimension":"document_memory","nodes":[{"id":"n1","text":"قرر مجلس الإدارة اعتماد الميزانية النهائية للمشروع."}],"expect":{"memory_items":[{"kind":"decision","value_contains":"قرر مجلس الإدارة"}]}}
 {"id":"MEM-015","dimension":"document_memory","nodes":[{"id":"n1","text":"تتكرر إدارة المخاطر التشغيلية في الخطة."},{"id":"n2","text":"تتولى إدارة المخاطر التشغيلية متابعة حالات التعثر."}],"expect":{"memory_items":[{"kind":"concept","key_contains":"إدارة المخاطر التشغيلية","min_nodes":2}]}}
+{"id":"MEM-016","dimension":"document_memory","nodes":[{"id":"n1","text":"وزارة الحج والعمرة تشرف على برنامج خدمة ضيوف الرحمن."}],"expect":{"memory_items":[{"kind":"relation","key_contains":"وزارة الحج والعمرة","value_contains":"برنامج خدمة ضيوف الرحمن"}]}}
