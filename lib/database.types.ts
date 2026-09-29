@@ -299,6 +299,56 @@ export type Database = {
           },
         ]
       }
+      document_memory_items: {
+        Row: {
+          aliases: string[]
+          client_item_id: string
+          confidence: number
+          created_at: string
+          id: string
+          item_key: string
+          item_value: string
+          kind: string
+          metadata: Json
+          node_keys: string[]
+          version_id: string
+        }
+        Insert: {
+          aliases?: string[]
+          client_item_id: string
+          confidence?: number
+          created_at?: string
+          id?: string
+          item_key: string
+          item_value: string
+          kind: string
+          metadata?: Json
+          node_keys?: string[]
+          version_id: string
+        }
+        Update: {
+          aliases?: string[]
+          client_item_id?: string
+          confidence?: number
+          created_at?: string
+          id?: string
+          item_key?: string
+          item_value?: string
+          kind?: string
+          metadata?: Json
+          node_keys?: string[]
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_memory_items_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_nodes: {
         Row: {
           content_hash: string | null
