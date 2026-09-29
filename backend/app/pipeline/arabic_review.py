@@ -109,6 +109,18 @@ LANGUAGE_RULES: tuple[ReviewRule, ...] = (
         max_matches=4,
     ),
     ReviewRule(
+        id="punctuation.missing_space_after_period",
+        category="language",
+        title="مسافة بعد علامة ترقيم",
+        explanation="تُفصل النقطة عن الكلمة التالية بمسافة.",
+        pattern=re.compile(
+            r"(?<![0-9٠-٩۰-۹])\.(?=[\u0600-\u06FF])"
+        ),
+        replacement=". ",
+        confidence=0.99,
+        max_matches=4,
+    ),
+    ReviewRule(
         id="punctuation.missing_space_after",
         category="language",
         title="مسافة بعد علامة ترقيم",
