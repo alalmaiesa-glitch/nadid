@@ -12,6 +12,7 @@ from app.pipeline.memory import build_document_memory
 from app.pipeline.protection import extract_protected_spans
 from app.pipeline.patch_validator import validate_patch
 from app.pipeline.reviewer import fast_review
+from app.pipeline.semantic_review import semantic_review
 
 
 def load_cases(path: Path):
@@ -49,6 +50,7 @@ def evaluate_case(case):
     protected = extract_protected_spans(nodes)
     chunks = build_chunks(nodes)
     memory = build_document_memory(nodes, chunks, protected)
+    semantic_issues = semantic_review(nodes, memory)
 
     failures = []
     expected = case.get("expect", {})
@@ -115,6 +117,41 @@ def evaluate_case(case):
             failures.append(f"unexpected_memory_item:{unwanted}")
             break
 
+    semantic_issue_types = [
+        issue.issue_type for issue in semantic_issues
+    ]
+    for issue_type in expected.get("semantic_issue_types", []):
+        if issue_type not in semantic_issue_types:
+            failures.append(
+                f"missing_semantic_issue:{issue_type}"
+            )
+
+    for issue_type in expected.get("semantic_issue_absent", []):
+        if issue_type in semantic_issue_types:
+            failures.append(
+                f"unexpected_semantic_issue:{issue_type}"
+            )
+
+    min_semantic_issues = expected.get("min_semantic_issues")
+    if (
+        min_semantic_issues is not None
+        and len(semantic_issues) < min_semantic_issues
+    ):
+        failures.append(
+            "semantic_issues_below_min:"
+            f"{len(semantic_issues)}<{min_semantic_issues}"
+        )
+
+    max_semantic_issues = expected.get("max_semantic_issues")
+    if (
+        max_semantic_issues is not None
+        and len(semantic_issues) > max_semantic_issues
+    ):
+        failures.append(
+            "semantic_issues_above_max:"
+            f"{len(semantic_issues)}>{max_semantic_issues}"
+        )
+
     conflict_values = [
         sorted(normalize_text(v) for v in conflict.values)
         for conflict in memory.conflicts
@@ -170,6 +207,7 @@ def evaluate_case(case):
             "protected": len(protected),
             "conflicts": len(memory.conflicts),
             "knowledge_items": len(memory.knowledge_items),
+            "semantic_issues": len(semantic_issues),
             "chunks": len(chunks),
         },
     }
