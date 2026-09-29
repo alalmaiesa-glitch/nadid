@@ -364,7 +364,10 @@ def _apply_rule(
             if node.type == "table_cell":
                 continue
             previous = node.text[match.start() - 1] if match.start() > 0 else ""
-            if previous in "◆•▪◦●○■□–—-":
+            following = node.text[match.end()] if match.end() < len(node.text) else ""
+            if previous in "◆•▪◦●○■□–—-" or following in "◆•▪◦●○■□–—-":
+                continue
+            if node.text.count(":") >= 2:
                 continue
         if index >= rule.max_matches:
             break
