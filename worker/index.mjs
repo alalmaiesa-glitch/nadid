@@ -110,6 +110,7 @@ function validatorForFact(type) {
     case "legal_reference":
     case "role":
     case "quotation":
+    case "quantity":
       return "exact_or_normalized_identifier";
     case "negation":
     case "obligation":
