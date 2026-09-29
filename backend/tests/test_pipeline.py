@@ -633,3 +633,143 @@ def test_document_memory_extracts_explicit_relation():
     assert "برنامج خدمة ضيوف الرحمن" in relation.value
     assert relation.metadata["predicate"] == "تشرف على"
 
+def test_semantic_review_detects_definition_conflict():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+    from app.pipeline.semantic_review import semantic_review
+
+    nodes = [
+        node("يقصد بمصطلح «مقدم الخدمة»: الجهة المتعاقدة لتنفيذ الأعمال.", 0),
+        node("يقصد بمصطلح «مقدم الخدمة»: الجهة الحكومية المالكة للمشروع.", 1),
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+    issues = semantic_review(nodes, memory)
+
+    assert any(
+        issue.issue_type == "definition_conflict"
+        for issue in issues
+    )
+
+
+def test_semantic_review_does_not_flag_equivalent_definition():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+    from app.pipeline.semantic_review import semantic_review
+
+    nodes = [
+        node("يقصد بمصطلح «مقدم الخدمة»: الجهة المتعاقدة لتنفيذ الأعمال.", 0),
+        node("يقصد بمصطلح «مقدم الخدمة»: الجهة المتعاقدة التي تنفذ الأعمال.", 1),
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+    issues = semantic_review(nodes, memory)
+
+    assert not any(
+        issue.issue_type == "definition_conflict"
+        for issue in issues
+    )
+
+
+def test_semantic_review_detects_polarity_conflict():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+    from app.pipeline.semantic_review import semantic_review
+
+    nodes = [
+        node("المشروع معتمد وفق المحضر النهائي.", 0),
+        node("المشروع غير معتمد وفق النسخة الأخيرة.", 1),
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+    issues = semantic_review(nodes, memory)
+
+    assert any(
+        issue.issue_type == "polarity_conflict"
+        for issue in issues
+    )
+
+
+def test_semantic_review_detects_decision_conflict():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+    from app.pipeline.semantic_review import semantic_review
+
+    nodes = [
+        node("تم اعتماد الخطة التشغيلية للمشروع.", 0),
+        node("تم إلغاء الخطة التشغيلية للمشروع.", 1),
+    ]
+    chunks = build_chunks(nodes)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+    issues = semantic_review(nodes, memory)
+
+    assert any(
+        issue.issue_type == "decision_conflict"
+        for issue in issues
+    )
+
+
+def test_semantic_fact_conflict_matches_equivalent_capacity_claims():
+    from app.pipeline.facts import detect_fact_conflicts, extract_facts
+
+    nodes = [
+        node("بلغت الطاقة التشغيلية السنوية للمصنع 2000000 وحدة.", 0),
+        node("إجمالي القدرة الإنتاجية للمصنع سنويًا تساوي 1800000 وحدة.", 1),
+    ]
+    conflicts = detect_fact_conflicts(extract_facts(nodes))
+
+    assert any(
+        set(conflict.values) == {"1800000", "2000000"}
+        for conflict in conflicts
+    )
+
+
+def test_semantic_fact_conflict_matches_execution_duration():
+    from app.pipeline.facts import detect_fact_conflicts, extract_facts
+
+    nodes = [
+        node("مدة التنفيذ المعتمدة للمشروع هي 12 شهرًا.", 0),
+        node("ينص الجدول الزمني النهائي على إكمال المشروع خلال 18 شهرًا.", 1),
+    ]
+    conflicts = detect_fact_conflicts(extract_facts(nodes))
+
+    assert any(
+        set(conflict.values) == {"12", "18"}
+        for conflict in conflicts
+    )
+
+
+def test_semantic_context_matches_delay_paraphrase():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.context import retrieve_context
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [
+        node("تأخر التسليم يستلزم تدخلًا إداريًا مباشرًا.", 0),
+        node("نص غير مرتبط لاختبار الفصل.", 1),
+        node("تعثر الجدول الزمني يستدعي تصعيد القرار إلى الإدارة التنفيذية.", 2),
+    ]
+    chunks = build_chunks(nodes, target_tokens=6, hard_limit=12)
+    protected = extract_protected_spans(nodes)
+    memory = build_document_memory(nodes, chunks, protected)
+
+    package = retrieve_context(
+        target_node_id="n-0",
+        nodes=nodes,
+        chunks=chunks,
+        memory=memory,
+        query="تأخر التسليم",
+        max_chunks=3,
+    )
+
+    assert any("تعثر الجدول الزمني" in hit.text for hit in package.hits)
+
