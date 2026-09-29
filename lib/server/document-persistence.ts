@@ -46,6 +46,7 @@ function normalizeProtectedFactType(
     case "condition":
     case "qualifier":
     case "quotation":
+    case "quantity":
       return value;
     default:
       return "standard";
@@ -66,6 +67,7 @@ function validatorForFact(type: ProtectedFact["type"]) {
     case "legal_reference":
     case "role":
     case "quotation":
+    case "quantity":
       return "exact_or_normalized_identifier";
     case "negation":
     case "obligation":
