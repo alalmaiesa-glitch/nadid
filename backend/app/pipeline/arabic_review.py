@@ -76,13 +76,34 @@ def _literal_rule(
     )
 
 
+UNIT_AFTER_NUMBER = (
+    r"(?:أشهر|اشهر|شهر|أيام|ايام|يوم|سنوات|سنة|"
+    r"ساعات|ساعة|وحدات|وحدة|قطع|قطعة|صفحات|صفحة|"
+    r"متر|كيلومتر|كجم|طن)"
+)
+
 LANGUAGE_RULES: tuple[ReviewRule, ...] = (
+    ReviewRule(
+        id="punctuation.number_unit_colon",
+        category="language",
+        title="علامة ترقيم زائدة بين العدد والوحدة",
+        explanation="لا توضع النقطتان بين العدد ووحدة القياس أو المدة.",
+        pattern=re.compile(
+            rf"(?P<number>[0-9٠-٩۰-۹]+(?:[.,٫٬][0-9٠-٩۰-۹]+)?)"
+            rf"\s*:\s*(?P<unit>{UNIT_AFTER_NUMBER})"
+        ),
+        replacement=lambda m: f"{m.group('number')} {m.group('unit')}",
+        confidence=0.995,
+        max_matches=4,
+    ),
     ReviewRule(
         id="punctuation.space_before",
         category="language",
         title="مسافة قبل علامة ترقيم",
         explanation="لا توضع مسافة قبل علامة الترقيم.",
-        pattern=re.compile(r"\s+([،؛:؟!,.])"),
+        pattern=re.compile(
+            rf"\s+([،؛؟!,.]|:(?!\s*{UNIT_AFTER_NUMBER}))"
+        ),
         replacement=lambda m: m.group(1),
         confidence=0.995,
         max_matches=4,
@@ -92,7 +113,9 @@ LANGUAGE_RULES: tuple[ReviewRule, ...] = (
         category="language",
         title="مسافة بعد علامة ترقيم",
         explanation="تُفصل علامة الترقيم عن الكلمة التالية بمسافة.",
-        pattern=re.compile(r"([،؛:؟!])(?=[\u0600-\u06FF])"),
+        pattern=re.compile(
+            rf"([،؛؟!]|:(?!{UNIT_AFTER_NUMBER}))(?=[\u0600-\u06FF])"
+        ),
         replacement=lambda m: m.group(1) + " ",
         confidence=0.99,
         max_matches=4,
