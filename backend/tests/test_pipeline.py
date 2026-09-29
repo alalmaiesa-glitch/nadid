@@ -321,3 +321,127 @@ def test_parser_node_identity_survives_text_edit():
     second_nodes = parse_docx(second_stream.getvalue())
 
     assert first_nodes[0].id == second_nodes[0].id
+
+def test_meaning_lock_extracts_entity_and_legal_reference():
+    from app.pipeline.protection import extract_protected_spans
+
+    spans = extract_protected_spans([
+        node("تتولى وزارة الحج والعمرة تطبيق الحكم الوارد في المادة (12).", 0)
+    ])
+    values = {(span.type, span.value) for span in spans}
+
+    assert ("entity", "وزارة الحج والعمرة") in values
+    assert ("legal_reference", "المادة (12)") in values
+
+
+def test_meaning_lock_blocks_entity_change():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "تتولى وزارة الحج والعمرة الإشراف على البرنامج."
+    spans = extract_protected_spans([node(text, 0)])
+
+    result = validate_patch(
+        block_text=text,
+        original="وزارة الحج والعمرة",
+        replacement="وزارة السياحة",
+        protected_spans=spans,
+    )
+
+    assert result.status == "BLOCK"
+
+
+def test_meaning_lock_blocks_currency_unit_change():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "تبلغ القيمة 100 ريال."
+    spans = extract_protected_spans([node(text, 0)])
+
+    result = validate_patch(
+        block_text=text,
+        original="100 ريال",
+        replacement="100 دولار",
+        protected_spans=spans,
+    )
+
+    assert result.status == "BLOCK"
+
+
+def test_meaning_lock_allows_equivalent_numeric_format_with_unit():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "تبلغ القيمة ٣٨٬٧٧١٬٢٥١ ريال."
+    spans = extract_protected_spans([node(text, 0)])
+
+    result = validate_patch(
+        block_text=text,
+        original="٣٨٬٧٧١٬٢٥١ ريال",
+        replacement="38,771,251 ريال",
+        protected_spans=spans,
+    )
+
+    assert result.status == "PASS"
+
+
+def test_meaning_lock_blocks_obligation_relaxation():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "يجب على المورد تسليم المواد خلال خمسة أيام."
+    spans = extract_protected_spans([node(text, 0)])
+
+    result = validate_patch(
+        block_text=text,
+        original="يجب على",
+        replacement="يمكن لـ",
+        protected_spans=spans,
+    )
+
+    assert result.status == "BLOCK"
+
+
+def test_meaning_lock_blocks_condition_removal():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "إذا تأخر المورد، يطبق الإجراء التصحيحي."
+    spans = extract_protected_spans([node(text, 0)])
+
+    result = validate_patch(
+        block_text=text,
+        original="إذا ",
+        replacement="",
+        protected_spans=spans,
+    )
+
+    assert result.status == "BLOCK"
+
+
+def test_meaning_lock_allows_punctuation_normalization_in_critical_clause():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "لا يتحمل الطرف الأول تكاليف النقل ، وفق العقد."
+    spans = extract_protected_spans([node(text, 0)])
+
+    result = validate_patch(
+        block_text=text,
+        original="النقل ،",
+        replacement="النقل،",
+        protected_spans=spans,
+    )
+
+    assert result.status == "PASS"
+
+
+def test_meaning_lock_blocks_introduced_negation():
+    from app.pipeline.protection import extract_protected_spans
+
+    text = "المشروع مكتمل وفق المحضر النهائي."
+    spans = extract_protected_spans([node(text, 0)])
+
+    result = validate_patch(
+        block_text=text,
+        original="مكتمل",
+        replacement="غير مكتمل",
+        protected_spans=spans,
+    )
+
+    assert result.status == "BLOCK"
+
