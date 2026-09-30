@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "description": "Confidence Calibration & Severity V1. Scores are operational policy scores, not empirically calibrated probabilities.",
+  "cases": [
+    {"id":"CAL-001","scenario":"language_suggestion","expect":{"severity":"medium","confidence_level":"high","strong_assertion":true,"confidence_max":0.94,"confidence_min":0.90}},
+    {"id":"CAL-002","scenario":"style_suggestion","expect":{"severity":"low","confidence_level":"medium","strong_assertion":false,"confidence_max":0.79}},
+    {"id":"CAL-003","scenario":"definition_conflict","expect":{"severity":"medium","confidence_level":"high","strong_assertion":true,"confidence_max":0.93}},
+    {"id":"CAL-004","scenario":"decision_conflict","expect":{"severity":"high","confidence_level":"high","strong_assertion":true,"confidence_min":0.90}},
+    {"id":"CAL-005","scenario":"polarity_conflict","expect":{"severity":"high","confidence_level":"high","strong_assertion":true,"confidence_min":0.90}},
+    {"id":"CAL-006","scenario":"fact_conflict","expect":{"severity":"high","confidence_level":"high","strong_assertion":true,"confidence_min":0.90,"confidence_max":0.95}},
+    {"id":"CAL-007","scenario":"partial_semantic","expect":{"severity":"medium","confidence_level":"low","strong_assertion":false,"confidence_max":0.59}},
+    {"id":"CAL-008","scenario":"partial_language","expect":{"severity":"low","confidence_level":"low","strong_assertion":false,"confidence_max":0.59}},
+    {"id":"CAL-009","scenario":"protection_complete","expect":{"severity":"critical","confidence_level":"high","strong_assertion":true,"confidence_min":0.95}},
+    {"id":"CAL-010","scenario":"protection_partial","expect":{"severity":"medium","confidence_level":"low","strong_assertion":false,"confidence_max":0.59}},
+    {"id":"CAL-011","scenario":"low_confidence_language","expect":{"severity":"low","confidence_level":"low","strong_assertion":false,"confidence_max":0.69}},
+    {"id":"CAL-012","scenario":"partial_fact","expect":{"severity":"medium","confidence_level":"low","strong_assertion":false,"confidence_max":0.59}},
+    {"id":"CAL-013","scenario":"style_raw_one","expect":{"severity":"low","confidence_level":"medium","strong_assertion":false,"confidence_max":0.79}},
+    {"id":"CAL-014","scenario":"semantic_insufficient_locations","expect":{"severity":"medium","confidence_level":"low","strong_assertion":false,"confidence_max":0.59}},
+    {"id":"CAL-015","scenario":"non_protection_never_critical","expect":{"not_severity":"critical"}},
+    {"id":"CAL-016","scenario":"severity_sort","expect":{"ordered_severity":["critical","high","medium","low"]}},
+    {"id":"CAL-017","scenario":"method_marker","expect":{"calibration_method":"policy_v1_unvalidated"}},
+    {"id":"CAL-018","scenario":"source_confidence_preserved","expect":{"source_confidence_min":0.99,"confidence_max":0.94}}
+  ]
+}
