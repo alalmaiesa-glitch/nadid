@@ -42,6 +42,16 @@
 
 تمت إضافة الكتابة الكاملة لكل مجموعة، مع `version_id` وهوية client deterministic.
 
+### 3. تضارب Suggestion IDs بين المستندات
+
+كان `client_suggestion_id` فريدًا عالميًا في جدول suggestions. لكن IDs السريعة deterministic داخل بنية المستند، لذلك يمكن لمستندين مستقلين متشابهين إنتاج الـID نفسه.
+
+تم استبدال القيد العالمي بقيد:
+
+`unique(version_id, client_suggestion_id)`
+
+فتبقى idempotence داخل النسخة من دون منع مستند مستقل من امتلاك suggestion مكافئة.
+
 ## استراتيجية الاستعادة
 
 ### Initial Review
@@ -64,7 +74,7 @@
 
 ## Benchmark V1
 
-12 حالة WID-001 إلى WID-012 تغطي:
+13 حالة WID-001 إلى WID-013 تغطي:
 
 - bindings الصحيحة لنتيجة Deep AEE.
 - وجود الكتابة لكل جدول عميق.
@@ -77,7 +87,7 @@
 - وسم Version failed عند partial initial write.
 - mappings لكل artifact.
 - version-scoped writes.
-- منع ready قبل اكتمال writes.
+- منع ready قبل اكتمال writes.\n- حصر uniqueness لـ client_suggestion_id داخل version_id بدل القيد العالمي.
 
 ## حدود V1
 
