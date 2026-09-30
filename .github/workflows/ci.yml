@@ -77,6 +77,7 @@ jobs:
           benchmark/run_corpus_regression.py
           benchmark/run_silver_set.py
           benchmark/run_mutation_benchmark.py
+          benchmark/run_consistency_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -102,6 +103,14 @@ jobs:
           --report benchmark/mutation-report.json
           --enforce
 
+      - name: Run Consistency Benchmark V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_consistency_benchmark.py
+          --report benchmark/consistency-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -109,6 +118,7 @@ jobs:
           path: |
             benchmark/report.json
             benchmark/mutation-report.json
+            benchmark/consistency-report.json
 
 
   aee-container:
