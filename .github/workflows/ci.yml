@@ -281,6 +281,11 @@ jobs:
           "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           -f supabase/tests/multitenant_rls_isolation.sql
 
+      - name: Run PostgREST/JWT End-to-End Authorization V1
+        env:
+          PGPASSWORD: postgres
+        run: python3 supabase/tests/postgrest_jwt_authz_e2e.py
+
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup || true
