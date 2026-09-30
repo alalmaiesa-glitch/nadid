@@ -91,6 +91,7 @@ jobs:
           benchmark/run_fidelity_benchmark.py
           benchmark/run_visual_regression.py
           benchmark/run_scale_benchmark.py
+          benchmark/run_malformed_recovery_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -180,6 +181,14 @@ jobs:
           --report benchmark/scale-report.json
           --enforce
 
+      - name: Run Malformed Document & Failure Recovery V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_malformed_recovery_benchmark.py
+          --report benchmark/malformed-recovery-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -195,6 +204,7 @@ jobs:
             benchmark/fidelity-report.json
             benchmark/visual-report.json
             benchmark/scale-report.json
+            benchmark/malformed-recovery-report.json
 
 
   aee-container:
