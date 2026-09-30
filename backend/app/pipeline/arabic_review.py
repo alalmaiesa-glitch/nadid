@@ -94,7 +94,7 @@ LANGUAGE_RULES: tuple[ReviewRule, ...] = (
         ),
         replacement=lambda m: f"{m.group('number')} {m.group('unit')}",
         confidence=0.995,
-        max_matches=4,
+        max_matches=32,
     ),
     ReviewRule(
         id="punctuation.space_before",
@@ -106,7 +106,7 @@ LANGUAGE_RULES: tuple[ReviewRule, ...] = (
         ),
         replacement=lambda m: m.group(1),
         confidence=0.995,
-        max_matches=4,
+        max_matches=32,
     ),
     ReviewRule(
         id="punctuation.missing_space_after_period",
@@ -118,7 +118,7 @@ LANGUAGE_RULES: tuple[ReviewRule, ...] = (
         ),
         replacement=". ",
         confidence=0.99,
-        max_matches=4,
+        max_matches=32,
     ),
     ReviewRule(
         id="punctuation.missing_space_after",
@@ -130,7 +130,7 @@ LANGUAGE_RULES: tuple[ReviewRule, ...] = (
         ),
         replacement=lambda m: m.group(1) + " ",
         confidence=0.99,
-        max_matches=4,
+        max_matches=32,
     ),
     ReviewRule(
         id="spacing.repeated",
@@ -140,7 +140,7 @@ LANGUAGE_RULES: tuple[ReviewRule, ...] = (
         pattern=re.compile(r"(?<=\S)[ \t]{2,}(?=\S)"),
         replacement=" ",
         confidence=0.995,
-        max_matches=4,
+        max_matches=32,
     ),
     ReviewRule(
         id="punctuation.repeated",
@@ -450,17 +450,13 @@ def review_arabic_node(node: DocumentNode) -> list[Suggestion]:
         for rule in STYLE_RULES:
             suggestions.extend(_apply_rule(node, rule))
 
-    # Avoid duplicate edits for an identical source span/category.
-    deduped: dict[tuple[str, str, str], Suggestion] = {}
+    # Keep repeated occurrences distinct. Suggestion IDs encode rule + offset,
+    # so identical surface edits at different positions must not collapse.
+    deduped: dict[str, Suggestion] = {}
     for suggestion in suggestions:
-        key = (
-            suggestion.category,
-            suggestion.original,
-            suggestion.replacement or "",
-        )
-        existing = deduped.get(key)
+        existing = deduped.get(suggestion.id)
         if existing is None or suggestion.confidence > existing.confidence:
-            deduped[key] = suggestion
+            deduped[suggestion.id] = suggestion
 
     return sorted(
         deduped.values(),

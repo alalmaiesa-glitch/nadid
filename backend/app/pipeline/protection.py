@@ -63,7 +63,7 @@ EPISTEMIC_MARKERS = re.compile(
 )
 RELATION_MARKERS = re.compile(
     r"\b(?:قبل|بعد|أكثر\s+من|أقل\s+من|على\s+الأقل|"
-    r"على\s+الأكثر|حتى|منذ|خلال)\b"
+    r"على\s+الأكثر|حتى|منذ|(?<!من\s)خلال)\b"
 )
 LOGIC_MARKERS = re.compile(
     r"\b(?:أو|إما|وإما|كلا|كليهما|أحدهما)\b"
