@@ -273,6 +273,11 @@ def scenario_value(name: str):
                 original="100 ريال",
                 replacement="100 دولار",
                 confidence=0.999,
+                start_offset=nodes[0].text.index("100 ريال"),
+                end_offset=(
+                    nodes[0].text.index("100 ريال")
+                    + len("100 ريال")
+                ),
             )
         ]
         return build_safe_auto_apply_plan(
@@ -294,6 +299,8 @@ def scenario_value(name: str):
                 original="هاذا",
                 replacement="هذا",
                 confidence=0.995,
+                start_offset=0,
+                end_offset=len("هاذا"),
             ),
             Suggestion(
                 id="second",
@@ -304,6 +311,8 @@ def scenario_value(name: str):
                 original="هاذا",
                 replacement="هذا",
                 confidence=0.995,
+                start_offset=0,
+                end_offset=len("هاذا"),
             ),
         ]
         return build_safe_auto_apply_plan(

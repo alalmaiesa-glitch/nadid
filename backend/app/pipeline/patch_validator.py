@@ -145,16 +145,35 @@ def validate_patch(
     original: str,
     replacement: str,
     protected_spans: list[ProtectedSpan],
+    start_offset: int | None = None,
 ) -> PatchValidationResult:
-    if original not in block_text:
-        return PatchValidationResult(
-            status="BLOCK",
-            candidate=block_text,
-            reason="SOURCE_CHANGED",
-            checks=[],
+    if start_offset is not None:
+        end_offset = start_offset + len(original)
+        if (
+            start_offset < 0
+            or end_offset > len(block_text)
+            or block_text[start_offset:end_offset] != original
+        ):
+            return PatchValidationResult(
+                status="BLOCK",
+                candidate=block_text,
+                reason="SOURCE_CHANGED",
+                checks=[],
+            )
+        candidate = (
+            block_text[:start_offset]
+            + replacement
+            + block_text[end_offset:]
         )
-
-    candidate = block_text.replace(original, replacement, 1)
+    else:
+        if original not in block_text:
+            return PatchValidationResult(
+                status="BLOCK",
+                candidate=block_text,
+                reason="SOURCE_CHANGED",
+                checks=[],
+            )
+        candidate = block_text.replace(original, replacement, 1)
     checks: list[ValidationCheck] = []
 
     marker_signature_preserved = (

@@ -51,6 +51,8 @@ class Suggestion(BaseModel):
     original: str
     replacement: str | None = None
     confidence: float = Field(ge=0, le=1)
+    start_offset: int | None = Field(default=None, ge=0)
+    end_offset: int | None = Field(default=None, ge=0)
 
 
 class ProtectedSpan(BaseModel):
@@ -208,6 +210,8 @@ class EvidenceLocation(BaseModel):
     location_label: str
     source_anchor: dict = Field(default_factory=dict)
     excerpt: str
+    start_offset: int | None = Field(default=None, ge=0)
+    end_offset: int | None = Field(default=None, ge=0)
 
 
 class EvidenceTrace(BaseModel):
@@ -246,3 +250,4 @@ class PatchOperation(BaseModel):
     node_id: str
     original: str
     replacement: str
+    start_offset: int | None = Field(default=None, ge=0)

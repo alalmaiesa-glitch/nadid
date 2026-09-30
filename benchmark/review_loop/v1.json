@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "description": "Review Loop & Idempotence V1. Safe auto-fixes must converge, preserve meaning/structure, create no new findings, and be byte-stable on the next run.",
+  "cases": [
+    {"id":"LOOP-001","scenario":"clean_document","expect":{"stable":true,"safety":true,"initial_auto":0,"final_auto":0,"output_same":true}},
+    {"id":"LOOP-002","scenario":"single_orthography","expect":{"stable":true,"safety":true,"min_initial_auto":1,"final_auto":0,"min_applied":1,"final_contains":"هذا التقرير معتمد."}},
+    {"id":"LOOP-003","scenario":"single_punctuation","expect":{"stable":true,"safety":true,"min_initial_auto":1,"final_auto":0,"min_applied":1,"final_contains":"تم اعتماد الخطة، ثم بدأ التنفيذ."}},
+    {"id":"LOOP-004","scenario":"dense_errors","expect":{"stable":true,"safety":true,"min_initial_auto":4,"final_auto":0,"min_applied":4}},
+    {"id":"LOOP-005","scenario":"multi_paragraph","expect":{"stable":true,"safety":true,"min_initial_auto":3,"final_auto":0,"min_applied":3}},
+    {"id":"LOOP-006","scenario":"heading_fix","expect":{"stable":true,"safety":true,"min_initial_auto":1,"final_auto":0,"heading_contains":"هذا"}},
+    {"id":"LOOP-007","scenario":"table_cell_fix","expect":{"stable":true,"safety":true,"min_initial_auto":1,"final_auto":0,"table_contains":"هذا"}},
+    {"id":"LOOP-008","scenario":"critical_clause_punctuation","expect":{"stable":true,"safety":true,"min_initial_auto":1,"final_auto":0,"meaning":true}},
+    {"id":"LOOP-009","scenario":"protected_values_punctuation","expect":{"stable":true,"safety":true,"min_initial_auto":1,"final_auto":0,"meaning":true,"final_contains":"100 ريال،"}},
+    {"id":"LOOP-010","scenario":"style_only","expect":{"stable":true,"safety":true,"initial_auto":0,"final_auto":0,"output_same":true,"min_final_suggestions":1}},
+    {"id":"LOOP-011","scenario":"mixed_style_language","expect":{"stable":true,"safety":true,"min_initial_auto":1,"final_auto":0,"min_final_suggestions":1,"final_contains":"هذا التقرير"}},
+    {"id":"LOOP-012","scenario":"decision_conflict_with_fix","expect":{"stable":true,"safety":true,"min_initial_auto":1,"final_auto":0,"preserve_issue":"decision_conflict"}},
+    {"id":"LOOP-013","scenario":"fact_conflict_with_fix","expect":{"stable":true,"safety":true,"min_initial_auto":1,"final_auto":0,"preserve_fact_conflict":true}},
+    {"id":"LOOP-014","scenario":"second_run_idempotent","expect":{"stable":true,"safety":true,"second_output_same":true,"second_initial_auto":0,"second_applied":0}},
+    {"id":"LOOP-015","scenario":"one_round_converges","max_rounds":1,"expect":{"stable":true,"safety":true,"min_applied":1,"final_auto":0}},
+    {"id":"LOOP-016","scenario":"repeated_occurrences","expect":{"stable":true,"safety":true,"min_initial_auto":4,"final_auto":0,"min_applied":4}},
+    {"id":"LOOP-017","scenario":"formatted_run","expect":{"stable":true,"safety":true,"min_applied":1,"bold_preserved":true}},
+    {"id":"LOOP-018","scenario":"style_and_punctuation_same_node","expect":{"stable":true,"safety":true,"min_applied":1,"new_suggestions":0,"min_final_suggestions":1}},
+    {"id":"LOOP-019","scenario":"semantic_only","expect":{"stable":true,"safety":true,"initial_auto":0,"final_auto":0,"output_same":true,"preserve_issue":"polarity_conflict"}},
+    {"id":"LOOP-020","scenario":"clean_second_run_bytes","expect":{"stable":true,"safety":true,"second_output_same":true,"new_suggestions":0,"new_high":0}}
+  ]
+}
