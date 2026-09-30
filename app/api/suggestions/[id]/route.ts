@@ -29,10 +29,17 @@ export async function PATCH(
     });
   }
 
+  if (!auth.suggestionDbId) {
+    return Response.json(
+      { error: "Suggestion not found." },
+      { status: 404 }
+    );
+  }
+
   const { error } = await supabase
     .from("suggestions")
     .update({ status: body.status })
-    .eq("client_suggestion_id", id);
+    .eq("id", auth.suggestionDbId);
 
   if (error) {
     return Response.json(
