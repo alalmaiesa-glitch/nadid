@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "benchmark": "document_fidelity_round_trip_safety_v1",
+  "initial_run": {
+    "passed": 23,
+    "total": 24,
+    "score": 0.9583,
+    "failed_cases": ["FID-017"],
+    "root_cause": "prefixed_hatha_not_detected"
+  },
+  "fidelity_guards": {
+    "valid_docx_package": true,
+    "package_parts_preserved": true,
+    "relationships_preserved": true,
+    "content_types_preserved": true,
+    "immutable_parts_preserved": true,
+    "document_non_text_structure_preserved": true,
+    "exact_text_change_validation": true,
+    "media_byte_identity": true,
+    "no_op_byte_identity": true,
+    "fully_skipped_byte_identity": true,
+    "special_run_fail_closed": true,
+    "exact_offset_support": true,
+    "leading_whitespace_offset_correction": true
+  },
+  "regression_guards_added": ["LANG-021"],
+  "final_run": {
+    "passed": 24,
+    "total": 24,
+    "score": 1.0
+  },
+  "quality_baselines_preserved": {
+    "core": "150/150",
+    "mutation": "53/53",
+    "consistency": "28/28",
+    "evidence": "12/12",
+    "confidence_severity": "18/18",
+    "review_action": "20/20",
+    "review_loop": "20/20"
+  },
+  "note": "Engineering benchmark pass rates are not Human Gold precision/recall."
+}

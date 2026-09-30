@@ -260,6 +260,7 @@ def run_docx_review_loop(
         applied_complete = (
             len(apply_report.applied) == len(plan.patches)
             and not apply_report.skipped
+            and apply_report.fidelity_ok
         )
 
         rounds.append(

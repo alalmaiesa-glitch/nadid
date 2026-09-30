@@ -377,6 +377,15 @@ async def apply_docx_patches(
             },
         )
 
+    if not report.fidelity_ok:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "DOCUMENT_FIDELITY_REJECTED",
+                "errors": report.fidelity_errors or [],
+            },
+        )
+
     filename = file.filename.rsplit(".", 1)[0] + "-nadid.docx"
 
     return Response(

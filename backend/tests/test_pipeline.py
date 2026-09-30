@@ -1042,3 +1042,128 @@ def test_review_loop_keeps_style_advisory_without_rewriting():
     assert result.final_suggestion_count >= 1
     assert result.output == payload
 
+def test_docx_fidelity_preserves_rich_structure():
+    from io import BytesIO
+    from docx import Document
+    from docx.shared import Inches
+    from app.pipeline.auto_apply import build_safe_auto_apply_plan
+    from app.pipeline.docx_patch import apply_patches_to_docx
+    from app.pipeline.parser import parse_docx
+    from app.pipeline.protection import extract_protected_spans
+    from app.pipeline.reviewer import fast_review
+
+    document = Document()
+    document.sections[0].header.paragraphs[0].text = "رأس ثابت"
+    table = document.add_table(rows=1, cols=2)
+    table.style = "Table Grid"
+    table.cell(0, 0).text = "خلية ثابتة"
+    table.cell(0, 1).text = "قيمة"
+    paragraph = document.add_paragraph()
+    bold = paragraph.add_run("تنبيه: ")
+    bold.bold = True
+    paragraph.add_run("هاذا التقرير معتمد.")
+
+    stream = BytesIO()
+    document.save(stream)
+    payload = stream.getvalue()
+
+    nodes = parse_docx(payload)
+    protected = extract_protected_spans(nodes)
+    plan = build_safe_auto_apply_plan(
+        nodes,
+        fast_review(nodes),
+        protected,
+    )
+    output, report = apply_patches_to_docx(
+        payload,
+        plan.patches,
+    )
+
+    assert report.applied
+    assert report.fidelity_ok is True
+    assert report.fidelity_errors == []
+
+    result = Document(BytesIO(output))
+    assert result.sections[0].header.paragraphs[0].text == "رأس ثابت"
+    assert result.tables[0].style.name == "Table Grid"
+    assert result.paragraphs[-1].runs[0].bold is True
+    assert "هذا التقرير معتمد." in result.paragraphs[-1].text
+
+
+def test_docx_patch_preserves_mixed_run_formatting_across_fix():
+    from io import BytesIO
+    from docx import Document
+    from app.pipeline.auto_apply import build_safe_auto_apply_plan
+    from app.pipeline.docx_patch import apply_patches_to_docx
+    from app.pipeline.parser import parse_docx
+    from app.pipeline.protection import extract_protected_spans
+    from app.pipeline.reviewer import fast_review
+
+    document = Document()
+    paragraph = document.add_paragraph()
+    first = paragraph.add_run("ها")
+    second = paragraph.add_run("ذا")
+    first.bold = True
+    second.italic = True
+    paragraph.add_run(" التقرير معتمد.")
+
+    stream = BytesIO()
+    document.save(stream)
+    payload = stream.getvalue()
+
+    nodes = parse_docx(payload)
+    protected = extract_protected_spans(nodes)
+    plan = build_safe_auto_apply_plan(
+        nodes,
+        fast_review(nodes),
+        protected,
+    )
+    output, report = apply_patches_to_docx(
+        payload,
+        plan.patches,
+    )
+
+    assert report.fidelity_ok is True
+    result = Document(BytesIO(output))
+    runs = result.paragraphs[0].runs
+    assert "".join(run.text for run in runs[:2]) == "هذا"
+    assert runs[0].bold is True
+    assert runs[1].italic is True
+
+
+def test_docx_patch_fails_closed_on_special_run_span():
+    from io import BytesIO
+    from docx import Document
+    from app.contracts import PatchOperation
+    from app.pipeline.docx_patch import apply_patches_to_docx
+    from app.pipeline.parser import parse_docx
+
+    document = Document()
+    paragraph = document.add_paragraph()
+    paragraph.add_run("ه")
+    special = paragraph.add_run()
+    special.add_tab()
+    paragraph.add_run("اذا")
+
+    stream = BytesIO()
+    document.save(stream)
+    payload = stream.getvalue()
+
+    target = parse_docx(payload)[0]
+    output, report = apply_patches_to_docx(
+        payload,
+        [
+            PatchOperation(
+                node_id=target.id,
+                original="ه\tاذا",
+                replacement="هذا",
+                start_offset=0,
+            )
+        ],
+    )
+
+    assert report.applied == []
+    assert report.skipped == [target.id]
+    assert report.fidelity_ok is True
+    assert output == payload
+

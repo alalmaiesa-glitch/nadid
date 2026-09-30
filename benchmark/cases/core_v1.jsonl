@@ -147,3 +147,4 @@
 {"id":"CONF-009","dimension":"conflict","nodes":[{"id":"n1","text":"في السيناريو الأساسي تبلغ الطاقة الإنتاجية للمصنع 2000000 وحدة."},{"id":"n2","text":"في السيناريو الأساسي تبلغ القدرة التشغيلية للمصنع 1800000 وحدة."}],"expect":{"conflict_values":[["1800000","2000000"]]}}
 {"id":"CONF-010","dimension":"conflict","nodes":[{"id":"n1","text":"تبلغ الطاقة الإنتاجية لمصنع جدة 2000000 وحدة."},{"id":"n2","text":"تبلغ القدرة التشغيلية لمصنع جدة 1800000 وحدة."}],"expect":{"conflict_values":[["1800000","2000000"]]}}
 {"id":"CONF-011","dimension":"conflict","nodes":[{"id":"n1","text":"مدة تنفيذ المرحلة الأولى 12 شهرًا."},{"id":"n2","text":"مدة تنفيذ المرحلة الثانية 18 شهرًا."}],"expect":{"no_conflicts":true}}
+{"id":"LANG-021","dimension":"language","nodes":[{"id":"n1","text":"هاذا التقرير الأول، وهاذا التقرير الثاني."}],"expect":{"suggestion_contains":["هذا","وهذا"],"min_suggestions":2}}

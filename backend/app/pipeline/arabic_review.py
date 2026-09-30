@@ -195,6 +195,19 @@ LANGUAGE_RULES: tuple[ReviewRule, ...] = (
         "رسم إملائي",
         "الصواب «هذا».",
     ),
+    ReviewRule(
+        id="orthography.hatha_prefixed",
+        category="language",
+        title="رسم إملائي",
+        explanation="الصواب كتابة «هذا» بعد حرف العطف أو الجر المتصل.",
+        pattern=re.compile(
+            ARABIC_WORD_BOUNDARY_LEFT
+            + r"(?P<prefix>[وفبلك])هاذا"
+            + ARABIC_WORD_BOUNDARY_RIGHT
+        ),
+        replacement=lambda m: m.group("prefix") + "هذا",
+        confidence=0.99,
+    ),
     _literal_rule(
         "orthography.lakin",
         "language",
