@@ -1,6 +1,7 @@
 import { authorizeUser } from "@/lib/server/authz";
 import {
   deleteDocumentFully,
+  deleteOwnerStorageOrphans,
   listUserDocuments
 } from "@/lib/server/document-persistence";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -39,6 +40,9 @@ export async function DELETE() {
       }
     }
 
+    const storageCleanup =
+      await deleteOwnerStorageOrphans(auth.userId);
+
     const { error: userError } =
       await supabase.auth.admin.deleteUser(auth.userId);
 
@@ -46,7 +50,8 @@ export async function DELETE() {
 
     return Response.json({
       deleted: true,
-      removedDocuments: documents.length
+      removedDocuments: documents.length,
+      removedOrphanObjects: storageCleanup.removedObjects
     });
   } catch {
     return Response.json(
