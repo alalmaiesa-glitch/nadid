@@ -36,9 +36,17 @@ def apply_review_action(trace: EvidenceTrace) -> EvidenceTrace:
         reasons.append("style_is_advisory")
     elif trace.finding_kind == "suggestion" and trace.category == "language":
         has_replacement = len(trace.evidence_values) >= 2
+        has_precise_location = any(
+            location.start_offset is not None
+            and location.end_offset is not None
+            for location in trace.evidence_locations
+        )
         if not has_replacement:
             action = "require_review"
             reasons.append("replacement_missing")
+        elif not has_precise_location:
+            action = "suggest"
+            reasons.append("precise_source_location_required")
         elif trace.meaning_lock_status != "PASS":
             action = "suggest"
             reasons.append("meaning_lock_not_verified")
