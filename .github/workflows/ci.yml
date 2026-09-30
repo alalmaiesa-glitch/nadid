@@ -286,6 +286,11 @@ jobs:
           PGPASSWORD: postgres
         run: python3 supabase/tests/postgrest_jwt_authz_e2e.py
 
+      - name: Run Storage Object Isolation & Signed Access V1
+        env:
+          PGPASSWORD: postgres
+        run: python3 supabase/tests/storage_object_isolation_e2e.py
+
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup || true
