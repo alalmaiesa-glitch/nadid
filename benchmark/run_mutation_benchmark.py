@@ -21,14 +21,10 @@ def _node(text: str) -> DocumentNode:
     )
 
 
-def _normalize(text: str) -> str:
-    return " ".join(text.split())
-
-
 def _reachable_clean(mutated: str, clean: str, suggestions) -> bool:
     """Can a bounded subset of engine suggestions repair this mutant?"""
-    target = _normalize(clean)
-    if _normalize(mutated) == target:
+    target = clean
+    if mutated == target:
         return False
 
     queue = deque([(mutated, frozenset())])
@@ -37,7 +33,7 @@ def _reachable_clean(mutated: str, clean: str, suggestions) -> bool:
 
     while queue:
         text, used = queue.popleft()
-        if _normalize(text) == target:
+        if text == target:
             return True
         if len(used) >= max_depth:
             continue
