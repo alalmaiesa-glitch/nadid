@@ -4,18 +4,16 @@ import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { Brand } from "@/components/SiteHeader";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { safeInternalNext } from "@/lib/auth-routing";
 
 type State = "idle" | "sending" | "sent" | "error" | "unavailable";
 
 function safeNext() {
   if (typeof window === "undefined") return "/documents";
-  const requested =
-    new URLSearchParams(window.location.search).get("next") ?? "/documents";
-  return requested.startsWith("/") &&
-    !requested.startsWith("//") &&
-    !requested.startsWith("/\\")
-    ? requested
-    : "/documents";
+  return safeInternalNext(
+    new URLSearchParams(window.location.search).get("next"),
+    "/documents"
+  );
 }
 
 export default function LoginPage() {
