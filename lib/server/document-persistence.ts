@@ -13,6 +13,70 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 const STORAGE_BUCKET = "nadid-documents";
 
+async function listStorageObjectsRecursively(prefix: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("supabase_not_configured");
+
+  const normalized = prefix.replace(/^\/+|\/+$/g, "");
+  if (!normalized) return [];
+
+  const files: string[] = [];
+  const queue = [normalized];
+
+  while (queue.length > 0) {
+    const folder = queue.shift();
+    if (!folder) continue;
+
+    let offset = 0;
+
+    while (true) {
+      const { data, error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .list(folder, {
+          limit: 100,
+          offset,
+          sortBy: { column: "name", order: "asc" }
+        });
+
+      if (error) throw error;
+
+      const entries = data ?? [];
+      if (entries.length === 0) break;
+
+      for (const entry of entries) {
+        const child = `${folder}/${entry.name}`;
+
+        if (entry.id) {
+          files.push(child);
+        } else {
+          queue.push(child);
+        }
+      }
+
+      if (entries.length < 100) break;
+      offset += entries.length;
+    }
+  }
+
+  return files;
+}
+
+async function removeStorageObjects(paths: string[]) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("supabase_not_configured");
+
+  for (let index = 0; index < paths.length; index += 100) {
+    const batch = paths.slice(index, index + 100);
+    if (batch.length === 0) continue;
+
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove(batch);
+
+    if (error) throw error;
+  }
+}
+
 function sha256(buffer: Buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -1881,6 +1945,13 @@ export async function deleteDocumentFully(
     }
   }
 
+  const ownedPrefix = `${ownerId}/${documentId}`;
+  const discovered = await listStorageObjectsRecursively(ownedPrefix);
+
+  for (const path of discovered) {
+    paths.add(path);
+  }
+
   const { error: markError } = await supabase
     .from("documents")
     .update({
@@ -1892,23 +1963,19 @@ export async function deleteDocumentFully(
 
   if (markError) throw markError;
 
-  if (paths.size > 0) {
-    const { error: storageError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .remove([...paths]);
+  try {
+    await removeStorageObjects([...paths]);
+  } catch (error) {
+    await supabase
+      .from("documents")
+      .update({
+        status: "delete_failed",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", documentId)
+      .eq("owner_id", ownerId);
 
-    if (storageError) {
-      await supabase
-        .from("documents")
-        .update({
-          status: "delete_failed",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", documentId)
-        .eq("owner_id", ownerId);
-
-      throw storageError;
-    }
+    throw error;
   }
 
   const { error: deleteError } = await supabase
@@ -1922,5 +1989,17 @@ export async function deleteDocumentFully(
   return {
     deleted: true as const,
     removedObjects: paths.size
+  };
+}
+
+export async function deleteOwnerStorageOrphans(ownerId: string) {
+  const prefix = ownerId.replace(/^\/+|\/+$/g, "");
+  if (!prefix) throw new Error("invalid_owner_storage_prefix");
+
+  const paths = await listStorageObjectsRecursively(prefix);
+  await removeStorageObjects(paths);
+
+  return {
+    removedObjects: paths.length
   };
 }

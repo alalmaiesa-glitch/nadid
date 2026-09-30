@@ -72,6 +72,7 @@ jobs:
         run: pip install -r backend/requirements.txt
 
       - name: Install visual regression dependencies
+        timeout-minutes: 10
         run: |
           pip install PyMuPDF==1.24.14 Pillow==11.1.0
           sudo apt-get update
@@ -97,6 +98,7 @@ jobs:
           benchmark/run_queue_recovery_benchmark.py
           benchmark/run_worker_idempotency_benchmark.py
           benchmark/run_source_immutability_benchmark.py
+          benchmark/run_secure_deletion_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -234,6 +236,14 @@ jobs:
           --report benchmark/source-immutability-report.json
           --enforce
 
+      - name: Run Secure Deletion & Orphaned Storage Cleanup V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_secure_deletion_benchmark.py
+          --report benchmark/secure-deletion-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -255,6 +265,7 @@ jobs:
             benchmark/queue-recovery-report.json
             benchmark/worker-idempotency-report.json
             benchmark/source-immutability-report.json
+            benchmark/secure-deletion-report.json
 
 
   database-fault-injection:

@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "description": "Secure Deletion & Orphaned Storage Cleanup V1.",
+  "cases": ["DEL-001","DEL-002","DEL-003","DEL-004","DEL-005","DEL-006","DEL-007","DEL-008","DEL-009","DEL-010","DEL-011","DEL-012"]
+}
