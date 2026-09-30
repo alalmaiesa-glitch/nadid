@@ -102,11 +102,13 @@ jobs:
           --report benchmark/mutation-report.json
           --enforce
 
-      - name: Upload benchmark report
+      - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
-          name: nadid-quality-benchmark
-          path: benchmark/report.json
+          name: nadid-quality-reports
+          path: |
+            benchmark/report.json
+            benchmark/mutation-report.json
 
 
   aee-container:
