@@ -24,6 +24,7 @@ from app.pipeline.reviewer import fast_review
 from app.pipeline.memory import build_document_memory
 from app.pipeline.context import retrieve_context
 from app.pipeline.semantic_review import semantic_review
+from app.pipeline.evidence import build_evidence_traces
 from app.pipeline.docx_patch import apply_patches_to_docx
 from app.docx_security import UnsafeDocxError, validate_docx_payload, validate_word_count
 
@@ -193,6 +194,13 @@ async def analyze_docx_deep(
     suggestions = fast_review(nodes)
     memory = build_document_memory(nodes, chunks, protected)
     semantic_issues = semantic_review(nodes, memory)
+    evidence_traces = build_evidence_traces(
+        nodes,
+        suggestions=suggestions,
+        semantic_issues=semantic_issues,
+        memory=memory,
+        default_document_id=file.filename,
+    )
 
     text = " ".join(node.text for node in nodes)
     word_count = len([token for token in text.split() if token])
@@ -223,6 +231,7 @@ async def analyze_docx_deep(
         base=base,
         memory=memory,
         semantic_issues=semantic_issues,
+        evidence_traces=evidence_traces,
     )
 
 
