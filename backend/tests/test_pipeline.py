@@ -950,6 +950,8 @@ def test_auto_apply_plan_revalidates_stale_suggestion():
             original="هاذا",
             replacement="هذا",
             confidence=0.995,
+            start_offset=0,
+            end_offset=len("هاذا"),
         ),
         Suggestion(
             id="second-stale",
@@ -960,6 +962,8 @@ def test_auto_apply_plan_revalidates_stale_suggestion():
             original="هاذا",
             replacement="هذا",
             confidence=0.995,
+            start_offset=0,
+            end_offset=len("هاذا"),
         ),
     ]
     plan = build_safe_auto_apply_plan(
