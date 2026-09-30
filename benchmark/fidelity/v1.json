@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "description": "Document Fidelity & Round-Trip Safety V1",
+  "cases": [
+    {"id":"FID-001","scenario":"plain_paragraph"},
+    {"id":"FID-002","scenario":"bold_surrounding"},
+    {"id":"FID-003","scenario":"italic_underline_font"},
+    {"id":"FID-004","scenario":"heading_style"},
+    {"id":"FID-005","scenario":"table_cell"},
+    {"id":"FID-006","scenario":"merged_table"},
+    {"id":"FID-007","scenario":"numbered_list"},
+    {"id":"FID-008","scenario":"bullet_list"},
+    {"id":"FID-009","scenario":"image_relationship"},
+    {"id":"FID-010","scenario":"hyperlink_relationship"},
+    {"id":"FID-011","scenario":"header_footer"},
+    {"id":"FID-012","scenario":"page_margins_orientation"},
+    {"id":"FID-013","scenario":"multiple_sections"},
+    {"id":"FID-014","scenario":"tab_and_break"},
+    {"id":"FID-015","scenario":"bookmark"},
+    {"id":"FID-016","scenario":"leading_whitespace"},
+    {"id":"FID-017","scenario":"repeated_exact_spans"},
+    {"id":"FID-018","scenario":"cross_run_same_format"},
+    {"id":"FID-019","scenario":"cross_run_mixed_format"},
+    {"id":"FID-020","scenario":"unsafe_special_run_fails_closed"},
+    {"id":"FID-021","scenario":"no_patch_byte_identity"},
+    {"id":"FID-022","scenario":"second_round_byte_identity"},
+    {"id":"FID-023","scenario":"combined_rich_document"},
+    {"id":"FID-024","scenario":"target_run_format_preserved"}
+  ]
+}
