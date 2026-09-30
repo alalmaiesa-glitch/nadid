@@ -127,12 +127,11 @@ def build_case(case: dict):
                 ],
             }
         )
-        traces = build_evidence_traces(
-            report.nodes,
-            semantic_issues=report.semantic_issues,
-            memory=report.memory,
-        )
-        return pick(traces, "semantic_issue", "definition_conflict"), {}
+        return pick(
+            report.evidence_traces,
+            "semantic_issue",
+            "definition_conflict",
+        ), {}
 
     if scenario == "cross_document_fact":
         report = review_document_set(
@@ -153,12 +152,7 @@ def build_case(case: dict):
                 ],
             }
         )
-        traces = build_evidence_traces(
-            report.nodes,
-            semantic_issues=report.semantic_issues,
-            memory=report.memory,
-        )
-        return pick(traces, "fact_conflict"), {}
+        return pick(report.evidence_traces, "fact_conflict"), {}
 
     if scenario == "long_range_decision":
         filler_count = int(case.get("filler_count", 420))
@@ -175,12 +169,11 @@ def build_case(case: dict):
             ),
         ]
         report = review_document_set({"D1": nodes})
-        traces = build_evidence_traces(
-            report.nodes,
-            semantic_issues=report.semantic_issues,
-            memory=report.memory,
-        )
-        return pick(traces, "semantic_issue", "decision_conflict"), {}
+        return pick(
+            report.evidence_traces,
+            "semantic_issue",
+            "decision_conflict",
+        ), {}
 
     if scenario == "long_range_fact":
         filler_count = int(case.get("filler_count", 420))
@@ -201,12 +194,7 @@ def build_case(case: dict):
             ),
         ]
         report = review_document_set({"D1": nodes})
-        traces = build_evidence_traces(
-            report.nodes,
-            semantic_issues=report.semantic_issues,
-            memory=report.memory,
-        )
-        return pick(traces, "fact_conflict"), {}
+        return pick(report.evidence_traces, "fact_conflict"), {}
 
     if scenario == "table_cell_suggestion":
         nodes = [
