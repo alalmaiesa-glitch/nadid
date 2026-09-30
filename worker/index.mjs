@@ -707,6 +707,10 @@ async function processDeepReview(job) {
   const deep = await callAeeDeep(document.filename, buffer);
   const memory = deep.memory ?? {};
   const chunks = deep.base?.chunks ?? [];
+  const terms = memory.terms ?? [];
+  const facts = memory.facts ?? [];
+  const conflicts = memory.conflicts ?? [];
+  const knowledgeItems = memory.knowledge_items ?? [];
 
   const { error: memoryStartError } = await supabase
     .from("document_memory")
@@ -755,6 +759,97 @@ async function processDeepReview(job) {
     ]);
 
   if (oldDeepSuggestionError) throw oldDeepSuggestionError;
+
+  if (chunks.length > 0) {
+    const { error: chunkInsertError } = await supabase
+      .from("document_chunks")
+      .insert(
+        chunks.map((chunk, index) => ({
+          version_id: version.id,
+          chunk_key: chunk.id,
+          sequence_no: index,
+          node_keys: chunk.node_ids ?? [],
+          chunk_text: chunk.text ?? "",
+          token_estimate: Number(chunk.token_estimate ?? 0)
+        }))
+      );
+
+    if (chunkInsertError) throw chunkInsertError;
+  }
+
+  if (terms.length > 0) {
+    const { error: termInsertError } = await supabase
+      .from("memory_terms")
+      .insert(
+        terms.map((term) => ({
+          version_id: version.id,
+          term: term.term,
+          occurrence_count: Number(term.count ?? 0),
+          node_keys: term.node_ids ?? []
+        }))
+      );
+
+    if (termInsertError) throw termInsertError;
+  }
+
+  if (facts.length > 0) {
+    const { error: factInsertError } = await supabase
+      .from("fact_assertions")
+      .insert(
+        facts.map((fact) => ({
+          version_id: version.id,
+          client_fact_id: fact.id,
+          node_key: fact.node_id,
+          fact_type: fact.fact_type,
+          claim_key: fact.claim_key,
+          surface_value: fact.value,
+          canonical_value: fact.canonical_value,
+          context_text: fact.context ?? "",
+          confidence: Number(fact.confidence ?? 0),
+          authority: "extracted"
+        }))
+      );
+
+    if (factInsertError) throw factInsertError;
+  }
+
+  if (conflicts.length > 0) {
+    const { error: conflictInsertError } = await supabase
+      .from("fact_conflicts")
+      .insert(
+        conflicts.map((conflict) => ({
+          version_id: version.id,
+          client_conflict_id: conflict.id,
+          claim_key: conflict.claim_key,
+          fact_ids: conflict.fact_ids ?? [],
+          values_found: conflict.values ?? [],
+          confidence: Number(conflict.confidence ?? 0),
+          status: "open"
+        }))
+      );
+
+    if (conflictInsertError) throw conflictInsertError;
+  }
+
+  if (knowledgeItems.length > 0) {
+    const { error: memoryItemInsertError } = await supabase
+      .from("document_memory_items")
+      .insert(
+        knowledgeItems.map((item) => ({
+          version_id: version.id,
+          client_item_id: item.id,
+          kind: item.kind,
+          item_key: item.key,
+          item_value: item.value,
+          node_keys: item.node_ids ?? [],
+          aliases: item.aliases ?? [],
+          confidence: Number(item.confidence ?? 0),
+          metadata: item.metadata ?? {}
+        }))
+      );
+
+    if (memoryItemInsertError) throw memoryItemInsertError;
+  }
 
   const semanticIssues = deep.semantic_issues ?? [];
   const needsDeepSuggestions =
