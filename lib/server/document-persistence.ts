@@ -17,6 +17,19 @@ function sha256(buffer: Buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
 
+function assertSourceIntegrity(
+  buffer: Buffer,
+  expectedSha256?: string | null
+) {
+  if (!expectedSha256) return;
+
+  const actual = sha256(buffer);
+
+  if (actual !== expectedSha256) {
+    throw new Error("source_integrity_mismatch");
+  }
+}
+
 
 function normalizeReviewCategory(value: string): ReviewCategory {
   switch (value) {
@@ -375,7 +388,7 @@ export async function loadDocumentSource(documentId: string) {
 
   const { data: version, error: versionError } = await supabase
     .from("document_versions")
-    .select("id, version_no, storage_path")
+    .select("id, version_no, storage_path, source_sha256")
     .eq("document_id", documentId)
     .eq("status", "ready")
     .order("version_no", { ascending: false })
@@ -396,13 +409,19 @@ export async function loadDocumentSource(documentId: string) {
 
   if (storageError || !source) return null;
 
+  const buffer = Buffer.from(await source.arrayBuffer());
+  assertSourceIntegrity(
+    buffer,
+    version.source_sha256 as string | null
+  );
+
   return {
     documentId,
     versionId: version.id as string,
     versionNo: Number(version.version_no),
     storagePath,
     filename: document.filename as string,
-    buffer: Buffer.from(await source.arrayBuffer())
+    buffer
   };
 }
 
@@ -1105,7 +1124,7 @@ export async function downloadDocumentVersion(
 
   let query = supabase
     .from("document_versions")
-    .select("id, version_no, storage_path")
+    .select("id, version_no, storage_path, source_sha256")
     .eq("document_id", documentId);
 
   query = query.eq("status", "ready");
@@ -1133,10 +1152,16 @@ export async function downloadDocumentVersion(
 
   if (storageError || !blob) return null;
 
+  const buffer = Buffer.from(await blob.arrayBuffer());
+  assertSourceIntegrity(
+    buffer,
+    version.source_sha256 as string | null
+  );
+
   return {
     versionNo: Number(version.version_no),
     filename: document.filename as string,
-    buffer: Buffer.from(await blob.arrayBuffer())
+    buffer
   };
 }
 
