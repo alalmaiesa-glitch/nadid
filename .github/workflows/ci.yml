@@ -94,6 +94,7 @@ jobs:
           benchmark/run_malformed_recovery_benchmark.py
           benchmark/run_security_fuzzing.py
           benchmark/run_concurrency_benchmark.py
+          benchmark/run_queue_recovery_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -207,6 +208,14 @@ jobs:
           --report benchmark/concurrency-report.json
           --enforce
 
+      - name: Run Queue Lease, Retry & Crash Recovery V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_queue_recovery_benchmark.py
+          --report benchmark/queue-recovery-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -225,6 +234,7 @@ jobs:
             benchmark/malformed-recovery-report.json
             benchmark/security-fuzzing-report.json
             benchmark/concurrency-report.json
+            benchmark/queue-recovery-report.json
 
 
   aee-container:

@@ -23,6 +23,10 @@ const STALE_UPLOAD_HOURS = Math.max(
   1,
   Number(process.env.NADID_STALE_UPLOAD_HOURS ?? 24)
 );
+const JOB_LEASE_RENEW_INTERVAL_MS = Math.max(
+  5_000,
+  Number(process.env.WORKER_JOB_LEASE_RENEW_INTERVAL_MS ?? 60_000)
+);
 
 if (!SUPABASE_URL) throw new Error("SUPABASE_URL is required");
 if (!SERVICE_ROLE) throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
@@ -204,6 +208,60 @@ async function claimJob() {
   return data?.[0] ?? null;
 }
 
+async function renewJobLease(jobId) {
+  const { data, error } = await supabase.rpc(
+    "renew_processing_job_lease",
+    {
+      p_job_id: jobId,
+      p_worker_id: WORKER_ID
+    }
+  );
+
+  if (error) throw error;
+  return data === true;
+}
+
+function startJobLeaseRenewal(jobId) {
+  let stopped = false;
+  let renewing = false;
+  let leaseLost = false;
+
+  const timer = setInterval(async () => {
+    if (stopped || renewing) return;
+    renewing = true;
+
+    try {
+      const renewed = await renewJobLease(jobId);
+      if (!renewed) {
+        leaseLost = true;
+        log("job_lease_lost", { jobId });
+      }
+    } catch (error) {
+      log("job_lease_renew_failed", {
+        jobId,
+        error:
+          error instanceof Error
+            ? error.message.slice(0, 300)
+            : String(error).slice(0, 300)
+      });
+    } finally {
+      renewing = false;
+    }
+  }, JOB_LEASE_RENEW_INTERVAL_MS);
+
+  timer.unref?.();
+
+  return {
+    stop() {
+      stopped = true;
+      clearInterval(timer);
+    },
+    leaseLost() {
+      return leaseLost;
+    }
+  };
+}
+
 async function callAee(filename, buffer) {
   const bytes = new Uint8Array(buffer.length);
   bytes.set(buffer);
@@ -280,7 +338,7 @@ async function markComplete(
 ) {
   const now = new Date().toISOString();
 
-  const { error: jobError } = await supabase
+  const { data: completedJob, error: jobError } = await supabase
     .from("processing_jobs")
     .update({
       status: "complete",
@@ -290,9 +348,16 @@ async function markComplete(
       completed_at: now,
       updated_at: now
     })
-    .eq("id", jobId);
+    .eq("id", jobId)
+    .eq("status", "processing")
+    .eq("locked_by", WORKER_ID)
+    .select("id")
+    .maybeSingle();
 
   if (jobError) throw jobError;
+  if (!completedJob?.id) {
+    throw new Error("job_lease_lost_before_complete");
+  }
 
   const { error: documentError } = await supabase
     .from("documents")
@@ -320,17 +385,32 @@ async function markFailure(job, error) {
   const message =
     error instanceof Error ? error.message : String(error);
 
-  await supabase
-    .from("processing_jobs")
-    .update({
-      status: exhausted ? "failed" : "queued",
-      available_at: availableAt,
-      locked_at: null,
-      locked_by: null,
-      last_error: message.slice(0, 1000),
-      updated_at: now.toISOString()
-    })
-    .eq("id", job.id);
+  const { data: failedJob, error: failureUpdateError } =
+    await supabase
+      .from("processing_jobs")
+      .update({
+        status: exhausted ? "failed" : "queued",
+        available_at: availableAt,
+        locked_at: null,
+        locked_by: null,
+        last_error: message.slice(0, 1000),
+        updated_at: now.toISOString()
+      })
+      .eq("id", job.id)
+      .eq("status", "processing")
+      .eq("locked_by", WORKER_ID)
+      .select("id")
+      .maybeSingle();
+
+  if (failureUpdateError) throw failureUpdateError;
+
+  if (!failedJob?.id) {
+    log("job_failure_ignored_after_lease_loss", {
+      jobId: job.id,
+      documentId: job.document_id
+    });
+    return;
+  }
 
   const documentStatus =
     job.job_type === "deep_review"
@@ -858,10 +938,18 @@ async function main() {
         attempts: job.attempts
       });
 
+      const lease = startJobLeaseRenewal(job.id);
+
       try {
         await processJob(job);
+
+        if (lease.leaseLost()) {
+          throw new Error("job_lease_lost_during_processing");
+        }
       } catch (error) {
         await markFailure(job, error);
+      } finally {
+        lease.stop();
       }
     } catch (error) {
       log("worker_loop_error", {
