@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "purpose": "silver_set_automated_quality_triage",
+  "warning": "Automated Silver metrics are diagnostic proxies, not Human Gold accuracy.",
+  "summary": {
+    "documents": 8,
+    "errors": 0,
+    "engine_suggestions": 420,
+    "correct": 419,
+    "wrong": 0,
+    "missed": 2,
+    "uncertain": 1,
+    "high_priority": 3,
+    "silver_proxy_precision": 1.0,
+    "silver_proxy_recall": 0.9952,
+    "category_findings": {
+      "language": 421,
+      "style": 1
+    }
+  },
+  "documents": [
+    {"id":"D01","nodes":580,"suggestions":0,"protected":410,"semantic_issues":0,"silver_counts":{},"category_counts":{},"high_priority":0},
+    {"id":"D02","nodes":142,"suggestions":0,"protected":69,"semantic_issues":0,"silver_counts":{},"category_counts":{},"high_priority":0},
+    {"id":"D03","nodes":482,"suggestions":1,"protected":242,"semantic_issues":0,"silver_counts":{"uncertain":1},"category_counts":{"style":1},"high_priority":1},
+    {"id":"D04","nodes":4877,"suggestions":419,"protected":2921,"semantic_issues":0,"silver_counts":{"correct":419,"missed":2},"category_counts":{"language":421},"high_priority":2},
+    {"id":"D05","nodes":740,"suggestions":0,"protected":654,"semantic_issues":0,"silver_counts":{},"category_counts":{},"high_priority":0},
+    {"id":"D06","nodes":822,"suggestions":0,"protected":170,"semantic_issues":0,"silver_counts":{},"category_counts":{},"high_priority":0},
+    {"id":"D07","nodes":161,"suggestions":0,"protected":92,"semantic_issues":0,"silver_counts":{},"category_counts":{},"high_priority":0},
+    {"id":"D08","nodes":216,"suggestions":0,"protected":69,"semantic_issues":0,"silver_counts":{},"category_counts":{},"high_priority":0}
+  ],
+  "errors": []
+}
