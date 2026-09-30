@@ -328,15 +328,16 @@ def run_docx_review_loop(
         structure_preserved and global_structure_preserved
     )
 
+    if new_suggestion_keys:
+        safety_pass = False
     if new_high_impact_keys:
         safety_pass = False
     if not meaning_preserved or not structure_preserved:
         safety_pass = False
 
-    # If the last allowed round still leaves an auto-fix, the loop has not
-    # converged and must not be treated as idempotent/stable.
-    if final_auto_ids:
-        stable = False
+    # The final analysis is itself a fresh review. If no auto-fix remains,
+    # convergence is proven even when the last allowed round applied patches.
+    stable = bool(not final_auto_ids and safety_pass)
 
     return ReviewLoopResult(
         output=current,
