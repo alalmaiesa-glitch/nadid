@@ -439,7 +439,7 @@ async function markFailure(job, error) {
 async function processInitialReview(job) {
   const { data: document, error: documentError } = await supabase
     .from("documents")
-    .select("id, owner_id, filename, storage_path, status")
+    .select("id, owner_id, filename, storage_path, status, upload_sha256")
     .eq("id", job.document_id)
     .single();
 
@@ -494,6 +494,17 @@ async function processInitialReview(job) {
   }
 
   const buffer = Buffer.from(await source.arrayBuffer());
+  const sourceSha256 = createHash("sha256")
+    .update(buffer)
+    .digest("hex");
+
+  if (
+    document.upload_sha256 &&
+    sourceSha256 !== document.upload_sha256
+  ) {
+    throw new Error("upload_integrity_mismatch");
+  }
+
   const analysis = await callAee(document.filename, buffer);
 
   const { data: version, error: versionError } = await supabase
@@ -504,9 +515,7 @@ async function processInitialReview(job) {
       is_source: true,
       storage_path: document.storage_path,
       status: "processing",
-      source_sha256: createHash("sha256")
-        .update(buffer)
-        .digest("hex"),
+      source_sha256: sourceSha256,
       engine_manifest: {
         parser: "aee_docx_v0.1",
         fast_review: "fast_rules_v0.1",
