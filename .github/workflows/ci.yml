@@ -273,6 +273,14 @@ jobs:
           "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           -f supabase/tests/worker_persistence_fault_injection.sql
 
+      - name: Run Multi-Tenant RLS & Ownership Isolation V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/multitenant_rls_isolation.sql
+
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup || true
