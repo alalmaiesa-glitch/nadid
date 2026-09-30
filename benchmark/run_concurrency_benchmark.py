@@ -34,7 +34,9 @@ def _post(payload: bytes, endpoint: str = "analyze"):
     path = {
         "analyze": "/v1/analyze/docx",
         "deep": "/v1/analyze/docx/deep",
+        "apply": "/v1/apply/docx",
     }[endpoint]
+    data = {"patches": "[]"} if endpoint == "apply" else {}
     with TestClient(app, raise_server_exceptions=False) as client:
         return client.post(
             path,
@@ -46,6 +48,7 @@ def _post(payload: bytes, endpoint: str = "analyze"):
                     "wordprocessingml.document",
                 )
             },
+            data=data,
         )
 
 
@@ -391,6 +394,46 @@ def _deep_parallel():
     }
 
 
+def _parallel_apply():
+    count = min(2, main_module.AEE_MAX_CONCURRENT_JOBS)
+    payloads = [
+        _docx("هاذا مستند تطبيق متوازٍ مرجان."),
+        _docx("هاذا مستند تطبيق متوازٍ زمرد."),
+    ][:count]
+
+    with ThreadPoolExecutor(max_workers=count) as pool:
+        responses = list(
+            pool.map(
+                lambda payload: _post(payload, "apply"),
+                payloads,
+            )
+        )
+
+    failures = []
+    statuses = [response.status_code for response in responses]
+    for response in responses:
+        if response.status_code != 200:
+            failures.append(
+                f"apply_parallel_status:{response.status_code}"
+            )
+            continue
+        if not response.content.startswith(b"PK"):
+            failures.append("apply_response_not_docx")
+        if response.headers.get("x-nadid-applied-patches") != "0":
+            failures.append("apply_noop_patch_count_mismatch")
+
+    return {
+        "requests": count,
+        "statuses": statuses,
+        "docx_responses": sum(
+            1 for response in responses
+            if response.status_code == 200
+            and response.content.startswith(b"PK")
+        ),
+        "_failures": failures,
+    }
+
+
 def _malformed_recovery_sequence():
     failures = []
     malformed_statuses = []
@@ -436,6 +479,7 @@ def main() -> int:
         _case("CON-008", lambda: _burst(config, True)),
         _case("CON-009", _deep_parallel),
         _case("CON-010", _malformed_recovery_sequence),
+        _case("CON-011", _parallel_apply),
     ]
 
     failed = [case["id"] for case in cases if not case["passed"]]
