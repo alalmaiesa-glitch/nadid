@@ -75,6 +75,7 @@ jobs:
         run: >-
           python -m py_compile
           benchmark/run_corpus_regression.py
+          benchmark/run_silver_set.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
