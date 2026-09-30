@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "benchmark": "confidence_calibration_severity_v1",
+  "calibration_type": "operational_policy_not_empirical_probability",
+  "final_run": {
+    "passed": 18,
+    "total": 18,
+    "score": 1.0
+  },
+  "severity_levels": [
+    "critical",
+    "high",
+    "medium",
+    "low"
+  ],
+  "confidence_levels": [
+    "high",
+    "medium",
+    "low"
+  ],
+  "strong_assertion_gate": {
+    "requires_complete_evidence": true,
+    "requires_sufficient_evidence": true,
+    "minimum_confidence": 0.9,
+    "style_allowed": false
+  },
+  "confidence_caps": {
+    "partial_or_insufficient": 0.59,
+    "style": 0.79,
+    "language_rule": 0.94,
+    "definition_or_abbreviation_conflict": 0.93,
+    "decision_or_polarity_conflict": 0.96,
+    "fact_conflict_max": 0.95,
+    "protection_max": 0.99
+  },
+  "quality_baselines_preserved": {
+    "core": "149/149",
+    "mutation": "53/53",
+    "consistency": "28/28",
+    "evidence": "12/12"
+  },
+  "note": "Operational confidence scores are policy scores and must not be presented as empirical correctness probabilities before Human Gold calibration."
+}
