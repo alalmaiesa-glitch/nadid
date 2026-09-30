@@ -202,6 +202,14 @@ def apply_patches_to_docx(
     data: bytes,
     patches: list[PatchOperation],
 ) -> tuple[bytes, ApplyReport]:
+    if not patches:
+        return data, ApplyReport(
+            applied=[],
+            skipped=[],
+            fidelity_ok=True,
+            fidelity_errors=[],
+        )
+
     document = Document(BytesIO(data))
     patch_map: dict[str, list[PatchOperation]] = {}
 
