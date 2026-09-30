@@ -61,6 +61,8 @@ def _location(
     node: DocumentNode,
     default_document_id: str | None = None,
     needle: str | None = None,
+    start_offset: int | None = None,
+    end_offset: int | None = None,
 ) -> EvidenceLocation:
     anchor = node.source_anchor or {}
     return EvidenceLocation(
@@ -72,6 +74,8 @@ def _location(
         location_label=_location_label(node),
         source_anchor=anchor,
         excerpt=_excerpt(node.text, needle),
+        start_offset=start_offset,
+        end_offset=end_offset,
     )
 
 
@@ -83,13 +87,33 @@ def _suggestion_trace(
 ) -> EvidenceTrace:
     node = nodes.get(suggestion.node_id)
     locations = (
-        [_location(node, default_document_id, suggestion.original)]
+        [
+            _location(
+                node,
+                default_document_id,
+                suggestion.original,
+                suggestion.start_offset,
+                suggestion.end_offset,
+            )
+        ]
         if node
         else []
     )
-    source_present = bool(
-        node and suggestion.original and suggestion.original in node.text
-    )
+    if (
+        node is not None
+        and suggestion.start_offset is not None
+        and suggestion.end_offset is not None
+    ):
+        source_present = (
+            node.text[suggestion.start_offset:suggestion.end_offset]
+            == suggestion.original
+        )
+    else:
+        source_present = bool(
+            node
+            and suggestion.original
+            and suggestion.original in node.text
+        )
 
     meaning_lock_status = "UNKNOWN"
     if (
@@ -102,6 +126,7 @@ def _suggestion_trace(
             original=suggestion.original,
             replacement=suggestion.replacement,
             protected_spans=protected_by_node.get(node.id, []),
+            start_offset=suggestion.start_offset,
         )
         meaning_lock_status = validation.status
 
