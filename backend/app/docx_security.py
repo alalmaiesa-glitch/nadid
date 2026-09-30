@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from urllib.parse import urlsplit
+import zlib
 from xml.parsers import expat
 from xml.etree import ElementTree
 from zipfile import BadZipFile, ZipFile, is_zipfile
@@ -270,7 +271,14 @@ def validate_docx_payload(data: bytes) -> None:
         raise
     except BadZipFile as exc:
         raise UnsafeDocxError("invalid_zip") from exc
-    except (RuntimeError, OSError, ValueError) as exc:
+    except (
+        RuntimeError,
+        OSError,
+        ValueError,
+        EOFError,
+        NotImplementedError,
+        zlib.error,
+    ) as exc:
         raise UnsafeDocxError("invalid_zip") from exc
 
 
