@@ -309,6 +309,14 @@ def apply_patches_to_docx(
 
                     sequence += 1
 
+    if not applied_patches:
+        return data, ApplyReport(
+            applied=applied,
+            skipped=skipped,
+            fidelity_ok=True,
+            fidelity_errors=[],
+        )
+
     output = BytesIO()
     document.save(output)
     output_data = output.getvalue()
