@@ -21,12 +21,22 @@ def _replace_across_runs(
     paragraph: Paragraph,
     original: str,
     replacement: str,
+    start_offset: int | None = None,
 ) -> bool:
     full_text = "".join(run.text for run in paragraph.runs)
-    start = full_text.find(original)
 
-    if start < 0:
-        return False
+    if start_offset is None:
+        start = full_text.find(original)
+        if start < 0:
+            return False
+    else:
+        start = start_offset
+        if (
+            start < 0
+            or start + len(original) > len(full_text)
+            or full_text[start:start + len(original)] != original
+        ):
+            return False
 
     end = start + len(original)
     cursor = 0
@@ -77,10 +87,42 @@ def _replace_across_runs(
     return True
 
 
-def _apply_to_cell(cell, original: str, replacement: str) -> bool:
+def _apply_to_cell(
+    cell,
+    original: str,
+    replacement: str,
+    start_offset: int | None = None,
+) -> bool:
+    if start_offset is None:
+        for paragraph in cell.paragraphs:
+            if original in paragraph.text:
+                return _replace_across_runs(
+                    paragraph,
+                    original,
+                    replacement,
+                )
+        return False
+
+    cursor = 0
+    target_end = start_offset + len(original)
     for paragraph in cell.paragraphs:
-        if original in paragraph.text:
-            return _replace_across_runs(paragraph, original, replacement)
+        paragraph_start = cursor
+        paragraph_end = cursor + len(paragraph.text)
+
+        if (
+            paragraph_start <= start_offset
+            and target_end <= paragraph_end
+        ):
+            local_start = start_offset - paragraph_start
+            return _replace_across_runs(
+                paragraph,
+                original,
+                replacement,
+                start_offset=local_start,
+            )
+
+        # python-docx cell.text separates paragraphs with a newline.
+        cursor = paragraph_end + 1
 
     return False
 
@@ -94,6 +136,21 @@ def apply_patches_to_docx(
 
     for patch in patches:
         patch_map.setdefault(patch.node_id, []).append(patch)
+
+    for node_id, node_patches in patch_map.items():
+        indexed = list(enumerate(node_patches))
+        indexed.sort(
+            key=lambda item: (
+                item[1].start_offset is None,
+                -(
+                    item[1].start_offset
+                    if item[1].start_offset is not None
+                    else -1
+                ),
+                item[0],
+            )
+        )
+        patch_map[node_id] = [item[1] for item in indexed]
 
     applied: list[str] = []
     skipped: list[str] = []
@@ -120,6 +177,7 @@ def apply_patches_to_docx(
                     block,
                     patch.original,
                     patch.replacement,
+                    start_offset=patch.start_offset,
                 ):
                     applied.append(patch.node_id)
                 else:
@@ -147,6 +205,7 @@ def apply_patches_to_docx(
                             cell,
                             patch.original,
                             patch.replacement,
+                            start_offset=patch.start_offset,
                         ):
                             applied.append(patch.node_id)
                         else:
