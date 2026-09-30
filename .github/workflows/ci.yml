@@ -76,6 +76,7 @@ jobs:
           python -m py_compile
           benchmark/run_corpus_regression.py
           benchmark/run_silver_set.py
+          benchmark/run_mutation_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -92,6 +93,14 @@ jobs:
         env:
           PYTHONPATH: backend
         run: python benchmark/run_benchmark.py --report benchmark/report.json --enforce-critical
+
+      - name: Run Mutation Benchmark V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_mutation_benchmark.py
+          --report benchmark/mutation-report.json
+          --enforce
 
       - name: Upload benchmark report
         uses: actions/upload-artifact@v4
