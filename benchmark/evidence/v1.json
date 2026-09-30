@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "description": "Evidence Traceability & Explainability V1",
+  "cases": [
+    {"id":"EV-001","scenario":"suggestion","text":"هاذا التقرير معتمد.","expect":{"complete":true,"locations":1,"document_ids":["single.docx"],"excerpt_contains":"هاذا","reason_code":"review_rule_match"}},
+    {"id":"EV-002","scenario":"definition_conflict","expect":{"complete":true,"min_locations":2,"values":2,"reason_prefix":"semantic:"}},
+    {"id":"EV-003","scenario":"fact_conflict","expect":{"complete":true,"min_locations":2,"values":2,"reason_code":"fact:value_conflict"}},
+    {"id":"EV-004","scenario":"cross_document_definition","expect":{"complete":true,"min_documents":2,"min_locations":2}},
+    {"id":"EV-005","scenario":"cross_document_fact","expect":{"complete":true,"min_documents":2,"min_locations":2}},
+    {"id":"EV-006","scenario":"long_range_decision","filler_count":420,"expect":{"complete":true,"min_locations":2,"min_sequence_distance":400}},
+    {"id":"EV-007","scenario":"long_range_fact","filler_count":420,"expect":{"complete":true,"min_locations":2,"min_sequence_distance":400}},
+    {"id":"EV-008","scenario":"table_cell_suggestion","expect":{"complete":true,"location_contains":["table_cell","block:4","row:2","cell:3"]}},
+    {"id":"EV-009","scenario":"paragraph_block_anchor","expect":{"complete":true,"location_contains":["paragraph","block:6"]}},
+    {"id":"EV-010","scenario":"missing_suggestion_source","expect":{"complete":false,"status":"partial","locations":0}},
+    {"id":"EV-011","scenario":"missing_semantic_evidence","expect":{"complete":false,"status":"partial","locations":1}},
+    {"id":"EV-012","scenario":"cross_document_node_identity","expect":{"complete":true,"min_documents":2,"original_node_ids":["n1"]}}
+  ]
+}

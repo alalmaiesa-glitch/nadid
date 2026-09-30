@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "benchmark": "evidence_traceability_explainability_v1",
+  "final_run": {
+    "passed": 12,
+    "total": 12,
+    "score": 1.0
+  },
+  "capabilities": [
+    "suggestion_evidence",
+    "semantic_conflict_evidence",
+    "fact_conflict_evidence",
+    "cross_document_source_identity",
+    "long_range_evidence",
+    "paragraph_block_anchor",
+    "table_cell_anchor",
+    "bounded_excerpt",
+    "reason_code",
+    "confidence",
+    "partial_trace_on_missing_evidence"
+  ],
+  "integration": {
+    "deep_analysis_evidence_traces": true,
+    "consistency_report_evidence_traces": true,
+    "parser_block_index": true
+  },
+  "quality_baselines_preserved": {
+    "core": "149/149",
+    "mutation": "53/53",
+    "consistency": "28/28"
+  },
+  "note": "Engineering benchmark pass rates are not Human Gold precision/recall."
+}

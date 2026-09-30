@@ -855,3 +855,25 @@ def test_arabic_review_keeps_correct_number_unit_phrase():
     ])
     assert issues == []
 
+def test_parser_preserves_block_anchor_for_evidence():
+    from io import BytesIO
+    from docx import Document
+    from app.pipeline.parser import parse_docx
+
+    document = Document()
+    document.add_paragraph("الفقرة الأولى.")
+    table = document.add_table(rows=1, cols=1)
+    table.cell(0, 0).text = "خلية الاختبار"
+    document.add_paragraph("الفقرة الأخيرة.")
+
+    stream = BytesIO()
+    document.save(stream)
+    nodes = parse_docx(stream.getvalue())
+
+    assert nodes[0].source_anchor["block_index"] == 0
+    table_node = next(item for item in nodes if item.type == "table_cell")
+    assert table_node.source_anchor["block_index"] == 1
+    assert table_node.source_anchor["row"] == 0
+    assert table_node.source_anchor["cell"] == 0
+    assert nodes[-1].source_anchor["block_index"] == 2
+
