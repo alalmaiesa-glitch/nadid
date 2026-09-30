@@ -79,6 +79,7 @@ jobs:
           benchmark/run_mutation_benchmark.py
           benchmark/run_consistency_benchmark.py
           benchmark/run_evidence_benchmark.py
+          benchmark/run_confidence_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -120,6 +121,14 @@ jobs:
           --report benchmark/evidence-report.json
           --enforce
 
+      - name: Run Confidence & Severity Benchmark V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_confidence_benchmark.py
+          --report benchmark/confidence-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -129,6 +138,7 @@ jobs:
             benchmark/mutation-report.json
             benchmark/consistency-report.json
             benchmark/evidence-report.json
+            benchmark/confidence-report.json
 
 
   aee-container:
