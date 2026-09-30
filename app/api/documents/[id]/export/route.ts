@@ -20,7 +20,27 @@ export async function GET(
     );
   }
 
-  const result = await downloadDocumentVersion(id, versionNo);
+  let result;
+
+  try {
+    result = await downloadDocumentVersion(id, versionNo);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "source_integrity_mismatch"
+    ) {
+      return Response.json(
+        {
+          error:
+            "Stored source integrity check failed. Export was blocked.",
+          code: "SOURCE_INTEGRITY_MISMATCH"
+        },
+        { status: 409 }
+      );
+    }
+
+    throw error;
+  }
 
   if (!result) {
     return Response.json(

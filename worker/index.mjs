@@ -660,7 +660,7 @@ async function processDeepReview(job) {
 
   const { data: version, error: versionError } = await supabase
     .from("document_versions")
-    .select("id, storage_path")
+    .select("id, storage_path, source_sha256")
     .eq("document_id", document.id)
     .eq("status", "ready")
     .order("version_no", { ascending: false })
@@ -704,6 +704,17 @@ async function processDeepReview(job) {
   }
 
   const buffer = Buffer.from(await source.arrayBuffer());
+  const actualSourceSha256 = createHash("sha256")
+    .update(buffer)
+    .digest("hex");
+
+  if (
+    version.source_sha256 &&
+    actualSourceSha256 !== version.source_sha256
+  ) {
+    throw new Error("source_integrity_mismatch");
+  }
+
   const deep = await callAeeDeep(document.filename, buffer);
   const memory = deep.memory ?? {};
   const chunks = deep.base?.chunks ?? [];
