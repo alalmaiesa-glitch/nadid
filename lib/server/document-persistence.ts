@@ -1185,30 +1185,72 @@ export async function assertDocumentOwner(
   return Boolean(data?.id);
 }
 
-export async function assertSuggestionOwner(
+export async function resolveOwnedSuggestionId(
   suggestionId: string,
   ownerId: string
-) {
+): Promise<string | null> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return false;
+  if (!supabase) return null;
 
-  const { data: suggestion, error: suggestionError } = await supabase
+  const { data: suggestions, error: suggestionError } = await supabase
     .from("suggestions")
-    .select("version_id")
-    .eq("client_suggestion_id", suggestionId)
-    .maybeSingle();
+    .select("id, version_id")
+    .eq("client_suggestion_id", suggestionId);
 
-  if (suggestionError || !suggestion?.version_id) return false;
+  if (suggestionError || !suggestions?.length) return null;
 
-  const { data: version, error: versionError } = await supabase
+  const versionIds = Array.from(
+    new Set(
+      suggestions
+        .map((suggestion) => suggestion.version_id)
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+
+  if (versionIds.length === 0) return null;
+
+  const { data: versions, error: versionError } = await supabase
     .from("document_versions")
-    .select("document_id")
-    .eq("id", suggestion.version_id)
-    .maybeSingle();
+    .select("id, document_id")
+    .in("id", versionIds);
 
-  if (versionError || !version?.document_id) return false;
+  if (versionError || !versions?.length) return null;
 
-  return assertDocumentOwner(version.document_id, ownerId);
+  const documentIds = Array.from(
+    new Set(
+      versions
+        .map((version) => version.document_id)
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+
+  if (documentIds.length === 0) return null;
+
+  const { data: ownedDocuments, error: documentError } = await supabase
+    .from("documents")
+    .select("id")
+    .in("id", documentIds)
+    .eq("owner_id", ownerId);
+
+  if (documentError || !ownedDocuments?.length) return null;
+
+  const ownedDocumentIds = new Set(
+    ownedDocuments.map((document) => document.id)
+  );
+  const ownedVersionIds = new Set(
+    versions
+      .filter((version) => ownedDocumentIds.has(version.document_id))
+      .map((version) => version.id)
+  );
+  const ownedSuggestions = suggestions.filter((suggestion) =>
+    ownedVersionIds.has(suggestion.version_id)
+  );
+
+  // A client suggestion id must resolve to exactly one row for one owner.
+  // Fail closed if historical/corrupt data makes the identity ambiguous.
+  return ownedSuggestions.length === 1
+    ? ownedSuggestions[0].id
+    : null;
 }
 
 export async function listUserDocuments(ownerId: string) {
