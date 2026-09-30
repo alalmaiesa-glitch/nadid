@@ -200,6 +200,7 @@ async def analyze_docx_deep(
         semantic_issues=semantic_issues,
         memory=memory,
         default_document_id=file.filename,
+        protected_spans=protected,
     )
 
     text = " ".join(node.text for node in nodes)

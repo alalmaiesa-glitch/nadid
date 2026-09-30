@@ -877,3 +877,97 @@ def test_parser_preserves_block_anchor_for_evidence():
     assert table_node.source_anchor["cell"] == 0
     assert nodes[-1].source_anchor["block_index"] == 2
 
+def test_action_policy_allows_only_meaning_lock_safe_auto_fix():
+    from app.pipeline.chunker import build_chunks
+    from app.pipeline.evidence import build_evidence_traces
+    from app.pipeline.memory import build_document_memory
+    from app.pipeline.protection import extract_protected_spans
+    from app.pipeline.reviewer import fast_review
+    from app.pipeline.semantic_review import semantic_review
+
+    nodes = [node("هاذا التقرير معتمد.", 0)]
+    protected = extract_protected_spans(nodes)
+    suggestions = fast_review(nodes)
+    memory = build_document_memory(nodes, build_chunks(nodes), protected)
+    traces = build_evidence_traces(
+        nodes,
+        suggestions=suggestions,
+        semantic_issues=semantic_review(nodes, memory),
+        memory=memory,
+        protected_spans=protected,
+    )
+
+    trace = next(
+        item for item in traces
+        if item.finding_kind == "suggestion"
+    )
+    assert trace.meaning_lock_status == "PASS"
+    assert trace.recommended_action == "auto_fix"
+    assert trace.auto_apply_allowed is True
+
+
+def test_action_policy_blocks_meaning_changing_patch():
+    from app.contracts import Suggestion
+    from app.pipeline.evidence import build_evidence_traces
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [node("تبلغ القيمة 100 ريال.", 0)]
+    protected = extract_protected_spans(nodes)
+    dangerous = Suggestion(
+        id="dangerous-test",
+        node_id=nodes[0].id,
+        category="language",
+        title="تعديل",
+        explanation="اختبار منع تغيير المعنى.",
+        original="100 ريال",
+        replacement="100 دولار",
+        confidence=0.999,
+    )
+    trace = build_evidence_traces(
+        nodes,
+        suggestions=[dangerous],
+        protected_spans=protected,
+    )[0]
+
+    assert trace.meaning_lock_status == "BLOCK"
+    assert trace.recommended_action == "block"
+    assert trace.auto_apply_allowed is False
+
+
+def test_auto_apply_plan_revalidates_stale_suggestion():
+    from app.contracts import Suggestion
+    from app.pipeline.auto_apply import build_safe_auto_apply_plan
+    from app.pipeline.protection import extract_protected_spans
+
+    nodes = [node("هاذا التقرير معتمد.", 0)]
+    suggestions = [
+        Suggestion(
+            id="first-stale",
+            node_id=nodes[0].id,
+            category="language",
+            title="تصحيح",
+            explanation="الأول.",
+            original="هاذا",
+            replacement="هذا",
+            confidence=0.995,
+        ),
+        Suggestion(
+            id="second-stale",
+            node_id=nodes[0].id,
+            category="language",
+            title="تصحيح",
+            explanation="الثاني.",
+            original="هاذا",
+            replacement="هذا",
+            confidence=0.995,
+        ),
+    ]
+    plan = build_safe_auto_apply_plan(
+        nodes,
+        suggestions,
+        extract_protected_spans(nodes),
+    )
+
+    assert len(plan.patches) == 1
+    assert any(item.reason == "SOURCE_CHANGED" for item in plan.skipped)
+

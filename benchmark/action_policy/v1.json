@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "description": "Review Action Policy & Auto-Apply Safety V1",
+  "cases": [
+    {"id":"ACT-001","scenario":"punctuation_auto_fix","expect":{"action":"auto_fix","auto":true,"meaning_lock":"PASS"}},
+    {"id":"ACT-002","scenario":"orthography_auto_fix","expect":{"action":"auto_fix","auto":true,"meaning_lock":"PASS"}},
+    {"id":"ACT-003","scenario":"style_suggest","expect":{"action":"suggest","auto":false}},
+    {"id":"ACT-004","scenario":"semantic_require_review","expect":{"action":"require_review","auto":false}},
+    {"id":"ACT-005","scenario":"fact_require_review","expect":{"action":"require_review","auto":false}},
+    {"id":"ACT-006","scenario":"partial_require_review","expect":{"action":"require_review","auto":false}},
+    {"id":"ACT-007","scenario":"meaning_lock_block","expect":{"action":"block","auto":false,"meaning_lock":"BLOCK"}},
+    {"id":"ACT-008","scenario":"meaning_lock_unknown","expect":{"action":"suggest","auto":false,"meaning_lock":"UNKNOWN"}},
+    {"id":"ACT-009","scenario":"replacement_missing","expect":{"action":"require_review","auto":false}},
+    {"id":"ACT-010","scenario":"low_confidence_language","expect":{"action":"suggest","auto":false}},
+    {"id":"ACT-011","scenario":"protection_block","expect":{"action":"block","auto":false}},
+    {"id":"ACT-012","scenario":"style_high_source_never_auto","expect":{"action":"suggest","auto":false}},
+    {"id":"ACT-013","scenario":"planner_selects_safe_only","expect":{"patches":2,"min_skipped":1}},
+    {"id":"ACT-014","scenario":"planner_blocks_meaning_change","expect":{"patches":0,"min_skipped":1}},
+    {"id":"ACT-015","scenario":"planner_revalidates_stale","expect":{"patches":1,"min_skipped":1,"skip_reason":"SOURCE_CHANGED"}},
+    {"id":"ACT-016","scenario":"semantic_high_never_auto","expect":{"action":"require_review","auto":false}},
+    {"id":"ACT-017","scenario":"fact_high_never_auto","expect":{"action":"require_review","auto":false}},
+    {"id":"ACT-018","scenario":"action_reason_present","expect":{"min_action_reasons":1}},
+    {"id":"ACT-019","scenario":"auto_flag_equivalence","expect":{"auto_matches_action":true}},
+    {"id":"ACT-020","scenario":"safe_punctuation_in_critical_clause","expect":{"action":"auto_fix","auto":true,"meaning_lock":"PASS"}}
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "benchmark": "review_action_policy_auto_apply_safety_v1",
+  "final_run": {
+    "passed": 20,
+    "total": 20,
+    "score": 1.0
+  },
+  "actions": [
+    "auto_fix",
+    "suggest",
+    "require_review",
+    "block"
+  ],
+  "auto_fix_gate": {
+    "suggestion_only": true,
+    "language_only": true,
+    "complete_evidence_required": true,
+    "replacement_required": true,
+    "meaning_lock_pass_required": true,
+    "strong_assertion_required": true,
+    "minimum_confidence": 0.93,
+    "high_or_critical_forbidden": true
+  },
+  "auto_apply_planner": {
+    "sequential_revalidation": true,
+    "meaning_lock_revalidation": true,
+    "stale_patch_skip": true
+  },
+  "quality_baselines_preserved": {
+    "core": "149/149",
+    "mutation": "53/53",
+    "consistency": "28/28",
+    "evidence": "12/12",
+    "confidence_severity": "18/18"
+  },
+  "note": "Auto-fix is narrower than strong assertion and never bypasses Meaning Lock."
+}

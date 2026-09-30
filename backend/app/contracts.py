@@ -185,6 +185,18 @@ EvidenceFindingKind = Literal[
 EvidenceTraceStatus = Literal["complete", "partial"]
 SeverityLevel = Literal["critical", "high", "medium", "low"]
 ConfidenceLevel = Literal["high", "medium", "low"]
+ReviewAction = Literal[
+    "auto_fix",
+    "suggest",
+    "require_review",
+    "block",
+]
+MeaningLockStatus = Literal[
+    "PASS",
+    "BLOCK",
+    "UNKNOWN",
+    "NOT_APPLICABLE",
+]
 
 
 class EvidenceLocation(BaseModel):
@@ -213,6 +225,10 @@ class EvidenceTrace(BaseModel):
     strong_assertion: bool = False
     calibration_method: str = "policy_v1_unvalidated"
     calibration_reasons: list[str] = Field(default_factory=list)
+    recommended_action: ReviewAction = "require_review"
+    auto_apply_allowed: bool = False
+    meaning_lock_status: MeaningLockStatus = "NOT_APPLICABLE"
+    action_reasons: list[str] = Field(default_factory=list)
     reason_code: str
     evidence_locations: list[EvidenceLocation] = Field(default_factory=list)
     evidence_values: list[str] = Field(default_factory=list)
