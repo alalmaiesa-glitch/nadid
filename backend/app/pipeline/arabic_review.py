@@ -464,6 +464,8 @@ def _apply_rule(
                 original=original,
                 replacement=replacement,
                 confidence=rule.confidence,
+                start_offset=match.start(),
+                end_offset=match.end(),
             )
         )
 
