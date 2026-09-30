@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "description": "Large Document Scale & Performance Regression V1. Budgets are intentionally conservative CI regression guards, not product latency promises.",
+  "cases": [
+    {
+      "id": "SCALE-001",
+      "paragraphs": 500,
+      "max_total_seconds": 20,
+      "max_peak_mib": 384,
+      "minimum_suggestions_per_paragraph": 0.95
+    },
+    {
+      "id": "SCALE-002",
+      "paragraphs": 1500,
+      "max_total_seconds": 35,
+      "max_peak_mib": 550,
+      "minimum_suggestions_per_paragraph": 0.95
+    },
+    {
+      "id": "SCALE-003",
+      "paragraphs": 3000,
+      "max_total_seconds": 60,
+      "max_peak_mib": 700,
+      "minimum_suggestions_per_paragraph": 0.95
+    }
+  ],
+  "growth": {
+    "max_normalized_time_growth": 2.5,
+    "max_normalized_peak_growth": 2.5
+  }
+}
