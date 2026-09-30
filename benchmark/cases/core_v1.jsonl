@@ -131,3 +131,12 @@
 {"id":"CORPUS-014","dimension":"corpus_regression","nodes":[{"id":"n1","text":"الخطر الأول ،الحل :إجراء. الخطر الثاني ،الحل :إجراء .الخطر الثالث ،الحل :إجراء."}],"expect":{"suggestion_contains":["مسافة قبل علامة ترقيم","مسافة بعد علامة ترقيم"],"min_suggestions":14,"max_suggestions":14}}
 {"id":"ML-034","dimension":"meaning_lock","nodes":[{"id":"n1","text":"تم تحليل النتائج من خلال استخدام النموذج الجديد."}],"expect":{"patch":{"original":"من خلال استخدام","replacement":"باستخدام","status":"PASS"}}}
 {"id":"ML-035","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يصدر التقرير خلال خمسة أيام."}],"expect":{"patch":{"original":"خلال ","replacement":"","status":"BLOCK"}}}
+{"id":"LANG-017","dimension":"language","nodes":[{"id":"n1","text":"اكتملت المرحلة.. يبدأ التشغيل."}],"expect":{"suggestion_contains":["نقطة مكررة","."],"min_suggestions":1}}
+{"id":"LANG-018","dimension":"language","nodes":[{"id":"n1","text":"تقع مسؤلية التنفيذ على الجهة."}],"expect":{"suggestion_contains":["مسؤولية"],"min_suggestions":1}}
+{"id":"LANG-019","dimension":"language","nodes":[{"id":"n1","text":"هذا هو القرار الذى اعتمد."}],"expect":{"suggestion_contains":["الذي"],"min_suggestions":1}}
+{"id":"LANG-020","dimension":"language","nodes":[{"id":"n1","text":"هذة الخطة معتمدة."}],"expect":{"suggestion_contains":["هذه"],"min_suggestions":1}}
+{"id":"ML-036","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يبدأ التنفيذ فور اعتماد العقد."}],"expect":{"patch":{"original":"فور ","replacement":"","status":"BLOCK"}}}
+{"id":"ML-037","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يبدأ التشغيل بمجرد استلام الموقع."}],"expect":{"patch":{"original":"بمجرد ","replacement":"","status":"BLOCK"}}}
+{"id":"ML-038","dimension":"meaning_lock","nodes":[{"id":"n1","text":"تعمل الخدمة دائمًا خلال ساعات التشغيل."}],"expect":{"patch":{"original":"دائمًا ","replacement":"","status":"BLOCK"}}}
+{"id":"ML-039","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يطبق الإجراء مؤقتًا حتى اكتمال المعالجة."}],"expect":{"patch":{"original":"مؤقتًا ","replacement":"","status":"BLOCK"}}}
+{"id":"ML-040","dimension":"meaning_lock","nodes":[{"id":"n1","text":"الخدمة متاحة حصريًا للمستفيدين المسجلين."}],"expect":{"patch":{"original":"حصريًا ","replacement":"","status":"BLOCK"}}}
