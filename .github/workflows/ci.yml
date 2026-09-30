@@ -90,6 +90,7 @@ jobs:
           benchmark/run_review_loop_benchmark.py
           benchmark/run_fidelity_benchmark.py
           benchmark/run_visual_regression.py
+          benchmark/run_scale_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -171,6 +172,14 @@ jobs:
           --report benchmark/visual-report.json
           --enforce
 
+      - name: Run Large Document Scale & Performance Regression V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_scale_benchmark.py
+          --report benchmark/scale-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -185,6 +194,7 @@ jobs:
             benchmark/review-loop-report.json
             benchmark/fidelity-report.json
             benchmark/visual-report.json
+            benchmark/scale-report.json
 
 
   aee-container:
