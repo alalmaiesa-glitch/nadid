@@ -82,6 +82,7 @@ jobs:
           benchmark/run_confidence_benchmark.py
           benchmark/run_action_policy_benchmark.py
           benchmark/run_review_loop_benchmark.py
+          benchmark/run_fidelity_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -147,6 +148,14 @@ jobs:
           --report benchmark/review-loop-report.json
           --enforce
 
+      - name: Run Document Fidelity & Round-Trip Safety V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_fidelity_benchmark.py
+          --report benchmark/fidelity-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -159,6 +168,7 @@ jobs:
             benchmark/confidence-report.json
             benchmark/action-policy-report.json
             benchmark/review-loop-report.json
+            benchmark/fidelity-report.json
 
 
   aee-container:
