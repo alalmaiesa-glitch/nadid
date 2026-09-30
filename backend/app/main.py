@@ -41,6 +41,7 @@ class PatchRequest(BaseModel):
     original: str
     replacement: str
     protected_spans: list[ProtectedSpan]
+    start_offset: int | None = None
 
 
 def require_internal_auth(
@@ -148,6 +149,7 @@ def validate_patch_endpoint(
         original=request.original,
         replacement=request.replacement,
         protected_spans=request.protected_spans,
+        start_offset=request.start_offset,
     )
 
     return {
