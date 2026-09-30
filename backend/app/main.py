@@ -325,6 +325,7 @@ async def apply_docx_patches(
             original=patch.original,
             replacement=patch.replacement,
             protected_spans=protected_by_node.get(patch.node_id, []),
+            start_offset=patch.start_offset,
         )
 
         if result.status != "PASS":
