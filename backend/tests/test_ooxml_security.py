@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
+import zlib
 
 import pytest
 from docx import Document
@@ -283,4 +284,16 @@ def test_total_xml_size_limit_is_enforced(monkeypatch):
     )
 
     with pytest.raises(UnsafeDocxError, match="xml_total_size_limit"):
+        validate_docx_payload(payload)
+
+
+def test_zip_decompression_error_is_fail_closed(monkeypatch):
+    payload = _valid_docx()
+
+    def broken_read(_self, _member, *args, **kwargs):
+        raise zlib.error("synthetic decompression failure")
+
+    monkeypatch.setattr(security.ZipFile, "read", broken_read)
+
+    with pytest.raises(UnsafeDocxError, match="invalid_zip"):
         validate_docx_payload(payload)
