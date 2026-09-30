@@ -177,10 +177,43 @@ class SemanticIssue(BaseModel):
     confidence: float = Field(default=0.9, ge=0, le=1)
 
 
+EvidenceFindingKind = Literal[
+    "suggestion",
+    "semantic_issue",
+    "fact_conflict",
+]
+EvidenceTraceStatus = Literal["complete", "partial"]
+
+
+class EvidenceLocation(BaseModel):
+    document_id: str | None = None
+    node_id: str
+    original_node_id: str | None = None
+    sequence_no: int
+    node_type: NodeType
+    location_label: str
+    source_anchor: dict = Field(default_factory=dict)
+    excerpt: str
+
+
+class EvidenceTrace(BaseModel):
+    finding_id: str
+    finding_kind: EvidenceFindingKind
+    category: ReviewCategory
+    title: str
+    explanation: str
+    confidence: float = Field(ge=0, le=1)
+    reason_code: str
+    evidence_locations: list[EvidenceLocation] = Field(default_factory=list)
+    evidence_values: list[str] = Field(default_factory=list)
+    trace_status: EvidenceTraceStatus = "complete"
+
+
 class DeepAnalyzeResponse(BaseModel):
     base: AnalyzeResponse
     memory: DocumentMemory
     semantic_issues: list[SemanticIssue] = Field(default_factory=list)
+    evidence_traces: list[EvidenceTrace] = Field(default_factory=list)
 
 
 class PatchOperation(BaseModel):
