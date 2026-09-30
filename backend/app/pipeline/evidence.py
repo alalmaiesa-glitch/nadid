@@ -8,6 +8,7 @@ from app.contracts import (
     SemanticIssue,
     Suggestion,
 )
+from app.pipeline.confidence import calibrate_evidence_traces
 
 
 def _excerpt(text: str, needle: str | None = None, radius: int = 140) -> str:
@@ -223,12 +224,4 @@ def build_evidence_traces(
             )
         )
 
-    traces.sort(
-        key=lambda trace: (
-            trace.trace_status != "partial",
-            trace.finding_kind,
-            -trace.confidence,
-            trace.finding_id,
-        )
-    )
-    return traces
+    return calibrate_evidence_traces(traces)
