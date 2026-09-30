@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "description": "Concurrent Load, Failure Isolation & Backpressure V1.",
+  "parallel_isolation_documents": 4,
+  "burst_requests": 16,
+  "burst_workers": 16,
+  "determinism_requests": 4,
+  "allowed_burst_statuses": [200, 503],
+  "allowed_malformed_burst_statuses": [422, 503]
+}
