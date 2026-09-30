@@ -971,3 +971,70 @@ def test_auto_apply_plan_revalidates_stale_suggestion():
     assert len(plan.patches) == 1
     assert any(item.reason == "SOURCE_CHANGED" for item in plan.skipped)
 
+def test_review_loop_converges_and_is_idempotent():
+    from io import BytesIO
+    from docx import Document
+    from app.pipeline.review_loop import run_docx_review_loop
+
+    document = Document()
+    document.add_paragraph("هاذا التقرير ،ثم بدأ التنفيذ.")
+    stream = BytesIO()
+    document.save(stream)
+
+    first = run_docx_review_loop(stream.getvalue())
+    assert first.stable is True
+    assert first.safety_pass is True
+    assert first.initial_auto_fix_count >= 2
+    assert first.final_auto_fix_count == 0
+    assert not first.new_suggestion_keys
+    assert not first.new_high_impact_keys
+
+    second = run_docx_review_loop(first.output)
+    assert second.stable is True
+    assert second.safety_pass is True
+    assert second.initial_auto_fix_count == 0
+    assert second.output == first.output
+
+
+def test_review_loop_preserves_protected_meaning():
+    from io import BytesIO
+    from docx import Document
+    from app.pipeline.review_loop import run_docx_review_loop
+
+    document = Document()
+    document.add_paragraph(
+        "لا يتحمل الطرف الأول تكاليف النقل ، وفق العقد."
+    )
+    stream = BytesIO()
+    document.save(stream)
+
+    result = run_docx_review_loop(stream.getvalue())
+    assert result.stable is True
+    assert result.safety_pass is True
+    assert result.meaning_preserved is True
+    assert result.structure_preserved is True
+
+    output = Document(BytesIO(result.output))
+    assert "النقل، وفق العقد" in output.paragraphs[0].text
+
+
+def test_review_loop_keeps_style_advisory_without_rewriting():
+    from io import BytesIO
+    from docx import Document
+    from app.pipeline.review_loop import run_docx_review_loop
+
+    document = Document()
+    document.add_paragraph(
+        "تمت المعالجة في الوقت الراهن وفق الإجراء المعتمد."
+    )
+    stream = BytesIO()
+    document.save(stream)
+    payload = stream.getvalue()
+
+    result = run_docx_review_loop(payload)
+    assert result.stable is True
+    assert result.safety_pass is True
+    assert result.initial_auto_fix_count == 0
+    assert result.final_suggestion_count >= 1
+    assert result.output == payload
+
