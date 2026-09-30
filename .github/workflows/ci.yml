@@ -247,6 +247,37 @@ jobs:
             benchmark/worker-idempotency-report.json
 
 
+  database-fault-injection:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Rebuild local database from migrations
+        run: supabase db reset --local
+
+      - name: Run PostgreSQL fault injection V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/worker_persistence_fault_injection.sql
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
+
+
   aee-container:
     runs-on: ubuntu-latest
     needs: backend
