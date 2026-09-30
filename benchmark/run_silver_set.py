@@ -39,12 +39,21 @@ def probe_misses(nodes, suggestions_by_node):
     for node in nodes:
         suggestions = suggestions_by_node.get(node.id, [])
         for probe_id, pattern in PROBES:
+            # Consume one engine suggestion per probe hit so repeated identical
+            # errors remain count-aware and future rule caps are detectable.
+            remaining = list(suggestions)
             for match in pattern.finditer(node.text):
                 if probe_id == "punctuation.missing_space_after_period":
                     start, end = match.span()
                     if start >= 2 and end + 1 < len(node.text) and node.text[start-2] == "(" and node.text[end+1] == ")":
                         continue
-                if any(covered(s, match.group(0)) for s in suggestions):
+                covered_index = next((
+                    index
+                    for index, suggestion in enumerate(remaining)
+                    if covered(suggestion, match.group(0))
+                ), None)
+                if covered_index is not None:
+                    remaining.pop(covered_index)
                     continue
                 output.append({
                     "kind": "missed", "category": "language",
