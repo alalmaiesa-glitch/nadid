@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "benchmark": "review_loop_idempotence_v1",
+  "initial_run": {
+    "passed": 19,
+    "total": 20,
+    "score": 0.95,
+    "failed_cases": ["LOOP-016"],
+    "confirmed_root_gaps": [
+      "ambiguous_repeated_source_patch_without_exact_offset"
+    ]
+  },
+  "fix": {
+    "suggestion_offsets": true,
+    "evidence_offsets": true,
+    "patch_operation_offset": true,
+    "exact_offset_meaning_lock": true,
+    "right_to_left_node_patching": true,
+    "docx_exact_offset_patching": true,
+    "table_cell_offset_support": true,
+    "api_offset_support": true
+  },
+  "final_run": {
+    "passed": 20,
+    "total": 20,
+    "score": 1.0
+  },
+  "quality_baselines_preserved": {
+    "core": "149/149",
+    "mutation": "53/53",
+    "consistency": "28/28",
+    "evidence": "12/12",
+    "confidence_severity": "18/18",
+    "review_action": "20/20"
+  },
+  "note": "Engineering benchmark pass rates are not Human Gold precision/recall."
+}
