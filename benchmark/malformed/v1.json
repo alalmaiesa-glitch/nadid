@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "description": "Malformed Document & Failure Recovery V1. Exact HTTP outcomes are part of the safety contract; unusual-but-valid documents must still process successfully.",
+  "cases": [
+    {"id":"MAL-001","fixture":"valid","endpoint":"analyze","filename":"document.pdf","expected_status":415,"detail_contains":"DOCX"},
+    {"id":"MAL-002","fixture":"empty","endpoint":"analyze","filename":"document.docx","expected_status":400,"detail_contains":"Empty file"},
+    {"id":"MAL-003","fixture":"plain_bytes","endpoint":"analyze","filename":"document.docx","expected_status":422,"detail_contains":"not_a_zip"},
+    {"id":"MAL-004","fixture":"truncated_zip","endpoint":"analyze","filename":"document.docx","expected_status":422},
+    {"id":"MAL-005","fixture":"missing_content_types","endpoint":"analyze","filename":"document.docx","expected_status":422,"detail_contains":"missing_docx_structure"},
+    {"id":"MAL-006","fixture":"missing_document_xml","endpoint":"deep","filename":"document.docx","expected_status":422,"detail_contains":"missing_docx_structure"},
+    {"id":"MAL-007","fixture":"zip_traversal","endpoint":"analyze","filename":"document.docx","expected_status":422,"detail_contains":"unsafe_zip_path"},
+    {"id":"MAL-008","fixture":"zip_absolute_path","endpoint":"deep","filename":"document.docx","expected_status":422,"detail_contains":"unsafe_zip_path"},
+    {"id":"MAL-009","fixture":"zip_backslash_traversal","endpoint":"apply","filename":"document.docx","expected_status":422,"detail_contains":"unsafe_zip_path"},
+    {"id":"MAL-010","fixture":"duplicate_document_entry","endpoint":"analyze","filename":"document.docx","expected_status":422,"detail_contains":"duplicate_zip_entry"},
+    {"id":"MAL-011","fixture":"corrupt_document_xml","endpoint":"analyze","filename":"document.docx","expected_status":422,"detail_contains":"Could not parse"},
+    {"id":"MAL-012","fixture":"corrupt_document_xml","endpoint":"deep","filename":"document.docx","expected_status":422,"detail_contains":"Could not parse"},
+    {"id":"MAL-013","fixture":"corrupt_document_xml","endpoint":"apply","filename":"document.docx","expected_status":422,"detail_contains":"Could not parse"},
+    {"id":"MAL-014","fixture":"missing_package_rels","endpoint":"deep","filename":"document.docx","expected_status":422},
+    {"id":"MAL-015","fixture":"blank_document","endpoint":"analyze","filename":"document.docx","expected_status":422,"detail_contains":"No reviewable content"},
+    {"id":"MAL-016","fixture":"whitespace_document","endpoint":"deep","filename":"document.docx","expected_status":422,"detail_contains":"No reviewable content"},
+    {"id":"MAL-017","fixture":"huge_single_paragraph","endpoint":"analyze","filename":"document.docx","expected_status":200,"min_nodes":1},
+    {"id":"MAL-018","fixture":"dense_table","endpoint":"deep","filename":"document.docx","expected_status":200,"min_nodes":900},
+    {"id":"MAL-019","fixture":"valid","endpoint":"analyze","filename":"DOCUMENT.DOCX","expected_status":200,"min_nodes":1},
+    {"id":"MAL-020","fixture":"too_many_entries","endpoint":"analyze","filename":"document.docx","expected_status":422,"detail_contains":"too_many_zip_entries"},
+    {"id":"MAL-021","fixture":"invalid_content_types_xml","endpoint":"deep","filename":"document.docx","expected_status":422,"detail_contains":"Could not parse"},
+    {"id":"MAL-022","fixture":"valid","endpoint":"apply","filename":"document.docx","expected_status":200},
+    {"id":"MAL-023","fixture":"fake_docx_package","endpoint":"apply","filename":"document.docx","expected_status":422},
+    {"id":"MAL-024","fixture":"word_count_limit","endpoint":"direct","expected_status":"blocked","detail_contains":"word_count_limit"}
+  ]
+}
