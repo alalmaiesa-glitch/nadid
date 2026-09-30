@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "benchmark": "mutation_v1",
+  "cases": 53,
+  "initial_run": {
+    "passed": 43,
+    "total": 53,
+    "kill_rate": 0.8113,
+    "survivors": 10,
+    "harness_defects": 1,
+    "confirmed_product_gaps": 9
+  },
+  "final_run": {
+    "passed": 53,
+    "total": 53,
+    "kill_rate": 1.0,
+    "review": {"passed": 30, "total": 30, "score": 1.0},
+    "meaning_lock": {"passed": 23, "total": 23, "score": 1.0}
+  },
+  "regression_guards_added": [
+    "LANG-017",
+    "LANG-018",
+    "LANG-019",
+    "LANG-020",
+    "ML-036",
+    "ML-037",
+    "ML-038",
+    "ML-039",
+    "ML-040"
+  ],
+  "core_benchmark_after_fix": {
+    "passed": 142,
+    "total": 142,
+    "score": 1.0
+  },
+  "note": "Mutation kill rate is a deterministic engineering diagnostic, not Human Gold precision/recall."
+}
