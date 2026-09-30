@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 import unicodedata
 
+from app.arabic_numbers import normalize_numeric_text
+
 
 DIACRITICS_RE = re.compile(
     r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]"
@@ -63,6 +65,23 @@ TOKEN_CANONICAL = {
     "المبلغ": "مبلغ",
     "مبلغ": "مبلغ",
 }
+
+SCOPE_YEAR_RE = re.compile(
+    r"\b(?:عام|سنه)\s+(?P<year>[0-9٠-٩۰-۹]{4})\b"
+)
+SCOPE_SCENARIO_RE = re.compile(
+    r"\bالسيناريو\s+(?P<name>الاساسي|المتحفظ|المتفائل|المرجعي|البديل)\b"
+)
+SCOPE_SITE_RE = re.compile(
+    r"\b(?:ل)?(?:مصنع|فرع|موقع|منشاه|منشاة)\s+"
+    r"(?P<name>[\u0600-\u06FF]{2,30})\b"
+)
+SCOPE_PHASE_RE = re.compile(
+    r"\bالمرحله\s+"
+    r"(?P<name>الاولي|الثانيه|الثالثه|الرابعه|الخامسه|"
+    r"السادسه|السابعه|الثامنه|التاسعه|العاشره)\b"
+)
+
 
 CONCEPT_PATTERNS = (
     (
@@ -138,6 +157,32 @@ def semantic_tokens(text: str) -> set[str]:
     return tokens
 
 
+def semantic_scope_signature(text: str) -> str:
+    """Return only explicit scope markers that safely partition fact claims."""
+    normalized = normalize_arabic(text)
+    parts: list[str] = []
+
+    year = SCOPE_YEAR_RE.search(normalized)
+    if year:
+        parts.append(
+            "year:" + normalize_numeric_text(year.group("year"))
+        )
+
+    scenario = SCOPE_SCENARIO_RE.search(normalized)
+    if scenario:
+        parts.append("scenario:" + scenario.group("name"))
+
+    site = SCOPE_SITE_RE.search(normalized)
+    if site:
+        parts.append("site:" + site.group("name"))
+
+    phase = SCOPE_PHASE_RE.search(normalized)
+    if phase:
+        parts.append("phase:" + phase.group("name"))
+
+    return "|".join(parts)
+
+
 def semantic_similarity(left: str, right: str) -> float:
     left_tokens = semantic_tokens(left)
     right_tokens = semantic_tokens(right)
@@ -168,12 +213,14 @@ def semantic_similarity(left: str, right: str) -> float:
 
 def semantic_claim_key(text: str, fact_type: str) -> str:
     concepts = semantic_concepts(text)
+    scope = semantic_scope_signature(text)
+    scope_suffix = f"|scope:{scope}" if scope else ""
 
     if "production_capacity" in concepts:
-        return f"production_capacity|{fact_type}"
+        return f"production_capacity|{fact_type}{scope_suffix}"
 
     if "execution_duration" in concepts:
-        return f"execution_duration|{fact_type}"
+        return f"execution_duration|{fact_type}{scope_suffix}"
 
     tokens = sorted(
         token
@@ -181,8 +228,8 @@ def semantic_claim_key(text: str, fact_type: str) -> str:
         if not token.isdigit()
     )
     if not tokens:
-        return fact_type
+        return f"{fact_type}{scope_suffix}"
 
-    # Stable, conservative signature. Keep enough lexical material to avoid
-    # collapsing unrelated claims that merely share one generic word.
-    return f"{' '.join(tokens[-8:])}|{fact_type}"
+    # Stable, conservative signature. Explicit time/scenario/site/phase
+    # scope partitions claims that are allowed to carry different values.
+    return f"{' '.join(tokens[-8:])}|{fact_type}{scope_suffix}"
