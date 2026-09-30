@@ -305,10 +305,25 @@ async def apply_docx_patches(
         protected_by_node.setdefault(span.node_id, []).append(span)
 
     working_text = {node.id: node.text for node in nodes}
+    node_sequence = {node.id: node.sequence_no for node in nodes}
     validated: list[PatchOperation] = []
     blocked: list[dict] = []
 
-    for patch in patch_list:
+    indexed_patches = list(enumerate(patch_list))
+    indexed_patches.sort(
+        key=lambda item: (
+            node_sequence.get(item[1].node_id, 10**9),
+            item[1].start_offset is None,
+            -(
+                item[1].start_offset
+                if item[1].start_offset is not None
+                else -1
+            ),
+            item[0],
+        )
+    )
+
+    for _, patch in indexed_patches:
         source_text = working_text.get(patch.node_id)
 
         if source_text is None:
