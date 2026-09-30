@@ -14,6 +14,7 @@ from app.pipeline.semantic_review import semantic_review
 class ConsistencyReport:
     document_ids: list[str]
     node_count: int
+    nodes: list[DocumentNode]
     memory: DocumentMemory
     semantic_issues: list[SemanticIssue]
     fact_conflicts: list[FactConflict]
@@ -84,6 +85,7 @@ def review_document_set(
     return ConsistencyReport(
         document_ids=list(documents.keys()),
         node_count=len(combined),
+        nodes=combined,
         memory=memory,
         semantic_issues=issues,
         fact_conflicts=memory.conflicts,
