@@ -1,6 +1,6 @@
 import {
   assertDocumentOwner,
-  assertSuggestionOwner
+  resolveOwnedSuggestionId
 } from "@/lib/server/document-persistence";
 import {
   getCurrentUser,
@@ -10,6 +10,7 @@ import {
 type Authorized = {
   ok: true;
   userId: string | null;
+  suggestionDbId?: string;
 };
 
 type Unauthorized = {
@@ -72,7 +73,10 @@ export async function authorizeDocument(
     };
   }
 
-  return auth;
+  return {
+    ...auth,
+    suggestionDbId
+  };
 }
 
 export async function authorizeSuggestion(
@@ -83,12 +87,12 @@ export async function authorizeSuggestion(
 
   if (!auth.userId) return auth;
 
-  const allowed = await assertSuggestionOwner(
+  const suggestionDbId = await resolveOwnedSuggestionId(
     suggestionId,
     auth.userId
   );
 
-  if (!allowed) {
+  if (!suggestionDbId) {
     return {
       ok: false,
       response: Response.json(
