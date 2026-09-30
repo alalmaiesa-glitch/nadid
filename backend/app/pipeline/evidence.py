@@ -5,10 +5,13 @@ from app.contracts import (
     DocumentNode,
     EvidenceLocation,
     EvidenceTrace,
+    ProtectedSpan,
     SemanticIssue,
     Suggestion,
 )
+from app.pipeline.action_policy import apply_review_actions
 from app.pipeline.confidence import calibrate_evidence_traces
+from app.pipeline.patch_validator import validate_patch
 
 
 def _excerpt(text: str, needle: str | None = None, radius: int = 140) -> str:
@@ -76,6 +79,7 @@ def _suggestion_trace(
     suggestion: Suggestion,
     nodes: dict[str, DocumentNode],
     default_document_id: str | None,
+    protected_by_node: dict[str, list[ProtectedSpan]] | None,
 ) -> EvidenceTrace:
     node = nodes.get(suggestion.node_id)
     locations = (
@@ -87,6 +91,20 @@ def _suggestion_trace(
         node and suggestion.original and suggestion.original in node.text
     )
 
+    meaning_lock_status = "UNKNOWN"
+    if (
+        node is not None
+        and suggestion.replacement is not None
+        and protected_by_node is not None
+    ):
+        validation = validate_patch(
+            block_text=node.text,
+            original=suggestion.original,
+            replacement=suggestion.replacement,
+            protected_spans=protected_by_node.get(node.id, []),
+        )
+        meaning_lock_status = validation.status
+
     return EvidenceTrace(
         finding_id=suggestion.id,
         finding_kind="suggestion",
@@ -94,6 +112,7 @@ def _suggestion_trace(
         title=suggestion.title,
         explanation=suggestion.explanation,
         confidence=suggestion.confidence,
+        meaning_lock_status=meaning_lock_status,
         reason_code="review_rule_match",
         evidence_locations=locations,
         evidence_values=[
@@ -193,8 +212,15 @@ def build_evidence_traces(
     semantic_issues: list[SemanticIssue] | None = None,
     memory: DocumentMemory | None = None,
     default_document_id: str | None = None,
+    protected_spans: list[ProtectedSpan] | None = None,
 ) -> list[EvidenceTrace]:
     node_map = {node.id: node for node in nodes}
+    protected_by_node: dict[str, list[ProtectedSpan]] | None = None
+    if protected_spans is not None:
+        protected_by_node = {}
+        for span in protected_spans:
+            protected_by_node.setdefault(span.node_id, []).append(span)
+
     traces: list[EvidenceTrace] = []
 
     for suggestion in suggestions or []:
@@ -203,6 +229,7 @@ def build_evidence_traces(
                 suggestion,
                 node_map,
                 default_document_id,
+                protected_by_node,
             )
         )
 
@@ -224,4 +251,5 @@ def build_evidence_traces(
             )
         )
 
-    return calibrate_evidence_traces(traces)
+    calibrated = calibrate_evidence_traces(traces)
+    return apply_review_actions(calibrated)
