@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import threading
 from hashlib import sha256
 from uuid import uuid4
 
@@ -34,6 +35,44 @@ app = FastAPI(
     version="0.1.0",
     description="Arabic Editorial Engine for long Arabic documents.",
 )
+
+
+def _positive_int_env(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return max(1, value)
+
+
+AEE_MAX_CONCURRENT_JOBS = _positive_int_env(
+    "AEE_MAX_CONCURRENT_JOBS",
+    4,
+)
+_AEE_WORK_SLOTS = threading.BoundedSemaphore(
+    AEE_MAX_CONCURRENT_JOBS
+)
+
+
+def require_docx_capacity():
+    acquired = _AEE_WORK_SLOTS.acquire(blocking=False)
+
+    if not acquired:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "AEE_BUSY",
+                "message": (
+                    "Document processing capacity is temporarily full."
+                ),
+            },
+            headers={"Retry-After": "1"},
+        )
+
+    try:
+        yield
+    finally:
+        _AEE_WORK_SLOTS.release()
 
 
 class PatchRequest(BaseModel):
@@ -83,9 +122,10 @@ def health():
 
 
 @app.post("/v1/analyze/docx", response_model=AnalyzeResponse)
-async def analyze_docx(
+def analyze_docx(
     file: UploadFile = File(...),
     _auth: None = Depends(require_internal_auth),
+    _capacity: None = Depends(require_docx_capacity),
 ):
     if not file.filename or not file.filename.lower().endswith(".docx"):
         raise HTTPException(
@@ -93,7 +133,7 @@ async def analyze_docx(
             detail="The current backend accepts DOCX files only.",
         )
 
-    data = await file.read()
+    data = file.file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Empty file.")
 
@@ -172,14 +212,15 @@ def validate_patch_endpoint(
 
 
 @app.post("/v1/analyze/docx/deep", response_model=DeepAnalyzeResponse)
-async def analyze_docx_deep(
+def analyze_docx_deep(
     file: UploadFile = File(...),
     _auth: None = Depends(require_internal_auth),
+    _capacity: None = Depends(require_docx_capacity),
 ):
     if not file.filename or not file.filename.lower().endswith(".docx"):
         raise HTTPException(status_code=415, detail="DOCX only.")
 
-    data = await file.read()
+    data = file.file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Empty file.")
 
@@ -274,15 +315,16 @@ def context_endpoint(
 
 
 @app.post("/v1/apply/docx")
-async def apply_docx_patches(
+def apply_docx_patches(
     file: UploadFile = File(...),
     patches: str = Form(...),
     _auth: None = Depends(require_internal_auth),
+    _capacity: None = Depends(require_docx_capacity),
 ):
     if not file.filename or not file.filename.lower().endswith(".docx"):
         raise HTTPException(status_code=415, detail="DOCX only.")
 
-    data = await file.read()
+    data = file.file.read()
     if not data:
         raise HTTPException(status_code=400, detail="Empty file.")
 
