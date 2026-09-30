@@ -44,6 +44,9 @@ def validate_docx_payload(data: bytes) -> None:
 
             names = {entry.filename for entry in entries}
 
+            if len(names) != len(entries):
+                raise UnsafeDocxError("duplicate_zip_entry")
+
             if not _REQUIRED_DOCX_ENTRIES.issubset(names):
                 raise UnsafeDocxError("missing_docx_structure")
 
