@@ -44,6 +44,16 @@ class PatchRequest(BaseModel):
     start_offset: int | None = None
 
 
+def _parse_docx_or_422(data: bytes):
+    try:
+        return parse_docx(data)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Could not parse the DOCX file.",
+        ) from exc
+
+
 def require_internal_auth(
     authorization: str | None = Header(default=None),
 ):
@@ -95,13 +105,7 @@ async def analyze_docx(
             detail=f"Unsafe or invalid DOCX: {exc}",
         ) from exc
 
-    try:
-        nodes = parse_docx(data)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=422,
-            detail="Could not parse the DOCX file.",
-        ) from exc
+    nodes = _parse_docx_or_422(data)
 
     if not nodes:
         raise HTTPException(
@@ -187,7 +191,7 @@ async def analyze_docx_deep(
             detail=f"Unsafe or invalid DOCX: {exc}",
         ) from exc
 
-    nodes = parse_docx(data)
+    nodes = _parse_docx_or_422(data)
     if not nodes:
         raise HTTPException(status_code=422, detail="No reviewable content found.")
 
@@ -298,7 +302,7 @@ async def apply_docx_patches(
             detail="Invalid patch payload.",
         ) from exc
 
-    nodes = parse_docx(data)
+    nodes = _parse_docx_or_422(data)
     node_map = {node.id: node for node in nodes}
     protected = extract_protected_spans(nodes)
     protected_by_node: dict[str, list[ProtectedSpan]] = {}
