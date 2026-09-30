@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "description": "Upload Lifecycle Integrity & Source Immutability V1. A ready document version is bound to its recorded source_sha256; later storage mutations must be rejected before deep review or export.",
+  "cases": [
+    "SRC-001","SRC-002","SRC-003","SRC-004","SRC-005",
+    "SRC-006","SRC-007","SRC-008","SRC-009","SRC-010"
+  ]
+}
