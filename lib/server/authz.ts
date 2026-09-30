@@ -73,10 +73,7 @@ export async function authorizeDocument(
     };
   }
 
-  return {
-    ...auth,
-    suggestionDbId
-  };
+  return auth;
 }
 
 export async function authorizeSuggestion(
@@ -102,5 +99,8 @@ export async function authorizeSuggestion(
     };
   }
 
-  return auth;
+  return {
+    ...auth,
+    suggestionDbId
+  };
 }
