@@ -48,10 +48,27 @@ def build_safe_auto_apply_plan(
         protected_by_node.setdefault(span.node_id, []).append(span)
 
     working_text = {node.id: node.text for node in nodes}
+    node_sequence = {node.id: node.sequence_no for node in nodes}
     patches: list[PatchOperation] = []
     skipped: list[AutoApplySkip] = []
 
-    for suggestion in suggestions:
+    # Process exact spans right-to-left within each node. Replacements at
+    # higher offsets cannot invalidate lower offsets, which avoids ambiguity
+    # when identical source fragments occur more than once.
+    ordered_suggestions = sorted(
+        suggestions,
+        key=lambda suggestion: (
+            node_sequence.get(suggestion.node_id, 10**9),
+            -(
+                suggestion.start_offset
+                if suggestion.start_offset is not None
+                else -1
+            ),
+            suggestion.id,
+        ),
+    )
+
+    for suggestion in ordered_suggestions:
         trace = trace_by_id.get(suggestion.id)
         if trace is None:
             skipped.append(
@@ -83,6 +100,16 @@ def build_safe_auto_apply_plan(
             )
             continue
 
+        if suggestion.start_offset is None:
+            skipped.append(
+                AutoApplySkip(
+                    suggestion_id=suggestion.id,
+                    node_id=suggestion.node_id,
+                    reason="PRECISE_LOCATION_MISSING",
+                )
+            )
+            continue
+
         source = working_text.get(suggestion.node_id)
         if source is None:
             skipped.append(
@@ -99,6 +126,7 @@ def build_safe_auto_apply_plan(
             original=suggestion.original,
             replacement=suggestion.replacement,
             protected_spans=protected_by_node.get(suggestion.node_id, []),
+            start_offset=suggestion.start_offset,
         )
 
         if validation.status != "PASS":
@@ -117,6 +145,7 @@ def build_safe_auto_apply_plan(
                 node_id=suggestion.node_id,
                 original=suggestion.original,
                 replacement=suggestion.replacement,
+                start_offset=suggestion.start_offset,
             )
         )
 
