@@ -248,11 +248,14 @@ def _fixture(scenario: str) -> bytes:
         )
 
     elif scenario == "bilingual_url":
-        paragraph = _arabic_paragraph(
+        _arabic_paragraph(
             document,
-            "هاذا التقرير يحتوي رابطًا مرجعيًا ثابتًا:",
+            "هاذا التقرير يحتوي مرجعًا رقميًا ثابتًا.",
         )
-        paragraph.add_run(" https://example.com/report?id=2026 ")
+        paragraph = document.add_paragraph(
+            "Reference: https://example.com/report?id=2026 "
+        )
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
         _add_hyperlink(
             paragraph,
             "OPENAI-LINK",
