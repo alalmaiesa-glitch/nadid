@@ -183,6 +183,8 @@ EvidenceFindingKind = Literal[
     "fact_conflict",
 ]
 EvidenceTraceStatus = Literal["complete", "partial"]
+SeverityLevel = Literal["critical", "high", "medium", "low"]
+ConfidenceLevel = Literal["high", "medium", "low"]
 
 
 class EvidenceLocation(BaseModel):
@@ -202,7 +204,15 @@ class EvidenceTrace(BaseModel):
     category: ReviewCategory
     title: str
     explanation: str
+    # Operational confidence after policy calibration. This is not an
+    # empirically calibrated probability until Human Gold is available.
     confidence: float = Field(ge=0, le=1)
+    source_confidence: float | None = Field(default=None, ge=0, le=1)
+    confidence_level: ConfidenceLevel = "low"
+    severity: SeverityLevel = "low"
+    strong_assertion: bool = False
+    calibration_method: str = "policy_v1_unvalidated"
+    calibration_reasons: list[str] = Field(default_factory=list)
     reason_code: str
     evidence_locations: list[EvidenceLocation] = Field(default_factory=list)
     evidence_values: list[str] = Field(default_factory=list)
