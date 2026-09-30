@@ -117,7 +117,8 @@
 {"id":"NEG-011","dimension":"negative","nodes":[{"id":"n1","text":"هذه المرحلة الحالية من المشروع موثقة في العقد باسمها الرسمي."}],"expect":{"max_suggestions":0}}
 {"id":"CORPUS-001","dimension":"corpus_regression","nodes":[{"id":"n1","type":"table_cell","text":"المجال: تنموي   التمويل: عام   الحالة: جاهز"}],"expect":{"max_suggestions":0}}
 {"id":"CORPUS-002","dimension":"corpus_regression","nodes":[{"id":"n1","text":"◆  تبسيط الإجراء قبل أتمتته، وحذف الخطوات غير الضرورية."}],"expect":{"max_suggestions":0}}
-{"id":"CORPUS-003","dimension":"corpus_regression","nodes":[{"id":"n1","type":"table_cell","text":"البرنامج\nالبرنامج = مجموعة مبادرات مترابطة."}],"expect":{"max_suggestions":0}}
+{"id":"CORPUS-003","dimension":"corpus_regression","nodes":[{"id":"n1","type":"table_cell","text":"البرنامج
+البرنامج = مجموعة مبادرات مترابطة."}],"expect":{"max_suggestions":0}}
 {"id":"CORPUS-004","dimension":"corpus_regression","nodes":[{"id":"n1","text":"المدة: 12 شهرًا ،يتبعها برنامج متابعة."}],"expect":{"suggestion_contains":["مسافة قبل علامة ترقيم","مسافة بعد علامة ترقيم"],"min_suggestions":2}}
 {"id":"CORPUS-005","dimension":"corpus_regression","nodes":[{"id":"n1","text":"يتم تحسين العمل من خلال استخدام أداة مساندة."}],"expect":{"suggestion_contains":["باستخدام"],"min_suggestions":1}}
 {"id":"CORPUS-006","dimension":"corpus_regression","nodes":[{"id":"n1","text":"21. استعادة الحركة  - الأطراف السفلية"}],"expect":{"max_suggestions":0}}
@@ -146,4 +147,5 @@
 {"id":"CONF-008","dimension":"conflict","nodes":[{"id":"n1","text":"في عام 2026 بلغت الطاقة الإنتاجية للمصنع 2000000 وحدة."},{"id":"n2","text":"في عام 2026 بلغت القدرة التشغيلية للمصنع 1800000 وحدة."}],"expect":{"conflict_values":[["1800000","2000000"]]}}
 {"id":"CONF-009","dimension":"conflict","nodes":[{"id":"n1","text":"في السيناريو الأساسي تبلغ الطاقة الإنتاجية للمصنع 2000000 وحدة."},{"id":"n2","text":"في السيناريو الأساسي تبلغ القدرة التشغيلية للمصنع 1800000 وحدة."}],"expect":{"conflict_values":[["1800000","2000000"]]}}
 {"id":"CONF-010","dimension":"conflict","nodes":[{"id":"n1","text":"تبلغ الطاقة الإنتاجية لمصنع جدة 2000000 وحدة."},{"id":"n2","text":"تبلغ القدرة التشغيلية لمصنع جدة 1800000 وحدة."}],"expect":{"conflict_values":[["1800000","2000000"]]}}
-{"id":"CONF-011","dimension":"conflict","nodes":[{"id":"n1","text":"مدة تنفيذ المرحلة الأولى 12 شهرًا."},{"id":"n2","text":"مدة تنفيذ المرحلة الثانية 18 شهرًا."}],"expect":{"no_conflicts":true}}\n{"id":"LANG-021","dimension":"language","nodes":[{"id":"n1","text":"هاذا التقرير الأول، وهاذا التقرير الثاني."}],"expect":{"suggestion_contains":["هذا","وهذا"],"min_suggestions":2}}\n
+{"id":"CONF-011","dimension":"conflict","nodes":[{"id":"n1","text":"مدة تنفيذ المرحلة الأولى 12 شهرًا."},{"id":"n2","text":"مدة تنفيذ المرحلة الثانية 18 شهرًا."}],"expect":{"no_conflicts":true}}
+{"id":"LANG-021","dimension":"language","nodes":[{"id":"n1","text":"هاذا التقرير الأول، وهاذا التقرير الثاني."}],"expect":{"suggestion_contains":["هذا","وهذا"],"min_suggestions":2}}
