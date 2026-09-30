@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "benchmark": "visual_layout_rendering_regression_v1",
+  "renderer": {
+    "docx": "libreoffice_writer_headless",
+    "pdf_analysis": "pymupdf",
+    "raster_comparison": "pillow"
+  },
+  "initial_run": {
+    "passed": 19,
+    "total": 20,
+    "score": 0.95,
+    "failed_cases": ["VIS-017"],
+    "classification": "benchmark_fixture_design",
+    "note": "Language target was coupled to a protected URL context and therefore did not produce an auto-fix."
+  },
+  "visual_guards": {
+    "page_count": true,
+    "page_geometry": true,
+    "raster_changed_pixel_ratio": true,
+    "stable_anchor_positions": true,
+    "anchor_page_identity": true,
+    "image_positions": true,
+    "vector_drawing_geometry": true,
+    "explicit_page_breaks": true,
+    "section_layout": true,
+    "second_round_visual_idempotence": true
+  },
+  "thresholds": {
+    "default_max_changed_pixel_ratio": 0.035,
+    "rich_or_boundary_max_changed_pixel_ratio": 0.05,
+    "max_anchor_drift_pt": 1.5,
+    "max_graphic_drift_pt": 1.5,
+    "no_op_changed_pixel_ratio": 0.0
+  },
+  "final_run": {
+    "passed": 20,
+    "total": 20,
+    "score": 1.0
+  },
+  "quality_baselines_preserved": {
+    "core": "150/150",
+    "mutation": "53/53",
+    "consistency": "28/28",
+    "evidence": "12/12",
+    "confidence_severity": "18/18",
+    "review_action": "20/20",
+    "review_loop": "20/20",
+    "document_fidelity": "24/24"
+  },
+  "limitations": [
+    "LibreOffice is the CI reference renderer, not Microsoft Word.",
+    "Engineering fixtures are not a universal visual guarantee.",
+    "Scores are not Human Gold precision/recall."
+  ]
+}
