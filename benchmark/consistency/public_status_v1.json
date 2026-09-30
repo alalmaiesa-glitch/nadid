@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "benchmark": "cross_document_long_range_consistency_v1",
+  "initial_core_suite": {
+    "passed": 20,
+    "total": 20,
+    "score": 1.0
+  },
+  "adversarial_scope_run": {
+    "passed": 22,
+    "total": 28,
+    "score": 0.7857,
+    "failed_cases": [
+      "LR-011",
+      "LR-012",
+      "LR-013",
+      "CD-011",
+      "CD-012",
+      "CD-013"
+    ],
+    "confirmed_root_gaps": [
+      "year_scope_false_conflict",
+      "scenario_scope_false_conflict",
+      "site_scope_false_conflict"
+    ]
+  },
+  "final_run": {
+    "passed": 28,
+    "total": 28,
+    "score": 1.0,
+    "long_range": {"passed": 14, "total": 14, "score": 1.0},
+    "cross_document": {"passed": 14, "total": 14, "score": 1.0}
+  },
+  "long_range_filler_nodes": 420,
+  "regression_guards_added": [
+    "CONF-005",
+    "CONF-006",
+    "CONF-007",
+    "CONF-008",
+    "CONF-009",
+    "CONF-010",
+    "CONF-011"
+  ],
+  "core_benchmark_after_fix": {
+    "passed": 149,
+    "total": 149,
+    "score": 1.0,
+    "conflict": {"passed": 11, "total": 11, "score": 1.0}
+  },
+  "mutation_benchmark": {
+    "passed": 53,
+    "total": 53,
+    "score": 1.0
+  },
+  "note": "Engineering benchmark results are not Human Gold precision/recall."
+}
