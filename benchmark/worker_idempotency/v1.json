@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "description": "Partial-Write Recovery & Idempotent Worker Persistence V1.",
+  "initial_review_policy": "delete_non_ready_version_then_rebuild",
+  "deep_review_policy": "mark_building_clear_deep_artifacts_rebuild_then_ready",
+  "deep_artifact_tables": [
+    "document_chunks",
+    "memory_terms",
+    "fact_assertions",
+    "fact_conflicts",
+    "document_memory_items"
+  ],
+  "deep_replace_sets": [
+    "deep_consistency_v0.1",
+    "semantic_review_v0.1",
+    "analysis_run:deep"
+  ]
+}
