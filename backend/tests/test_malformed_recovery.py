@@ -74,7 +74,7 @@ def test_corrupt_document_xml_is_422_for_all_docx_endpoints():
     ):
         response = _post(path, payload)
         assert response.status_code == 422, (path, response.text)
-        assert "Could not parse the DOCX file" in response.text
+        assert "invalid_xml_part" in response.text
 
 
 def test_missing_package_relationships_fails_closed():
