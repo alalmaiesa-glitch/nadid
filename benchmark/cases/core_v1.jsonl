@@ -128,3 +128,6 @@
 {"id":"CORPUS-011","dimension":"corpus_regression","nodes":[{"id":"n1","text":"المدة: 6 أشهر."}],"expect":{"max_suggestions":0}}
 {"id":"CORPUS-012","dimension":"corpus_regression","nodes":[{"id":"n1","text":"الكمية المعتمدة: 100 :وحدة."}],"expect":{"suggestion_contains":["علامة ترقيم زائدة بين العدد والوحدة","100 وحدة"],"min_suggestions":1}}
 {"id":"CORPUS-013","dimension":"corpus_regression","nodes":[{"id":"n1","text":"الحل: سياج وحماية .الجفاف يعالج بخطة بديلة."}],"expect":{"suggestion_contains":["مسافة قبل علامة ترقيم","مسافة بعد علامة ترقيم"],"min_suggestions":2}}
+{"id":"CORPUS-014","dimension":"corpus_regression","nodes":[{"id":"n1","text":"الخطر الأول ،الحل :إجراء. الخطر الثاني ،الحل :إجراء .الخطر الثالث ،الحل :إجراء."}],"expect":{"suggestion_contains":["مسافة قبل علامة ترقيم","مسافة بعد علامة ترقيم"],"min_suggestions":14,"max_suggestions":14}}
+{"id":"ML-034","dimension":"meaning_lock","nodes":[{"id":"n1","text":"تم تحليل النتائج من خلال استخدام النموذج الجديد."}],"expect":{"patch":{"original":"من خلال استخدام","replacement":"باستخدام","status":"PASS"}}}
+{"id":"ML-035","dimension":"meaning_lock","nodes":[{"id":"n1","text":"يصدر التقرير خلال خمسة أيام."}],"expect":{"patch":{"original":"خلال ","replacement":"","status":"BLOCK"}}}
