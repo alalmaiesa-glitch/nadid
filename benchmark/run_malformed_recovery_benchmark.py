@@ -234,7 +234,11 @@ def _run_case(case: dict[str, Any], valid: bytes) -> dict[str, Any]:
             case.get("filename", "document.docx"),
             payload,
         )
-        detail = _detail_text(response)
+        detail = (
+            ""
+            if response.status_code == 200 and case["endpoint"] == "apply"
+            else _detail_text(response)
+        )
         observed = {
             "status": response.status_code,
             "detail": detail[:500],
