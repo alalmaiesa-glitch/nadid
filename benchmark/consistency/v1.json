@@ -1,0 +1,577 @@
+{
+  "schema_version": 1,
+  "description": "Cross-document and long-range consistency benchmark for related Arabic professional documents.",
+  "filler_text": "محتوى فاصل للاختبار لا يتضمن حكمًا أو قرارًا أو قيمة متعارضة.",
+  "cases": [
+    {
+      "id": "LR-001",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "يقصد بمصطلح «مقدم الخدمة»: الجهة المتعاقدة لتنفيذ الأعمال.",
+          "tail": "يقصد بمصطلح «مقدم الخدمة»: الجهة الحكومية المالكة للمشروع."
+        }
+      ],
+      "expect": {
+        "semantic_issue_types": [
+          "definition_conflict"
+        ],
+        "cross_document": false
+      }
+    },
+    {
+      "id": "LR-002",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "يقصد بمصطلح «مقدم الخدمة»: الجهة المتعاقدة لتنفيذ الأعمال.",
+          "tail": "يقصد بمصطلح «مقدم الخدمة»: الجهة المتعاقدة التي تنفذ الأعمال."
+        }
+      ],
+      "expect": {
+        "semantic_issue_absent": [
+          "definition_conflict"
+        ],
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "LR-003",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "الهيئة العامة للعقار (REGA) تشرف على تنظيم القطاع.",
+          "tail": "هيئة تنظيم الطاقة (REGA) تصدر التعليمات الفنية."
+        }
+      ],
+      "expect": {
+        "semantic_issue_types": [
+          "abbreviation_conflict"
+        ],
+        "cross_document": false
+      }
+    },
+    {
+      "id": "LR-004",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "المشروع معتمد وفق المحضر النهائي.",
+          "tail": "المشروع غير معتمد وفق النسخة الأخيرة."
+        }
+      ],
+      "expect": {
+        "semantic_issue_types": [
+          "polarity_conflict"
+        ],
+        "cross_document": false
+      }
+    },
+    {
+      "id": "LR-005",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "تم اعتماد الخطة التشغيلية للمشروع.",
+          "tail": "تم إلغاء الخطة التشغيلية للمشروع."
+        }
+      ],
+      "expect": {
+        "semantic_issue_types": [
+          "decision_conflict"
+        ],
+        "cross_document": false
+      }
+    },
+    {
+      "id": "LR-006",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "بلغت الطاقة التشغيلية السنوية للمصنع 2000000 وحدة.",
+          "tail": "إجمالي القدرة الإنتاجية للمصنع سنويًا تساوي 1800000 وحدة."
+        }
+      ],
+      "expect": {
+        "fact_conflict_values": [
+          [
+            "1800000",
+            "2000000"
+          ]
+        ],
+        "cross_document": false
+      }
+    },
+    {
+      "id": "LR-007",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "مدة التنفيذ المعتمدة للمشروع هي 12 شهرًا.",
+          "tail": "ينص الجدول الزمني النهائي على إكمال المشروع خلال 18 شهرًا."
+        }
+      ],
+      "expect": {
+        "fact_conflict_values": [
+          [
+            "12",
+            "18"
+          ]
+        ],
+        "cross_document": false
+      }
+    },
+    {
+      "id": "LR-008",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "بلغت تكلفة الإنشاء للمبنى 500 ريال.",
+          "tail": "بلغت تكلفة التشغيل السنوية للخدمة 500 ريال."
+        }
+      ],
+      "expect": {
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "LR-009",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "المشروع معتمد وفق المحضر النهائي.",
+          "tail": "المشروع معتمد بعد استكمال المتطلبات."
+        }
+      ],
+      "expect": {
+        "semantic_issue_absent": [
+          "polarity_conflict"
+        ],
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "LR-010",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "تم اعتماد الخطة التشغيلية للمشروع.",
+          "tail": "تم اعتماد الخطة التشغيلية للمشروع بعد الاجتماع."
+        }
+      ],
+      "expect": {
+        "semantic_issue_absent": [
+          "decision_conflict"
+        ],
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "CD-001",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "يقصد بمصطلح «مقدم الخدمة»: الجهة المتعاقدة لتنفيذ الأعمال."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "يقصد بمصطلح «مقدم الخدمة»: الجهة الحكومية المالكة للمشروع."
+          ]
+        }
+      ],
+      "expect": {
+        "semantic_issue_types": [
+          "definition_conflict"
+        ],
+        "cross_document": true
+      }
+    },
+    {
+      "id": "CD-002",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "الهيئة العامة للعقار (REGA) تشرف على تنظيم القطاع."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "هيئة تنظيم الطاقة (REGA) تصدر التعليمات الفنية."
+          ]
+        }
+      ],
+      "expect": {
+        "semantic_issue_types": [
+          "abbreviation_conflict"
+        ],
+        "cross_document": true
+      }
+    },
+    {
+      "id": "CD-003",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "المشروع معتمد وفق المحضر النهائي."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "المشروع غير معتمد وفق النسخة الأخيرة."
+          ]
+        }
+      ],
+      "expect": {
+        "semantic_issue_types": [
+          "polarity_conflict"
+        ],
+        "cross_document": true
+      }
+    },
+    {
+      "id": "CD-004",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "تم اعتماد الخطة التشغيلية للمشروع."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "تم إلغاء الخطة التشغيلية للمشروع."
+          ]
+        }
+      ],
+      "expect": {
+        "semantic_issue_types": [
+          "decision_conflict"
+        ],
+        "cross_document": true
+      }
+    },
+    {
+      "id": "CD-005",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "بلغت الطاقة التشغيلية السنوية للمصنع 2000000 وحدة."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "إجمالي القدرة الإنتاجية للمصنع سنويًا تساوي 1800000 وحدة."
+          ]
+        }
+      ],
+      "expect": {
+        "fact_conflict_values": [
+          [
+            "1800000",
+            "2000000"
+          ]
+        ],
+        "cross_document": true
+      }
+    },
+    {
+      "id": "CD-006",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "مدة التنفيذ المعتمدة للمشروع هي 12 شهرًا."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "ينص الجدول الزمني النهائي على إكمال المشروع خلال 18 شهرًا."
+          ]
+        }
+      ],
+      "expect": {
+        "fact_conflict_values": [
+          [
+            "12",
+            "18"
+          ]
+        ],
+        "cross_document": true
+      }
+    },
+    {
+      "id": "CD-007",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "يقصد بمصطلح «مقدم الخدمة»: الجهة المتعاقدة لتنفيذ الأعمال."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "يقصد بمصطلح «مقدم الخدمة»: الجهة المتعاقدة التي تنفذ الأعمال."
+          ]
+        }
+      ],
+      "expect": {
+        "semantic_issue_absent": [
+          "definition_conflict"
+        ],
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "CD-008",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "بلغت تكلفة الإنشاء للمبنى 500 ريال."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "بلغت تكلفة التشغيل السنوية للخدمة 500 ريال."
+          ]
+        }
+      ],
+      "expect": {
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "CD-009",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "المشروع معتمد وفق المحضر النهائي."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "المشروع معتمد بعد استكمال المتطلبات."
+          ]
+        }
+      ],
+      "expect": {
+        "semantic_issue_absent": [
+          "polarity_conflict"
+        ],
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "CD-010",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "تم اعتماد الخطة التشغيلية للمشروع."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "تم اعتماد الخطة التشغيلية للمشروع بعد الاجتماع."
+          ]
+        }
+      ],
+      "expect": {
+        "semantic_issue_absent": [
+          "decision_conflict"
+        ],
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "LR-011",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "في عام 2025 بلغت الطاقة الإنتاجية للمصنع 2000000 وحدة.",
+          "tail": "في عام 2026 بلغت القدرة التشغيلية للمصنع 1800000 وحدة."
+        }
+      ],
+      "expect": {
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "LR-012",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "في السيناريو الأساسي تبلغ الطاقة الإنتاجية للمصنع 2000000 وحدة.",
+          "tail": "في السيناريو المتحفظ تبلغ الطاقة الإنتاجية للمصنع 1800000 وحدة."
+        }
+      ],
+      "expect": {
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "LR-013",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "تبلغ الطاقة الإنتاجية لمصنع جدة 2000000 وحدة.",
+          "tail": "تبلغ الطاقة الإنتاجية لمصنع الرياض 1800000 وحدة."
+        }
+      ],
+      "expect": {
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "LR-014",
+      "scope": "long_range",
+      "documents": [
+        {
+          "id": "D1",
+          "filler_count": 420,
+          "head": "مدة تنفيذ المرحلة الأولى 12 شهرًا.",
+          "tail": "مدة تنفيذ المرحلة الثانية 18 شهرًا."
+        }
+      ],
+      "expect": {
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "CD-011",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "في عام 2025 بلغت الطاقة الإنتاجية للمصنع 2000000 وحدة."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "في عام 2026 بلغت القدرة التشغيلية للمصنع 1800000 وحدة."
+          ]
+        }
+      ],
+      "expect": {
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "CD-012",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "في السيناريو الأساسي تبلغ الطاقة الإنتاجية للمصنع 2000000 وحدة."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "في السيناريو المتحفظ تبلغ الطاقة الإنتاجية للمصنع 1800000 وحدة."
+          ]
+        }
+      ],
+      "expect": {
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "CD-013",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "تبلغ الطاقة الإنتاجية لمصنع جدة 2000000 وحدة."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "تبلغ الطاقة الإنتاجية لمصنع الرياض 1800000 وحدة."
+          ]
+        }
+      ],
+      "expect": {
+        "max_fact_conflicts": 0
+      }
+    },
+    {
+      "id": "CD-014",
+      "scope": "cross_document",
+      "documents": [
+        {
+          "id": "A",
+          "nodes": [
+            "مدة تنفيذ المرحلة الأولى 12 شهرًا."
+          ]
+        },
+        {
+          "id": "B",
+          "nodes": [
+            "مدة تنفيذ المرحلة الثانية 18 شهرًا."
+          ]
+        }
+      ],
+      "expect": {
+        "max_fact_conflicts": 0
+      }
+    }
+  ]
+}
