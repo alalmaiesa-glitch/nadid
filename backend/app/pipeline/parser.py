@@ -48,7 +48,7 @@ def parse_docx(data: bytes) -> list[DocumentNode]:
     nodes: list[DocumentNode] = []
     sequence = 0
 
-    for block in _iter_blocks(document):
+    for block_index, block in enumerate(_iter_blocks(document)):
         if isinstance(block, Paragraph):
             text = block.text.strip()
             if not text:
@@ -70,6 +70,7 @@ def parse_docx(data: bytes) -> list[DocumentNode]:
                     sequence_no=sequence,
                     source_anchor={
                         "kind": "paragraph",
+                        "block_index": block_index,
                         "style": style_name,
                         "heading_level": level,
                     },
@@ -97,6 +98,7 @@ def parse_docx(data: bytes) -> list[DocumentNode]:
                             sequence_no=sequence,
                             source_anchor={
                                 "kind": "table_cell",
+                                "block_index": block_index,
                                 "row": row_index,
                                 "cell": cell_index,
                             },
