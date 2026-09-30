@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "description": "Upload Finalization & Signed Upload Replay V1. Finalization pins the uploaded SHA-256 before queueing; Worker must reject any later object mutation before initial analysis.",
+  "cases": [
+    "UPL-001","UPL-002","UPL-003","UPL-004","UPL-005","UPL-006",
+    "UPL-007","UPL-008","UPL-009","UPL-010","UPL-011","UPL-012"
+  ]
+}
