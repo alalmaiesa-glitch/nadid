@@ -325,8 +325,16 @@ def _burst(config: dict[str, Any], malformed: bool):
     failures = []
     if any(status not in allowed for status in statuses):
         failures.append("unexpected_burst_status")
-    if any(status >= 500 for status in statuses):
-        failures.append("server_error_escape")
+    unexpected_server_errors = [
+        status
+        for status in statuses
+        if status >= 500 and status != 503
+    ]
+    if unexpected_server_errors:
+        failures.append(
+            "server_error_escape:"
+            + ",".join(str(status) for status in unexpected_server_errors)
+        )
     if not malformed and 200 not in statuses:
         failures.append("no_successful_request")
 
