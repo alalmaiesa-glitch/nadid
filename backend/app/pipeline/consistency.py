@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
-from app.contracts import DocumentMemory, DocumentNode, FactConflict, SemanticIssue
+from app.contracts import DocumentMemory, DocumentNode, EvidenceTrace, FactConflict, SemanticIssue
 from app.pipeline.chunker import build_chunks
+from app.pipeline.evidence import build_evidence_traces
 from app.pipeline.memory import build_document_memory
 from app.pipeline.protection import extract_protected_spans
 from app.pipeline.semantic_review import semantic_review
@@ -18,6 +19,7 @@ class ConsistencyReport:
     memory: DocumentMemory
     semantic_issues: list[SemanticIssue]
     fact_conflicts: list[FactConflict]
+    evidence_traces: list[EvidenceTrace]
     node_document: dict[str, str]
 
     def evidence_documents(self, node_ids: list[str]) -> list[str]:
@@ -81,6 +83,11 @@ def review_document_set(
     protected = extract_protected_spans(combined)
     memory = build_document_memory(combined, chunks, protected)
     issues = semantic_review(combined, memory)
+    evidence_traces = build_evidence_traces(
+        combined,
+        semantic_issues=issues,
+        memory=memory,
+    )
 
     return ConsistencyReport(
         document_ids=list(documents.keys()),
@@ -89,5 +96,6 @@ def review_document_set(
         memory=memory,
         semantic_issues=issues,
         fact_conflicts=memory.conflicts,
+        evidence_traces=evidence_traces,
         node_document=node_document,
     )
