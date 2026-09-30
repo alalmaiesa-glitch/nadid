@@ -11,6 +11,9 @@ ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parent
 DEFAULT_CONFIG = ROOT / "worker_idempotency" / "v1.json"
 WORKER = REPO / "worker" / "index.mjs"
+SUGGESTION_IDENTITY_MIGRATION = (
+    REPO / "supabase" / "migrations" / "0023_suggestion_identity_scope.sql"
+)
 
 
 DEEP_TABLES = (
@@ -325,6 +328,30 @@ def main() -> int:
             "_failures": failures,
         }
 
+    def wid013():
+        migration = SUGGESTION_IDENTITY_MIGRATION.read_text(
+            encoding="utf-8"
+        ).lower()
+        failures = []
+        if "drop index if exists public.suggestions_client_id_unique_idx" not in migration:
+            failures.append("old_global_suggestion_unique_index_not_removed")
+        if (
+            "on public.suggestions(version_id, client_suggestion_id)"
+            not in migration
+        ):
+            failures.append("version_scoped_suggestion_identity_missing")
+        return {
+            "global_unique_removed": not any(
+                item == "old_global_suggestion_unique_index_not_removed"
+                for item in failures
+            ),
+            "version_scoped_unique": not any(
+                item == "version_scoped_suggestion_identity_missing"
+                for item in failures
+            ),
+            "_failures": failures,
+        }
+
     cases = [
         _case("WID-001", wid001),
         _case("WID-002", wid002),
@@ -338,6 +365,7 @@ def main() -> int:
         _case("WID-010", wid010),
         _case("WID-011", wid011),
         _case("WID-012", wid012),
+        _case("WID-013", wid013),
     ]
 
     failed = [case["id"] for case in cases if not case["passed"]]
