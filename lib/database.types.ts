@@ -508,6 +508,8 @@ export type Database = {
           storage_path?: string | null
           title?: string
           updated_at?: string
+          upload_finalized_at?: string | null
+          upload_sha256?: string | null
           word_count?: number
         }
         Relationships: []
