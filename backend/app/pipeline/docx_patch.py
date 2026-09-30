@@ -224,6 +224,7 @@ def apply_patches_to_docx(
         patch_map[node_id] = [item[1] for item in indexed]
 
     applied: list[str] = []
+    applied_patches: list[PatchOperation] = []
     skipped: list[str] = []
     sequence = 0
 
@@ -258,6 +259,7 @@ def apply_patches_to_docx(
                     start_offset=full_start,
                 ):
                     applied.append(patch.node_id)
+                    applied_patches.append(patch)
                 else:
                     skipped.append(patch.node_id)
 
@@ -293,6 +295,7 @@ def apply_patches_to_docx(
                             start_offset=full_start,
                         ):
                             applied.append(patch.node_id)
+                            applied_patches.append(patch)
                         else:
                             skipped.append(patch.node_id)
 
@@ -305,12 +308,7 @@ def apply_patches_to_docx(
     fidelity = verify_docx_fidelity(
         data,
         output_data,
-        [
-            patch
-            for node_patches in patch_map.values()
-            for patch in node_patches
-            if patch.node_id in applied
-        ],
+        applied_patches,
     )
 
     return output_data, ApplyReport(
