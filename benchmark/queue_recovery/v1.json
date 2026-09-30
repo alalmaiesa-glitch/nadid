@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "description": "Queue Lease, Retry & Crash Recovery V1.",
+  "lease_timeout_minutes": 15,
+  "default_lease_renew_interval_seconds": 60,
+  "max_attempts_reference": 3,
+  "policy": {
+    "stale_retryable_job": "reclaim",
+    "stale_final_attempt_job": "fail_and_clear_lock",
+    "active_long_job": "renew_lease",
+    "completion": "fenced_by_worker_ownership",
+    "failure_update": "fenced_by_worker_ownership"
+  }
+}
