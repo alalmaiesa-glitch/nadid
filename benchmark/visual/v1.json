@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "description": "Visual Layout & Rendering Regression V1. DOCX is rendered through LibreOffice to PDF before and after Nadid-safe edits.",
+  "defaults": {
+    "max_changed_pixel_ratio": 0.035,
+    "max_anchor_drift_pt": 1.5,
+    "max_graphic_drift_pt": 1.5
+  },
+  "cases": [
+    {"id":"VIS-001","scenario":"rtl_paragraph","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"]},
+    {"id":"VIS-002","scenario":"heading_and_body","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"]},
+    {"id":"VIS-003","scenario":"table_grid","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"],"check_drawings":true},
+    {"id":"VIS-004","scenario":"merged_table","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"],"check_drawings":true},
+    {"id":"VIS-005","scenario":"numbered_list","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"]},
+    {"id":"VIS-006","scenario":"bullet_list","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"]},
+    {"id":"VIS-007","scenario":"image_position","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"],"check_images":true},
+    {"id":"VIS-008","scenario":"image_caption","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"],"check_images":true},
+    {"id":"VIS-009","scenario":"header_footer","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"]},
+    {"id":"VIS-010","scenario":"landscape_section","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"]},
+    {"id":"VIS-011","scenario":"explicit_page_break","anchors":["ANCHOR_PAGE1","ANCHOR_PAGE2"],"expected_pages":2},
+    {"id":"VIS-012","scenario":"multiple_sections","anchors":["ANCHOR_PAGE1","ANCHOR_PAGE2"],"expected_pages":2},
+    {"id":"VIS-013","scenario":"near_page_boundary","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"],"max_changed_pixel_ratio":0.05},
+    {"id":"VIS-014","scenario":"mixed_run_formatting","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"]},
+    {"id":"VIS-015","scenario":"cross_run_fix","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"]},
+    {"id":"VIS-016","scenario":"repeated_fixes","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"]},
+    {"id":"VIS-017","scenario":"bilingual_url","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"]},
+    {"id":"VIS-018","scenario":"rich_document","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"],"check_images":true,"check_drawings":true,"max_changed_pixel_ratio":0.05},
+    {"id":"VIS-019","scenario":"second_round_visual_identity","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"],"second_round_identical":true},
+    {"id":"VIS-020","scenario":"no_op_visual_identity","anchors":["ANCHOR_TOP","ANCHOR_BOTTOM"],"no_op":true,"max_changed_pixel_ratio":0.0}
+  ]
+}
