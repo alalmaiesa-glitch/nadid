@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "description": "Derived Version Lineage & Orphan-Safe Persistence V1. Derived versions form a strict linear chain, reserve their database row before Storage writes, and keep every version object owner-scoped and content-addressed.",
+  "cases": [
+    "VER-001","VER-002","VER-003","VER-004","VER-005",
+    "VER-006","VER-007","VER-008","VER-009","VER-010",
+    "VER-011","VER-012","VER-013","VER-014","VER-015"
+  ]
+}
