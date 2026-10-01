@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "description": "SSR Route Authorization V1. Centralize protected-route recognition and fail-closed internal redirect handling across middleware, login, and OAuth callback.",
+  "cases": [
+    "SSR-001","SSR-002","SSR-003","SSR-004","SSR-005",
+    "SSR-006","SSR-007","SSR-008","SSR-009","SSR-010"
+  ]
+}
