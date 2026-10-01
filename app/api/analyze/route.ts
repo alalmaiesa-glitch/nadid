@@ -13,10 +13,12 @@ import {
   isAeeBackendConfigured
 } from "@/lib/server/aee-client";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
+import { enforceDeclaredContentLength } from "@/lib/server/request-bounds";
 
 export const runtime = "nodejs";
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
+const MAX_MULTIPART_BYTES = MAX_FILE_BYTES + 1024 * 1024;
 
 function normalizeArabic(text: string) {
   return text
@@ -220,6 +222,12 @@ export async function POST(request: Request) {
   if (integrity) return integrity;
   const auth = await authorizeUser();
   if (!auth.ok) return auth.response;
+
+  const declaredLength = enforceDeclaredContentLength(
+    request,
+    MAX_MULTIPART_BYTES
+  );
+  if (declaredLength) return declaredLength;
 
   const formData = await request.formData();
   const value = formData.get("file");
