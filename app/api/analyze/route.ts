@@ -18,6 +18,7 @@ import {
 } from "@/lib/server/rate-limit";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 import { enforceDeclaredContentLength } from "@/lib/server/request-bounds";
+import { consumeCharacterQuota } from "@/lib/server/usage-quota";
 
 export const runtime = "nodejs";
 
@@ -270,6 +271,16 @@ export async function POST(request: Request) {
     if (isAeeBackendConfigured()) {
       try {
         const response = await analyzeDocxWithAee(value.name, buffer);
+        const characterCount = response.document.blocks.reduce(
+          (total, block) => total + block.text.length,
+          0
+        );
+        const quota = await consumeCharacterQuota(
+          auth.userId,
+          response.document.id,
+          characterCount
+        );
+        if (quota) return quota;
 
         try {
           await persistAnalyzedDocument(response, buffer, auth.userId);
@@ -316,6 +327,17 @@ export async function POST(request: Request) {
         ...(aeeFallbackWarning ? [aeeFallbackWarning] : [])
       ]
     };
+
+    const characterCount = response.document.blocks.reduce(
+      (total, block) => total + block.text.length,
+      0
+    );
+    const quota = await consumeCharacterQuota(
+      auth.userId,
+      response.document.id,
+      characterCount
+    );
+    if (quota) return quota;
 
     try {
       const persistence = await persistAnalyzedDocument(response, buffer, auth.userId);

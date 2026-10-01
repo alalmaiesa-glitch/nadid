@@ -124,6 +124,42 @@ export type Database = {
         }
         Relationships: []
       }
+      character_usage_events: {
+        Row: {
+          action: string
+          characters: number
+          created_at: string
+          id: string
+          included_used: number
+          operation_id: string
+          period_start: string
+          topup_used: number
+          user_id: string
+        }
+        Insert: {
+          action: string
+          characters: number
+          created_at?: string
+          id?: string
+          included_used?: number
+          operation_id: string
+          period_start: string
+          topup_used?: number
+          user_id: string
+        }
+        Update: {
+          action?: string
+          characters?: number
+          created_at?: string
+          id?: string
+          included_used?: number
+          operation_id?: string
+          period_start?: string
+          topup_used?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       character_usage_monthly: {
         Row: {
           included_characters: number
@@ -1030,6 +1066,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_character_quota: {
+        Args: {
+          p_action: string
+          p_characters: number
+          p_operation_id: string
+          p_user_id: string
+        }
+        Returns: {
+          allowed: boolean
+          already_charged: boolean
+          included_used: number
+          remaining_included: number
+          remaining_topup: number
+          topup_used: number
+        }[]
+      }
       consume_api_rate_limit: {
         Args: {
           p_action: string
