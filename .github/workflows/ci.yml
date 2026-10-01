@@ -99,6 +99,7 @@ jobs:
           benchmark/run_worker_idempotency_benchmark.py
           benchmark/run_source_immutability_benchmark.py
           benchmark/run_secure_deletion_benchmark.py
+          benchmark/run_upload_finalization_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -244,6 +245,14 @@ jobs:
           --report benchmark/secure-deletion-report.json
           --enforce
 
+      - name: Run Upload Finalization & Signed Upload Replay V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_upload_finalization_benchmark.py
+          --report benchmark/upload-finalization-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -266,6 +275,7 @@ jobs:
             benchmark/worker-idempotency-report.json
             benchmark/source-immutability-report.json
             benchmark/secure-deletion-report.json
+            benchmark/upload-finalization-report.json
 
 
   database-fault-injection:

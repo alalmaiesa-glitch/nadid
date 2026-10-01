@@ -1541,7 +1541,7 @@ export async function enqueueDocumentProcessing(
 
   const { data: document, error: documentError } = await supabase
     .from("documents")
-    .select("id, owner_id, storage_path, status")
+    .select("id, owner_id, storage_path, status, upload_sha256")
     .eq("id", documentId)
     .eq("owner_id", ownerId)
     .maybeSingle();
@@ -1568,6 +1568,65 @@ export async function enqueueDocumentProcessing(
   }
 
   const storagePath = document.storage_path as string;
+
+  if (["deleting", "delete_failed"].includes(document.status)) {
+    throw new Error("document_not_finalizable");
+  }
+
+  const { data: uploadedSource, error: uploadedSourceError } =
+    await supabase.storage
+      .from(STORAGE_BUCKET)
+      .download(storagePath);
+
+  if (uploadedSourceError || !uploadedSource) {
+    throw new Error("uploaded_file_missing");
+  }
+
+  const uploadedBuffer = Buffer.from(
+    await uploadedSource.arrayBuffer()
+  );
+  const uploadedSha256 = sha256(uploadedBuffer);
+
+  if (
+    document.upload_sha256 &&
+    document.upload_sha256 !== uploadedSha256
+  ) {
+    throw new Error("upload_integrity_mismatch");
+  }
+
+  if (!document.upload_sha256) {
+    const { data: finalized, error: finalizeError } = await supabase
+      .from("documents")
+      .update({
+        upload_sha256: uploadedSha256,
+        upload_finalized_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", documentId)
+      .eq("owner_id", ownerId)
+      .is("upload_sha256", null)
+      .select("upload_sha256")
+      .maybeSingle();
+
+    if (finalizeError) throw finalizeError;
+
+    if (!finalized?.upload_sha256) {
+      const { data: concurrent, error: concurrentError } =
+        await supabase
+          .from("documents")
+          .select("upload_sha256")
+          .eq("id", documentId)
+          .eq("owner_id", ownerId)
+          .single();
+
+      if (concurrentError) throw concurrentError;
+
+      if (concurrent.upload_sha256 !== uploadedSha256) {
+        throw new Error("upload_integrity_mismatch");
+      }
+    }
+  }
+
   const segments = storagePath.split("/");
   const filename = segments.pop();
 

@@ -34,6 +34,27 @@ export async function POST(
       );
     }
 
+    if (code === "upload_integrity_mismatch") {
+      return Response.json(
+        {
+          error:
+            "The uploaded source changed after finalization. Upload a new document.",
+          code: "UPLOAD_INTEGRITY_MISMATCH"
+        },
+        { status: 409 }
+      );
+    }
+
+    if (code === "document_not_finalizable") {
+      return Response.json(
+        {
+          error: "Document cannot be finalized in its current state.",
+          code: "DOCUMENT_NOT_FINALIZABLE"
+        },
+        { status: 409 }
+      );
+    }
+
     return Response.json(
       {
         error: "Could not queue uploaded document.",
