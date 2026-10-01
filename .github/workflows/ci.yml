@@ -106,6 +106,7 @@ jobs:
           benchmark/run_ssr_route_authorization_benchmark.py
           benchmark/run_api_origin_csrf_benchmark.py
           benchmark/run_api_auth_request_bounds_benchmark.py
+          benchmark/run_api_rate_limits_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -307,6 +308,14 @@ jobs:
           --report benchmark/api-auth-request-bounds-report.json
           --enforce
 
+      - name: Run API Rate Limits & Abuse Quotas V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_api_rate_limits_benchmark.py
+          --report benchmark/api-rate-limits-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -336,6 +345,7 @@ jobs:
             benchmark/ssr-route-authorization-report.json
             benchmark/api-origin-csrf-report.json
             benchmark/api-auth-request-bounds-report.json
+            benchmark/api-rate-limits-report.json
 
 
   database-fault-injection:
@@ -407,6 +417,14 @@ jobs:
           psql
           "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           -f supabase/tests/suggestion_decision_scope.sql
+
+      - name: Run API Rate Limits & Abuse Quotas PostgreSQL V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/api_rate_limits.sql
 
       - name: Stop local Supabase
         if: always()
