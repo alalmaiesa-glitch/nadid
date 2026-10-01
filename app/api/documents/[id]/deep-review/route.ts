@@ -8,6 +8,7 @@ import {
   API_RATE_LIMITS,
   enforceUserRateLimit
 } from "@/lib/server/rate-limit";
+import { enforcePlanEntitlement } from "@/lib/server/plan-entitlements";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
 export async function GET(
@@ -67,6 +68,12 @@ export async function POST(
   const { id } = await context.params;
   const auth = await authorizeDocument(id);
   if (!auth.ok) return auth.response;
+
+  const entitlement = await enforcePlanEntitlement(
+    auth.userId,
+    "deep_review"
+  );
+  if (entitlement) return entitlement;
 
   const rateLimit = await enforceUserRateLimit(
     auth.userId,
