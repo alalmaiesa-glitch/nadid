@@ -96,4 +96,38 @@ begin
 end;
 $$;
 
+-- VER-DB-005: deleting a parent version alone must not detach a live child.
+do $$
+declare
+  rejected boolean := false;
+begin
+  begin
+    delete from public.document_versions
+    where id = '20000000-0000-0000-0000-000000000001';
+  exception when check_violation then
+    rejected := true;
+  end;
+
+  if not rejected then
+    raise exception 'lineage parent delete was accepted';
+  end if;
+end
+$$;
+
+-- VER-DB-006: deleting the whole document must still cascade through the chain.
+delete from public.documents
+where id = '10000000-0000-0000-0000-000000000001';
+
+do $$
+begin
+  if exists (
+    select 1
+    from public.document_versions
+    where document_id = '10000000-0000-0000-0000-000000000001'
+  ) then
+    raise exception 'document cascade left version lineage rows';
+  end if;
+end
+$$;
+
 rollback;
