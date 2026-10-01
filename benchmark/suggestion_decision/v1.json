@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "description": "Suggestion Decision Scope & Audit Trail V1. A decision targets exactly one suggestion inside one current document version and status mutation plus immutable snapshot are committed atomically.",
+  "cases": [
+    "DEC-001","DEC-002","DEC-003","DEC-004","DEC-005",
+    "DEC-006","DEC-007","DEC-008","DEC-009","DEC-010",
+    "DEC-011","DEC-012","DEC-013","DEC-014"
+  ]
+}
