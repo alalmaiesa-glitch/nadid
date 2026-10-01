@@ -1,5 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { authorizeDocument } from "@/lib/server/authz";
+import {
+  API_RATE_LIMITS,
+  enforceUserRateLimit
+} from "@/lib/server/rate-limit";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 import { readBoundedJson } from "@/lib/server/request-bounds";
 
@@ -45,6 +49,12 @@ export async function PATCH(
 
   const auth = await authorizeDocument(body.documentId);
   if (!auth.ok) return auth.response;
+
+  const rateLimit = await enforceUserRateLimit(
+    auth.userId,
+    API_RATE_LIMITS.suggestionDecision
+  );
+  if (rateLimit) return rateLimit;
 
   const supabase = getSupabaseAdmin();
 

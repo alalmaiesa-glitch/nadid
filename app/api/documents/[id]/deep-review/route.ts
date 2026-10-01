@@ -4,6 +4,10 @@ import {
 } from "@/lib/server/document-persistence";
 import { authorizeDocument } from "@/lib/server/authz";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  API_RATE_LIMITS,
+  enforceUserRateLimit
+} from "@/lib/server/rate-limit";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
 export async function GET(
@@ -63,6 +67,12 @@ export async function POST(
   const { id } = await context.params;
   const auth = await authorizeDocument(id);
   if (!auth.ok) return auth.response;
+
+  const rateLimit = await enforceUserRateLimit(
+    auth.userId,
+    API_RATE_LIMITS.deepReview
+  );
+  if (rateLimit) return rateLimit;
 
   if (!auth.userId) {
     return Response.json(

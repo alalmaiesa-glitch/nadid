@@ -1,6 +1,10 @@
 import { isSupabaseAdminConfigured } from "@/lib/supabase-admin";
 import { authorizeUser } from "@/lib/server/authz";
 import { createPendingDocumentUpload } from "@/lib/server/document-persistence";
+import {
+  API_RATE_LIMITS,
+  enforceUserRateLimit
+} from "@/lib/server/rate-limit";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 import { readBoundedJson } from "@/lib/server/request-bounds";
 
@@ -19,6 +23,12 @@ export async function POST(request: Request) {
 
   const auth = await authorizeUser();
   if (!auth.ok) return auth.response;
+
+  const rateLimit = await enforceUserRateLimit(
+    auth.userId,
+    API_RATE_LIMITS.uploadCreate
+  );
+  if (rateLimit) return rateLimit;
 
   if (!auth.userId) {
     return Response.json(
