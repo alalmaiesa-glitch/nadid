@@ -909,13 +909,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "suggestion_decisions_suggestion_id_fkey"
-            columns: ["suggestion_id"]
-            isOneToOne: false
-            referencedRelation: "suggestions"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "suggestion_decisions_version_id_fkey"
             columns: ["version_id"]
             isOneToOne: false
