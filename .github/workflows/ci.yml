@@ -110,6 +110,7 @@ jobs:
           benchmark/run_usage_quota_benchmark.py
           benchmark/run_plan_entitlement_benchmark.py
           benchmark/run_subscription_transition_benchmark.py
+          benchmark/run_payment_activation_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -343,6 +344,14 @@ jobs:
           --report benchmark/subscription-transition-report.json
           --enforce
 
+      - name: Run Payment & Subscription Activation Integrity V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_payment_activation_benchmark.py
+          --report benchmark/payment-activation-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -376,6 +385,7 @@ jobs:
             benchmark/usage-quota-report.json
             benchmark/plan-entitlement-report.json
             benchmark/subscription-transition-report.json
+            benchmark/payment-activation-report.json
 
 
   database-fault-injection:

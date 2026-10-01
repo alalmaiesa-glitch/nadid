@@ -882,6 +882,7 @@ export type Database = {
           current_period_end: string | null
           current_period_start: string | null
           id: string
+          payment_id: string | null
           plan_id: string
           provider: string
           provider_reference: string | null
@@ -894,6 +895,7 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          payment_id?: string | null
           plan_id: string
           provider?: string
           provider_reference?: string | null
@@ -906,6 +908,7 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          payment_id?: string | null
           plan_id?: string
           provider?: string
           provider_reference?: string | null
@@ -914,6 +917,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subscriptions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subscriptions_plan_id_fkey"
             columns: ["plan_id"]
@@ -1101,6 +1111,23 @@ export type Database = {
           allowed: boolean
           remaining: number
           retry_after_seconds: number
+        }[]
+      }
+      activate_subscription_from_payment: {
+        Args: { p_payment_id: string; p_plan_id: string }
+        Returns: {
+          period_end: string
+          period_start: string
+          reused: boolean
+          subscription_id: string
+        }[]
+      }
+      activate_topup_from_payment: {
+        Args: { p_pack_id: string; p_payment_id: string }
+        Returns: {
+          characters_remaining: number
+          reused: boolean
+          topup_id: string
         }[]
       }
       claim_processing_job: {
