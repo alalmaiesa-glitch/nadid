@@ -321,7 +321,17 @@ jobs:
           version: latest
 
       - name: Start local Supabase
-        run: supabase start
+        run: |
+          for attempt in 1 2 3 4; do
+            if supabase start; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 4 ]; then
+              echo "Supabase start failed after 4 attempts."
+              exit 1
+            fi
+            sleep $((attempt * 20))
+          done
 
       - name: Rebuild local database from migrations
         run: supabase db reset --local
