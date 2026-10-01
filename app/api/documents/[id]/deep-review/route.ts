@@ -4,6 +4,7 @@ import {
 } from "@/lib/server/document-persistence";
 import { authorizeDocument } from "@/lib/server/authz";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
 export async function GET(
   _request: Request,
@@ -54,9 +55,11 @@ export async function GET(
 }
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const integrity = enforceSameOriginMutation(request);
+  if (integrity) return integrity;
   const { id } = await context.params;
   const auth = await authorizeDocument(id);
   if (!auth.ok) return auth.response;
