@@ -55,6 +55,30 @@ export type Database = {
           },
         ]
       }
+      api_rate_windows: {
+        Row: {
+          action: string
+          request_count: number
+          updated_at: string
+          user_id: string
+          window_started_at: string
+        }
+        Insert: {
+          action: string
+          request_count?: number
+          updated_at?: string
+          user_id: string
+          window_started_at: string
+        }
+        Update: {
+          action?: string
+          request_count?: number
+          updated_at?: string
+          user_id?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       billing_plans: {
         Row: {
           active: boolean
@@ -1006,6 +1030,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_api_rate_limit: {
+        Args: {
+          p_action: string
+          p_limit: number
+          p_user_id: string
+          p_window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          retry_after_seconds: number
+        }[]
+      }
       claim_processing_job: {
         Args: { p_worker_id: string }
         Returns: {
