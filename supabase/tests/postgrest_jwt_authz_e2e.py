@@ -332,8 +332,8 @@ def main() -> None:
             token=token1,
             body={
                 "document_id": D1,
-                "version_no": 99,
-                "is_source": False,
+                "version_no": 1,
+                "is_source": True,
             },
             prefer="return=representation",
         )

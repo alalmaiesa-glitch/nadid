@@ -1147,33 +1147,76 @@ export async function createDocumentVersion(
     return { persisted: false as const, reason: "supabase_not_configured" };
   }
 
-  const { data: latestAny, error: latestAnyError } = await supabase
+  const { data: document, error: documentError } = await supabase
+    .from("documents")
+    .select("id, owner_id")
+    .eq("id", documentId)
+    .single();
+
+  if (documentError || !document?.owner_id) {
+    throw documentError ?? new Error("document_owner_missing");
+  }
+
+  const { data: latestReady, error: latestReadyError } = await supabase
     .from("document_versions")
-    .select("version_no")
+    .select("id, version_no")
     .eq("document_id", documentId)
+    .eq("status", "ready")
     .order("version_no", { ascending: false })
     .limit(1)
+    .single();
+
+  if (latestReadyError || !latestReady) {
+    throw latestReadyError ?? new Error("ready_version_missing");
+  }
+
+  if (
+    latestReady.id !== parentVersionId ||
+    Number(latestReady.version_no) !== parentVersionNo
+  ) {
+    throw new Error("version_lineage_changed");
+  }
+
+  const nextVersionNo = parentVersionNo + 1;
+
+  const { data: occupied, error: occupiedError } = await supabase
+    .from("document_versions")
+    .select("id, status, storage_path")
+    .eq("document_id", documentId)
+    .eq("version_no", nextVersionNo)
     .maybeSingle();
 
-  if (latestAnyError) throw latestAnyError;
+  if (occupiedError) throw occupiedError;
 
-  const nextVersionNo = Math.max(
-    parentVersionNo,
-    Number(latestAny?.version_no ?? parentVersionNo)
-  ) + 1;
+  if (occupied?.id) {
+    if (occupied.status !== "failed") {
+      throw new Error("version_lineage_changed");
+    }
 
+    if (occupied.storage_path) {
+      try {
+        await removeStorageObjects([occupied.storage_path as string]);
+      } catch {
+        throw new Error("version_cleanup_failed");
+      }
+    }
+
+    const { error: staleDeleteError } = await supabase
+      .from("document_versions")
+      .delete()
+      .eq("id", occupied.id)
+      .eq("status", "failed");
+
+    if (staleDeleteError) {
+      throw new Error("version_cleanup_failed");
+    }
+  }
+
+  const resultSha256 = sha256(buffer);
+  const ownerId = document.owner_id as string;
   const storagePath =
-    `${documentId}/v${nextVersionNo}/source.docx`;
-
-  const { error: storageError } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(storagePath, buffer, {
-      contentType:
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      upsert: false
-    });
-
-  if (storageError) throw storageError;
+    `${ownerId}/${documentId}/versions/v${nextVersionNo}/` +
+    `${resultSha256}/source.docx`;
 
   const { data: version, error: versionError } = await supabase
     .from("document_versions")
@@ -1183,21 +1226,50 @@ export async function createDocumentVersion(
       parent_version_id: parentVersionId,
       is_source: false,
       storage_path: storagePath,
-      status: "ready",
-      source_sha256: sha256(buffer),
+      status: "creating",
+      source_sha256: resultSha256,
       engine_manifest: {
         exporter: "aee_docx_patch_v0.1",
         parser: "aee_docx_v0.1"
       },
       change_summary: {
         applied_suggestions: appliedSuggestionIds,
-        applied_count: appliedSuggestionIds.length
+        applied_count: appliedSuggestionIds.length,
+        parent_version_id: parentVersionId,
+        parent_version_no: parentVersionNo,
+        source_sha256: resultSha256
       }
     })
     .select("id")
     .single();
 
-  if (versionError || !version?.id) throw versionError;
+  if (versionError || !version?.id) {
+    const code =
+      (versionError as { code?: string } | null)?.code ?? "";
+
+    if (["23503", "23505", "23514"].includes(code)) {
+      throw new Error("version_lineage_changed");
+    }
+
+    throw versionError ?? new Error("version_not_created");
+  }
+
+  const { error: storageError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(storagePath, buffer, {
+      contentType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      upsert: false
+    });
+
+  if (storageError) {
+    await supabase
+      .from("document_versions")
+      .update({ status: "failed" })
+      .eq("id", version.id);
+
+    throw storageError;
+  }
 
   try {
     await persistFastAnalysisRows(version.id, {
@@ -1208,7 +1280,15 @@ export async function createDocumentVersion(
       }
     });
 
-    const { error: documentError } = await supabase
+    const { error: versionReadyError } = await supabase
+      .from("document_versions")
+      .update({ status: "ready" })
+      .eq("id", version.id)
+      .eq("status", "creating");
+
+    if (versionReadyError) throw versionReadyError;
+
+    const { error: documentUpdateError } = await supabase
       .from("documents")
       .update({
         status: "partial_ready",
@@ -1218,7 +1298,7 @@ export async function createDocumentVersion(
       })
       .eq("id", documentId);
 
-    if (documentError) throw documentError;
+    if (documentUpdateError) throw documentUpdateError;
   } catch (error) {
     await supabase
       .from("document_versions")
@@ -1294,7 +1374,7 @@ export async function listDocumentVersions(documentId: string) {
   const { data, error } = await supabase
     .from("document_versions")
     .select(
-      "id, version_no, is_source, status, change_summary, created_at"
+      "id, version_no, parent_version_id, is_source, status, source_sha256, change_summary, created_at"
     )
     .eq("document_id", documentId)
     .order("version_no", { ascending: false });
@@ -1304,8 +1384,12 @@ export async function listDocumentVersions(documentId: string) {
   return (data ?? []).map((version) => ({
     id: version.id as string,
     versionNo: Number(version.version_no),
+    parentVersionId:
+      (version.parent_version_id as string | null) ?? null,
     isSource: Boolean(version.is_source),
     status: version.status as string,
+    sourceSha256:
+      (version.source_sha256 as string | null) ?? null,
     changeSummary:
       (version.change_summary as Record<string, unknown> | null) ?? {},
     createdAt: version.created_at as string

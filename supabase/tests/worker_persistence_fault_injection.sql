@@ -23,18 +23,20 @@ insert into public.documents (
 );
 
 insert into public.document_versions (
-  id, document_id, version_no, is_source
+  id, document_id, version_no, parent_version_id, is_source
 ) values
 (
   '30000000-0000-0000-0000-000000000001',
   '20000000-0000-0000-0000-000000000001',
   1,
+  null,
   true
 ),
 (
   '30000000-0000-0000-0000-000000000002',
   '20000000-0000-0000-0000-000000000001',
   2,
+  '30000000-0000-0000-0000-000000000001',
   false
 );
 
@@ -101,25 +103,25 @@ begin
 end
 $$;
 
--- Seed every deep artifact table for Version 1.
+-- Seed every deep artifact table for leaf Version 2.
 insert into public.document_chunks (
   version_id, chunk_key, sequence_no, node_keys, chunk_text, token_estimate
 ) values (
-  '30000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000002',
   'chunk-1', 0, array['node-1'], 'نص تجريبي', 10
 );
 
 insert into public.document_memory (
   version_id, state, headings, protected_count, chunk_count
 ) values (
-  '30000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000002',
   'building', '[]'::jsonb, 1, 1
 );
 
 insert into public.memory_terms (
   version_id, term, occurrence_count, node_keys
 ) values (
-  '30000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000002',
   'المشروع', 2, array['node-1']
 );
 
@@ -127,7 +129,7 @@ insert into public.fact_assertions (
   version_id, client_fact_id, node_key, fact_type, claim_key,
   surface_value, canonical_value, context_text, confidence
 ) values (
-  '30000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000002',
   'fact-1', 'node-1', 'number', 'claim-1',
   '100', '100', 'القيمة 100', 0.92
 );
@@ -136,7 +138,7 @@ insert into public.fact_conflicts (
   version_id, client_conflict_id, claim_key, fact_ids,
   values_found, confidence
 ) values (
-  '30000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000002',
   'conflict-1', 'claim-1', array['fact-1'],
   array['100','200'], 0.80
 );
@@ -145,27 +147,27 @@ insert into public.document_memory_items (
   version_id, client_item_id, kind, item_key, item_value,
   node_keys, confidence
 ) values (
-  '30000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000002',
   'memory-1', 'concept', 'المشروع', 'المشروع',
   array['node-1'], 0.84
 );
 
 -- DBF-003: Partial version cleanup cascades through every deep artifact table.
 delete from public.document_versions
-where id = '30000000-0000-0000-0000-000000000001';
+where id = '30000000-0000-0000-0000-000000000002';
 
 do $$
 declare
   leftovers bigint;
 begin
   select
-    (select count(*) from public.document_chunks where version_id = '30000000-0000-0000-0000-000000000001') +
-    (select count(*) from public.document_memory where version_id = '30000000-0000-0000-0000-000000000001') +
-    (select count(*) from public.memory_terms where version_id = '30000000-0000-0000-0000-000000000001') +
-    (select count(*) from public.fact_assertions where version_id = '30000000-0000-0000-0000-000000000001') +
-    (select count(*) from public.fact_conflicts where version_id = '30000000-0000-0000-0000-000000000001') +
-    (select count(*) from public.document_memory_items where version_id = '30000000-0000-0000-0000-000000000001') +
-    (select count(*) from public.suggestions where version_id = '30000000-0000-0000-0000-000000000001')
+    (select count(*) from public.document_chunks where version_id = '30000000-0000-0000-0000-000000000002') +
+    (select count(*) from public.document_memory where version_id = '30000000-0000-0000-0000-000000000002') +
+    (select count(*) from public.memory_terms where version_id = '30000000-0000-0000-0000-000000000002') +
+    (select count(*) from public.fact_assertions where version_id = '30000000-0000-0000-0000-000000000002') +
+    (select count(*) from public.fact_conflicts where version_id = '30000000-0000-0000-0000-000000000002') +
+    (select count(*) from public.document_memory_items where version_id = '30000000-0000-0000-0000-000000000002') +
+    (select count(*) from public.suggestions where version_id = '30000000-0000-0000-0000-000000000002')
   into leftovers;
 
   if leftovers <> 0 then
@@ -180,11 +182,12 @@ commit;
 begin;
 
 insert into public.document_versions (
-  id, document_id, version_no, is_source
+  id, document_id, version_no, parent_version_id, is_source
 ) values (
   '30000000-0000-0000-0000-000000000003',
   '20000000-0000-0000-0000-000000000001',
-  3,
+  2,
+  '30000000-0000-0000-0000-000000000001',
   false
 );
 
@@ -221,17 +224,17 @@ begin;
 insert into public.document_chunks (
   version_id, chunk_key, sequence_no, node_keys, chunk_text, token_estimate
 ) values (
-  '30000000-0000-0000-0000-000000000002',
+  '30000000-0000-0000-0000-000000000001',
   'retry-chunk', 0, array['node-r'], 'المحاولة الأولى', 4
 );
 
 delete from public.document_chunks
-where version_id = '30000000-0000-0000-0000-000000000002';
+where version_id = '30000000-0000-0000-0000-000000000001';
 
 insert into public.document_chunks (
   version_id, chunk_key, sequence_no, node_keys, chunk_text, token_estimate
 ) values (
-  '30000000-0000-0000-0000-000000000002',
+  '30000000-0000-0000-0000-000000000001',
   'retry-chunk', 0, array['node-r'], 'المحاولة الثانية', 4
 );
 
@@ -240,7 +243,7 @@ begin
   if (
     select count(*)
     from public.document_chunks
-    where version_id = '30000000-0000-0000-0000-000000000002'
+    where version_id = '30000000-0000-0000-0000-000000000001'
       and chunk_key = 'retry-chunk'
   ) <> 1 then
     raise exception 'DBF-005 failed: retry duplicated deterministic row';

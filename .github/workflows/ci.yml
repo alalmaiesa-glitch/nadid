@@ -101,6 +101,7 @@ jobs:
           benchmark/run_secure_deletion_benchmark.py
           benchmark/run_upload_finalization_benchmark.py
           benchmark/run_finalized_source_promotion_benchmark.py
+          benchmark/run_version_lineage_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -262,6 +263,14 @@ jobs:
           --report benchmark/finalized-source-promotion-report.json
           --enforce
 
+      - name: Run Derived Version Lineage & Orphan-Safe Persistence V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_version_lineage_benchmark.py
+          --report benchmark/version-lineage-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -286,6 +295,7 @@ jobs:
             benchmark/secure-deletion-report.json
             benchmark/upload-finalization-report.json
             benchmark/finalized-source-promotion-report.json
+            benchmark/version-lineage-report.json
 
 
   database-fault-injection:
@@ -331,6 +341,14 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: python3 supabase/tests/storage_object_isolation_e2e.py
+
+      - name: Run Derived Version Lineage PostgreSQL V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/document_version_lineage.sql
 
       - name: Stop local Supabase
         if: always()
