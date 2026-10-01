@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "description": "Usage Quota Accounting & Billing Integrity V1",
+  "cases": [
+    "QUOTA-001","QUOTA-002","QUOTA-003","QUOTA-004","QUOTA-005",
+    "QUOTA-006","QUOTA-007","QUOTA-008","QUOTA-009","QUOTA-010"
+  ]
+}
