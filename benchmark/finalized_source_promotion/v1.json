@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "description": "Finalized Source Promotion & Storage TOCTOU V1. After upload finalization, Nadid promotes the verified bytes to a content-addressed canonical path that is not the path authorized by the original signed upload token.",
+  "cases": [
+    "FSP-001","FSP-002","FSP-003","FSP-004","FSP-005","FSP-006",
+    "FSP-007","FSP-008","FSP-009","FSP-010","FSP-011","FSP-012"
+  ]
+}
