@@ -104,6 +104,7 @@ jobs:
           benchmark/run_version_lineage_benchmark.py
           benchmark/run_suggestion_decision_benchmark.py
           benchmark/run_ssr_route_authorization_benchmark.py
+          benchmark/run_api_origin_csrf_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -289,6 +290,14 @@ jobs:
           --report benchmark/ssr-route-authorization-report.json
           --enforce
 
+      - name: Run API Mutation Origin & CSRF Integrity V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_api_origin_csrf_benchmark.py
+          --report benchmark/api-origin-csrf-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -316,6 +325,7 @@ jobs:
             benchmark/version-lineage-report.json
             benchmark/suggestion-decision-report.json
             benchmark/ssr-route-authorization-report.json
+            benchmark/api-origin-csrf-report.json
 
 
   database-fault-injection:
