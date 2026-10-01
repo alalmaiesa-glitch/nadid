@@ -230,6 +230,18 @@ def main() -> int:
             "_failures": ["weak_origin_acceptance"] if found else [],
         }
 
+    def api011():
+        required = [
+            'process.env.VERCEL_ENV === "preview"',
+            "return normalizedOrigin(request.url)",
+        ]
+        missing = [item for item in required if item not in helper]
+        return {
+            "vercel_preview_uses_request_origin": not missing,
+            "missing": missing,
+            "_failures": ["preview_origin_policy_missing"] if missing else [],
+        }
+
     cases = [
         _case(f"API-{index:03d}", fn)
         for index, fn in enumerate(
@@ -244,6 +256,7 @@ def main() -> int:
                 api008,
                 api009,
                 api010,
+                api011,
             ],
             1,
         )
