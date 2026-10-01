@@ -60,7 +60,10 @@ def main():
             'value.startsWith("//")',
             'value.startsWith("/\\\\")',
             'value.includes("\\\\")',
-            "ENCODED_SEPARATOR_OR_CONTROL",
+            "ENCODED_PATH_SEPARATOR",
+            "ENCODED_CONTROL",
+            "ENCODED_PATH_SEPARATOR.test(pathPart)",
+            "ENCODED_CONTROL.test(value)",
             r"/[\u0000-\u001F\u007F]/",
         ]
         missing = [item for item in required if item not in routing]
