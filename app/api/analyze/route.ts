@@ -12,6 +12,10 @@ import {
   analyzeDocxWithAee,
   isAeeBackendConfigured
 } from "@/lib/server/aee-client";
+import {
+  API_RATE_LIMITS,
+  enforceUserRateLimit
+} from "@/lib/server/rate-limit";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 import { enforceDeclaredContentLength } from "@/lib/server/request-bounds";
 
@@ -222,6 +226,12 @@ export async function POST(request: Request) {
   if (integrity) return integrity;
   const auth = await authorizeUser();
   if (!auth.ok) return auth.response;
+
+  const rateLimit = await enforceUserRateLimit(
+    auth.userId,
+    API_RATE_LIMITS.analyze
+  );
+  if (rateLimit) return rateLimit;
 
   const declaredLength = enforceDeclaredContentLength(
     request,
