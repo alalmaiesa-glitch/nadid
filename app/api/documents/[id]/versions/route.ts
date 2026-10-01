@@ -104,13 +104,35 @@ export async function POST(
         `/api/documents/${id}/export?version=${created.versionNo}`
     });
   } catch (error) {
+    const code =
+      error instanceof Error ? error.message : "version_creation_failed";
+
+    if (code === "version_lineage_changed") {
+      return Response.json(
+        {
+          error:
+            "The current document version changed before this version could be committed.",
+          code: "VERSION_CHANGED"
+        },
+        { status: 409 }
+      );
+    }
+
+    if (code === "version_cleanup_failed") {
+      return Response.json(
+        {
+          error:
+            "A previous failed version could not be cleaned up safely.",
+          code: "VERSION_CLEANUP_FAILED"
+        },
+        { status: 503 }
+      );
+    }
+
     return Response.json(
       {
         error: "Could not create a new version.",
-        detail:
-          error instanceof Error
-            ? error.message
-            : "version_creation_failed"
+        detail: code
       },
       { status: 502 }
     );
