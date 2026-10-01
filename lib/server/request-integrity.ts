@@ -11,6 +11,10 @@ function normalizedOrigin(value: string | null | undefined) {
 }
 
 function expectedApplicationOrigin(request: Request) {
+  if (process.env.VERCEL_ENV === "preview") {
+    return normalizedOrigin(request.url);
+  }
+
   const configured = normalizedOrigin(
     process.env.NEXT_PUBLIC_APP_URL
   );
