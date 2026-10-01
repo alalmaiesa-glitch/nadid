@@ -108,6 +108,7 @@ jobs:
           benchmark/run_api_auth_request_bounds_benchmark.py
           benchmark/run_api_rate_limits_benchmark.py
           benchmark/run_usage_quota_benchmark.py
+          benchmark/run_plan_entitlement_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -325,6 +326,14 @@ jobs:
           --report benchmark/usage-quota-report.json
           --enforce
 
+      - name: Run Plan Entitlement Enforcement V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_plan_entitlement_benchmark.py
+          --report benchmark/plan-entitlement-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -356,6 +365,7 @@ jobs:
             benchmark/api-auth-request-bounds-report.json
             benchmark/api-rate-limits-report.json
             benchmark/usage-quota-report.json
+            benchmark/plan-entitlement-report.json
 
 
   database-fault-injection:

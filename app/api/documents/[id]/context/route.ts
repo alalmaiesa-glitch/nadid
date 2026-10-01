@@ -4,6 +4,7 @@ import {
   API_RATE_LIMITS,
   enforceUserRateLimit
 } from "@/lib/server/rate-limit";
+import { enforcePlanEntitlement } from "@/lib/server/plan-entitlements";
 
 export async function GET(
   request: Request,
@@ -12,6 +13,12 @@ export async function GET(
   const { id } = await context.params;
   const auth = await authorizeDocument(id);
   if (!auth.ok) return auth.response;
+
+  const entitlement = await enforcePlanEntitlement(
+    auth.userId,
+    "context_review"
+  );
+  if (entitlement) return entitlement;
 
   const rateLimit = await enforceUserRateLimit(
     auth.userId,
