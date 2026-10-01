@@ -10,6 +10,10 @@ import {
   applyDocxPatchesWithAee,
   isAeeBackendConfigured
 } from "@/lib/server/aee-client";
+import {
+  API_RATE_LIMITS,
+  enforceUserRateLimit
+} from "@/lib/server/rate-limit";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
 export async function POST(
@@ -21,6 +25,12 @@ export async function POST(
   const { id } = await context.params;
   const auth = await authorizeDocument(id);
   if (!auth.ok) return auth.response;
+
+  const rateLimit = await enforceUserRateLimit(
+    auth.userId,
+    API_RATE_LIMITS.createVersion
+  );
+  if (rateLimit) return rateLimit;
 
   if (!isAeeBackendConfigured()) {
     return Response.json(
