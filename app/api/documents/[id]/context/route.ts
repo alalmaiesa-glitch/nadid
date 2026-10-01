@@ -1,5 +1,9 @@
 import { searchStoredContext } from "@/lib/server/document-persistence";
 import { authorizeDocument } from "@/lib/server/authz";
+import {
+  API_RATE_LIMITS,
+  enforceUserRateLimit
+} from "@/lib/server/rate-limit";
 
 export async function GET(
   request: Request,
@@ -8,6 +12,12 @@ export async function GET(
   const { id } = await context.params;
   const auth = await authorizeDocument(id);
   if (!auth.ok) return auth.response;
+
+  const rateLimit = await enforceUserRateLimit(
+    auth.userId,
+    API_RATE_LIMITS.contextSearch
+  );
+  if (rateLimit) return rateLimit;
 
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim() ?? "";
