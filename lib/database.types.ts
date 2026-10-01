@@ -1082,6 +1082,14 @@ export type Database = {
           topup_used: number
         }[]
       }
+      get_effective_billing_plan: {
+        Args: { p_user_id: string }
+        Returns: {
+          entitlements: Json
+          plan_id: string
+          tier: string
+        }[]
+      }
       consume_api_rate_limit: {
         Args: {
           p_action: string
