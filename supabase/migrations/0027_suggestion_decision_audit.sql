@@ -8,8 +8,9 @@ create table if not exists public.suggestion_decisions (
     references public.documents(id) on delete cascade,
   version_id uuid not null
     references public.document_versions(id) on delete cascade,
-  suggestion_id uuid not null
-    references public.suggestions(id) on delete cascade,
+  -- Snapshot identity: intentionally no FK to suggestions. Worker retry/rebuild
+  -- may replace suggestion rows; audit identity must survive that lifecycle.
+  suggestion_id uuid not null,
   client_suggestion_id text not null,
   owner_id uuid not null
     references auth.users(id) on delete cascade,
