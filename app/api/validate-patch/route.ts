@@ -4,6 +4,10 @@ import {
   validatePatchWithAee
 } from "@/lib/server/aee-client";
 import { authorizeUser } from "@/lib/server/authz";
+import {
+  API_RATE_LIMITS,
+  enforceUserRateLimit
+} from "@/lib/server/rate-limit";
 import { readBoundedJson } from "@/lib/server/request-bounds";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
@@ -20,6 +24,12 @@ export async function POST(request: Request) {
 
   const auth = await authorizeUser();
   if (!auth.ok) return auth.response;
+
+  const rateLimit = await enforceUserRateLimit(
+    auth.userId,
+    API_RATE_LIMITS.validatePatch
+  );
+  if (rateLimit) return rateLimit;
 
   const parsed = await readBoundedJson<PatchRequest>(
     request,
