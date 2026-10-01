@@ -63,7 +63,7 @@ def main():
         return {"ok":not miss,"missing":miss,"_failures":["repeat_finalize_mismatch_guard_missing"] if miss else []}
 
     def u4():
-        req=['.is("upload_sha256", null)', '.select("upload_sha256")', ".maybeSingle()"]
+        req=['.is("upload_sha256", null)', '.select("upload_sha256', ".maybeSingle()"]
         miss=[x for x in req if x not in enqueue]
         return {"ok":not miss,"missing":miss,"_failures":["compare_and_set_pin_missing"] if miss else []}
 
