@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { safeInternalNext } from "@/lib/auth-routing";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const requestedNext = url.searchParams.get("next") ?? "/documents";
-  const next =
-    requestedNext.startsWith("/") &&
-    !requestedNext.startsWith("//") &&
-    !requestedNext.startsWith("/\\")
-      ? requestedNext
-      : "/documents";
+  const next = safeInternalNext(
+    url.searchParams.get("next"),
+    "/documents"
+  );
 
   if (!code) {
     return NextResponse.redirect(
