@@ -20,6 +20,16 @@ export async function GET(
     );
   }
 
+  if (query.length > 500) {
+    return Response.json(
+      {
+        error: "Context query is too long.",
+        code: "CONTEXT_QUERY_TOO_LONG"
+      },
+      { status: 400 }
+    );
+  }
+
   try {
     const hits = await searchStoredContext(
       id,
