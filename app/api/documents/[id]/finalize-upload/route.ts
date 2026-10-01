@@ -45,6 +45,17 @@ export async function POST(
       );
     }
 
+    if (code === "finalized_source_integrity_mismatch") {
+      return Response.json(
+        {
+          error:
+            "The finalized source failed integrity verification. Upload a new document.",
+          code: "FINALIZED_SOURCE_INTEGRITY_MISMATCH"
+        },
+        { status: 409 }
+      );
+    }
+
     if (code === "document_not_finalizable") {
       return Response.json(
         {

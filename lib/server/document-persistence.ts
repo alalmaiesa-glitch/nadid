@@ -95,6 +95,63 @@ function assertSourceIntegrity(
 }
 
 
+
+function finalizedSourceStoragePath(
+  ownerId: string,
+  documentId: string,
+  sourceSha256: string
+) {
+  return (
+    `${ownerId}/${documentId}/finalized/` +
+    `${sourceSha256}/source.docx`
+  );
+}
+
+async function promoteFinalizedSource(
+  ownerId: string,
+  documentId: string,
+  sourceSha256: string,
+  sourceBuffer: Buffer
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("supabase_not_configured");
+
+  const finalizedPath = finalizedSourceStoragePath(
+    ownerId,
+    documentId,
+    sourceSha256
+  );
+
+  const { error: uploadError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(finalizedPath, sourceBuffer, {
+      contentType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      upsert: false
+    });
+
+  if (uploadError) {
+    const { data: existing, error: existingError } =
+      await supabase.storage
+        .from(STORAGE_BUCKET)
+        .download(finalizedPath);
+
+    if (existingError || !existing) {
+      throw uploadError;
+    }
+
+    const existingBuffer = Buffer.from(
+      await existing.arrayBuffer()
+    );
+
+    if (sha256(existingBuffer) !== sourceSha256) {
+      throw new Error("finalized_source_integrity_mismatch");
+    }
+  }
+
+  return finalizedPath;
+}
+
 function normalizeReviewCategory(value: string): ReviewCategory {
   switch (value) {
     case "language":
@@ -1594,40 +1651,97 @@ export async function enqueueDocumentProcessing(
     throw new Error("upload_integrity_mismatch");
   }
 
+  const finalizedStoragePath = finalizedSourceStoragePath(
+    ownerId,
+    documentId,
+    uploadedSha256
+  );
+
+  if (storagePath !== finalizedStoragePath) {
+    await promoteFinalizedSource(
+      ownerId,
+      documentId,
+      uploadedSha256,
+      uploadedBuffer
+    );
+  }
+
   if (!document.upload_sha256) {
     const { data: finalized, error: finalizeError } = await supabase
       .from("documents")
       .update({
         upload_sha256: uploadedSha256,
         upload_finalized_at: new Date().toISOString(),
+        storage_path: finalizedStoragePath,
         updated_at: new Date().toISOString()
       })
       .eq("id", documentId)
       .eq("owner_id", ownerId)
+      .eq("storage_path", storagePath)
       .is("upload_sha256", null)
-      .select("upload_sha256")
+      .select("upload_sha256, storage_path")
       .maybeSingle();
 
     if (finalizeError) throw finalizeError;
 
-    if (!finalized?.upload_sha256) {
+    if (
+      !finalized?.upload_sha256 ||
+      finalized.storage_path !== finalizedStoragePath
+    ) {
       const { data: concurrent, error: concurrentError } =
         await supabase
           .from("documents")
-          .select("upload_sha256")
+          .select("upload_sha256, storage_path")
           .eq("id", documentId)
           .eq("owner_id", ownerId)
           .single();
 
       if (concurrentError) throw concurrentError;
 
-      if (concurrent.upload_sha256 !== uploadedSha256) {
+      if (
+        concurrent.upload_sha256 !== uploadedSha256 ||
+        concurrent.storage_path !== finalizedStoragePath
+      ) {
+        throw new Error("upload_integrity_mismatch");
+      }
+    }
+  } else if (storagePath !== finalizedStoragePath) {
+    const { data: migrated, error: migrateError } = await supabase
+      .from("documents")
+      .update({
+        storage_path: finalizedStoragePath,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", documentId)
+      .eq("owner_id", ownerId)
+      .eq("upload_sha256", uploadedSha256)
+      .eq("storage_path", storagePath)
+      .select("storage_path")
+      .maybeSingle();
+
+    if (migrateError) throw migrateError;
+
+    if (migrated?.storage_path !== finalizedStoragePath) {
+      const { data: concurrent, error: concurrentError } =
+        await supabase
+          .from("documents")
+          .select("upload_sha256, storage_path")
+          .eq("id", documentId)
+          .eq("owner_id", ownerId)
+          .single();
+
+      if (concurrentError) throw concurrentError;
+
+      if (
+        concurrent.upload_sha256 !== uploadedSha256 ||
+        concurrent.storage_path !== finalizedStoragePath
+      ) {
         throw new Error("upload_integrity_mismatch");
       }
     }
   }
 
-  const segments = storagePath.split("/");
+  const segments = finalizedStoragePath.split("/");
   const filename = segments.pop();
 
   if (!filename) throw new Error("uploaded_file_missing");
@@ -1718,7 +1832,6 @@ export async function enqueueDocumentProcessing(
     maxAttempts: Number(job.max_attempts ?? 3)
   };
 }
-
 
 export async function loadPendingDocumentUpload(
   documentId: string,
