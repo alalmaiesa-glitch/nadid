@@ -1,8 +1,11 @@
 import { isSupabaseAdminConfigured } from "@/lib/supabase-admin";
 import { authorizeUser } from "@/lib/server/authz";
 import { createPendingDocumentUpload } from "@/lib/server/document-persistence";
+import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
 export async function POST(request: Request) {
+  const integrity = enforceSameOriginMutation(request);
+  if (integrity) return integrity;
   if (
     process.env.NODE_ENV === "production" &&
     !isSupabaseAdminConfigured()
