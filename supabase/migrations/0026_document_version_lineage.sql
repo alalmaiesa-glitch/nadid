@@ -10,6 +10,22 @@ declare
   parent_document_id uuid;
   parent_version_no integer;
 begin
+  -- ON DELETE SET NULL on the self-parent FK must not block a full document
+  -- cascade. Allow that transient update only after the owning document row
+  -- has already been removed. Direct parent detachment remains invalid.
+  if (
+    tg_op = 'UPDATE'
+    and old.parent_version_id is not null
+    and new.parent_version_id is null
+    and not exists (
+      select 1
+      from public.documents d
+      where d.id = new.document_id
+    )
+  ) then
+    return new;
+  end if;
+
   if new.version_no = 1 or new.is_source then
     if (
       new.version_no <> 1
