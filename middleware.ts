@@ -1,15 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-const protectedPrefixes = ["/documents", "/upload", "/editor"];
+import {
+  isProtectedRoute,
+  safeInternalNext
+} from "@/lib/auth-routing";
 
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const pathname = request.nextUrl.pathname;
-  const isProtected = protectedPrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
-  );
+  const isProtected = isProtectedRoute(pathname);
   const needsAuthConfig =
     isProtected || pathname === "/login" || pathname.startsWith("/auth/");
 
@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set(
       "next",
-      pathname + request.nextUrl.search
+      safeInternalNext(pathname + request.nextUrl.search)
     );
     return NextResponse.redirect(loginUrl);
   }
