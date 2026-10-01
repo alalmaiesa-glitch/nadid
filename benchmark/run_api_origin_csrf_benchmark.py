@@ -135,28 +135,46 @@ def main() -> int:
     def api007():
         bad = []
         for path, content in route_text.items():
-            guard = content.find("enforceSameOriginMutation(request)")
-            if guard < 0:
-                bad.append(path)
-                continue
-
-            sensitive_markers = [
-                "authorizeUser(",
-                "authorizeDocument(",
-                "request.json()",
-                "request.formData()",
-                "enqueue",
-                "deleteDocumentFully(",
-                "createDocumentVersion(",
+            starts = [
+                content.find(f"export async function {method}")
+                for method in ("POST", "PATCH", "DELETE")
+                if content.find(f"export async function {method}") >= 0
             ]
-            positions = [
-                content.find(marker)
-                for marker in sensitive_markers
-                if content.find(marker) >= 0
-            ]
-            if positions and guard > min(positions):
-                bad.append(path)
 
+            for start in starts:
+                later_exports = [
+                    pos
+                    for pos in (
+                        content.find("export async function ", start + 1),
+                    )
+                    if pos >= 0
+                ]
+                end = min(later_exports) if later_exports else len(content)
+                handler = content[start:end]
+
+                guard = handler.find("enforceSameOriginMutation(request)")
+                if guard < 0:
+                    bad.append(path)
+                    continue
+
+                sensitive_markers = [
+                    "authorizeUser(",
+                    "authorizeDocument(",
+                    "request.json()",
+                    "request.formData()",
+                    "enqueue",
+                    "deleteDocumentFully(",
+                    "createDocumentVersion(",
+                ]
+                positions = [
+                    handler.find(marker)
+                    for marker in sensitive_markers
+                    if handler.find(marker) >= 0
+                ]
+                if positions and guard > min(positions):
+                    bad.append(path)
+
+        bad = sorted(set(bad))
         return {
             "guard_precedes_auth_body_and_mutation": not bad,
             "bad_routes": bad,
