@@ -863,6 +863,67 @@ export type Database = {
           },
         ]
       }
+      suggestion_decisions: {
+        Row: {
+          client_suggestion_id: string
+          decided_at: string
+          decision: string
+          document_id: string
+          id: string
+          owner_id: string
+          previous_status: string
+          suggestion_id: string
+          suggestion_snapshot: Json
+          version_id: string
+        }
+        Insert: {
+          client_suggestion_id: string
+          decided_at?: string
+          decision: string
+          document_id: string
+          id?: string
+          owner_id: string
+          previous_status: string
+          suggestion_id: string
+          suggestion_snapshot: Json
+          version_id: string
+        }
+        Update: {
+          client_suggestion_id?: string
+          decided_at?: string
+          decision?: string
+          document_id?: string
+          id?: string
+          owner_id?: string
+          previous_status?: string
+          suggestion_id?: string
+          suggestion_snapshot?: Json
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggestion_decisions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suggestion_decisions_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "suggestions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suggestion_decisions_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suggestions: {
         Row: {
           category: string
@@ -976,6 +1037,21 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      record_suggestion_decision: {
+        Args: {
+          p_client_suggestion_id: string
+          p_decision: string
+          p_document_id: string
+          p_owner_id: string
+          p_version_no: number
+        }
+        Returns: {
+          decision_id: string
+          status: string
+          suggestion_id: string
+          version_id: string
+        }[]
       }
       search_document_chunks: {
         Args: { p_limit?: number; p_query: string; p_version_id: string }
