@@ -3,6 +3,7 @@ import {
   isAeeBackendConfigured,
   validatePatchWithAee
 } from "@/lib/server/aee-client";
+import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
 type PatchRequest = {
   blockText: string;
@@ -12,6 +13,8 @@ type PatchRequest = {
 };
 
 export async function POST(request: Request) {
+  const integrity = enforceSameOriginMutation(request);
+  if (integrity) return integrity;
   const body = (await request.json()) as PatchRequest;
 
   if (

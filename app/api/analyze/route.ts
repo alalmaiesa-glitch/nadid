@@ -12,6 +12,7 @@ import {
   analyzeDocxWithAee,
   isAeeBackendConfigured
 } from "@/lib/server/aee-client";
+import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
 export const runtime = "nodejs";
 
@@ -215,6 +216,8 @@ function extractProtectedFacts(blocks: DocumentBlock[]): ProtectedFact[] {
 }
 
 export async function POST(request: Request) {
+  const integrity = enforceSameOriginMutation(request);
+  if (integrity) return integrity;
   const auth = await authorizeUser();
   if (!auth.ok) return auth.response;
 

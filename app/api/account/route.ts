@@ -5,8 +5,11 @@ import {
   listUserDocuments
 } from "@/lib/server/document-persistence";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const integrity = enforceSameOriginMutation(request);
+  if (integrity) return integrity;
   const auth = await authorizeUser();
   if (!auth.ok) return auth.response;
 

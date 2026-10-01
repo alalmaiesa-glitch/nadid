@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "description": "API Mutation Origin & CSRF Integrity V1. Cookie-authenticated state-changing Route Handlers must reject cross-site origins before authentication, body parsing, or persistence work.",
+  "guarded_methods": ["POST", "PATCH", "DELETE"],
+  "safe_methods": ["GET", "HEAD", "OPTIONS"],
+  "cases": [
+    "API-001","API-002","API-003","API-004","API-005",
+    "API-006","API-007","API-008","API-009","API-010","API-011"
+  ]
+}

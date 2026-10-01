@@ -1,10 +1,13 @@
 import { authorizeDocument } from "@/lib/server/authz";
 import { enqueueDocumentProcessing } from "@/lib/server/document-persistence";
+import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const integrity = enforceSameOriginMutation(request);
+  if (integrity) return integrity;
   const { id } = await context.params;
   const auth = await authorizeDocument(id);
   if (!auth.ok) return auth.response;
