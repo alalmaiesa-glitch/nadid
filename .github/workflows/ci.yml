@@ -102,6 +102,7 @@ jobs:
           benchmark/run_upload_finalization_benchmark.py
           benchmark/run_finalized_source_promotion_benchmark.py
           benchmark/run_version_lineage_benchmark.py
+          benchmark/run_ssr_route_authorization_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -271,6 +272,14 @@ jobs:
           --report benchmark/version-lineage-report.json
           --enforce
 
+      - name: Run SSR Route Authorization V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_ssr_route_authorization_benchmark.py
+          --report benchmark/ssr-route-authorization-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -296,6 +305,7 @@ jobs:
             benchmark/upload-finalization-report.json
             benchmark/finalized-source-promotion-report.json
             benchmark/version-lineage-report.json
+            benchmark/ssr-route-authorization-report.json
 
 
   database-fault-injection:
