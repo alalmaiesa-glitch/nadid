@@ -157,16 +157,19 @@ def main() -> int:
         start = worker.find("async function processInitialReview")
         end = worker.find("async function processDeepReview", start)
         body = worker[start:end]
-        required = [
-            "source_sha256: createHash",
-            '.update(buffer)',
-            '.digest("hex")',
-        ]
-        missing = [item for item in required if item not in body]
+        ok, positions = _ordered(
+            body,
+            [
+                "const sourceSha256 = createHash",
+                ".update(buffer)",
+                '.digest("hex")',
+                "source_sha256: sourceSha256",
+            ],
+        )
         return {
-            "initial_version_hash_persisted": not missing,
-            "missing": missing,
-            "_failures": ["initial_source_hash_not_persisted"] if missing else [],
+            "initial_version_hash_persisted": ok,
+            "positions": positions,
+            "_failures": [] if ok else ["initial_source_hash_not_persisted"],
         }
 
     def src008():
