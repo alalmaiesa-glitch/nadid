@@ -17,7 +17,17 @@ type PatchRequest = {
 export async function POST(request: Request) {
   const integrity = enforceSameOriginMutation(request);
   if (integrity) return integrity;
-  const body = (await request.json()) as PatchRequest;
+
+  const auth = await authorizeUser();
+  if (!auth.ok) return auth.response;
+
+  const parsed = await readBoundedJson<PatchRequest>(
+    request,
+    256 * 1024
+  );
+  if (!parsed.ok) return parsed.response;
+
+  const body = parsed.value;
 
   if (
     !body.blockText ||
