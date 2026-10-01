@@ -18,12 +18,6 @@ export async function GET(
   const auth = await authorizeDocument(id);
   if (!auth.ok) return auth.response;
 
-  const rateLimit = await enforceUserRateLimit(
-    auth.userId,
-    API_RATE_LIMITS.deepReview
-  );
-  if (rateLimit) return rateLimit;
-
   const memory = await loadDeepMemory(id);
 
   if (memory) {
@@ -73,6 +67,12 @@ export async function POST(
   const { id } = await context.params;
   const auth = await authorizeDocument(id);
   if (!auth.ok) return auth.response;
+
+  const rateLimit = await enforceUserRateLimit(
+    auth.userId,
+    API_RATE_LIMITS.deepReview
+  );
+  if (rateLimit) return rateLimit;
 
   if (!auth.userId) {
     return Response.json(
