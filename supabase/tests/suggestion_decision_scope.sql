@@ -192,7 +192,7 @@ end
 $$;
 
 -- DEC-004: authenticated clients cannot execute the privileged mutation RPC.
-do $
+do $$
 begin
   if has_function_privilege(
     'authenticated',
@@ -202,13 +202,13 @@ begin
     raise exception 'DEC-004 failed: authenticated can execute decision RPC';
   end if;
 end
-$;
+$$;
 
 -- DEC-005: audit survives suggestion-row rebuild/deletion.
 delete from public.suggestions
 where id = '44000000-0000-0000-0000-000000000002';
 
-do $
+do $$
 begin
   if (
     select count(*)
@@ -219,7 +219,7 @@ begin
     raise exception 'DEC-005 failed: audit was coupled to suggestion row lifecycle';
   end if;
 end
-$;
+$$;
 
 rollback;
 
