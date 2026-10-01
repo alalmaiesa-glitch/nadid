@@ -102,6 +102,7 @@ jobs:
           benchmark/run_upload_finalization_benchmark.py
           benchmark/run_finalized_source_promotion_benchmark.py
           benchmark/run_version_lineage_benchmark.py
+          benchmark/run_suggestion_decision_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -271,6 +272,14 @@ jobs:
           --report benchmark/version-lineage-report.json
           --enforce
 
+      - name: Run Suggestion Decision Scope & Audit Trail V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_suggestion_decision_benchmark.py
+          --report benchmark/suggestion-decision-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -296,6 +305,7 @@ jobs:
             benchmark/upload-finalization-report.json
             benchmark/finalized-source-promotion-report.json
             benchmark/version-lineage-report.json
+            benchmark/suggestion-decision-report.json
 
 
   database-fault-injection:
@@ -349,6 +359,14 @@ jobs:
           psql
           "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           -f supabase/tests/document_version_lineage.sql
+
+      - name: Run Suggestion Decision Scope & Audit PostgreSQL V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/suggestion_decision_scope.sql
 
       - name: Stop local Supabase
         if: always()
