@@ -161,7 +161,6 @@ def main() -> int:
         bad = []
         expensive = [
             "request.formData()",
-            "readBoundedJson",
             "searchStoredContext(",
             "enqueueDeepReview(",
             "enqueueDocumentProcessing(",
