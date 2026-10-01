@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "description": "API Rate Limits & Abuse Quotas V1. Use an atomic PostgreSQL fixed-window counter for authenticated expensive operations; avoid process-local serverless counters.",
+  "cases": [
+    "RATE-001","RATE-002","RATE-003","RATE-004","RATE-005",
+    "RATE-006","RATE-007","RATE-008","RATE-009","RATE-010"
+  ]
+}
