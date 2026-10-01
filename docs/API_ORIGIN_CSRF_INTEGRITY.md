@@ -18,10 +18,11 @@ RLS وملكية المستند تحميان البيانات بعد وصول ا
 
 1. رفض `Sec-Fetch-Site: cross-site` مباشرة.
 2. تطبيع `Origin` ومقارنته بأصل التطبيق exact-origin.
-3. استخدام `NEXT_PUBLIC_APP_URL` كأصل موثوق عند توفره.
-4. في Production: غياب إعداد أصل التطبيق يفشل مغلقًا بـ503.
-5. في Production: غياب Origin لعملية متغيرة يفشل مغلقًا بـ403.
-6. لا توجد wildcard CORS أو مقارنة suffix/substring للأصل.
+3. استخدام `NEXT_PUBLIC_APP_URL` كأصل موثوق عند توفره في Production.
+4. في Vercel Preview: استخدام أصل الطلب نفسه حتى تعمل المعاينات دون تخفيف سياسة الإنتاج.
+5. في Production: غياب إعداد أصل التطبيق يفشل مغلقًا بـ503.
+6. في Production: غياب Origin لعملية متغيرة يفشل مغلقًا بـ403.
+7. لا توجد wildcard CORS أو مقارنة suffix/substring للأصل.
 
 ## نطاق V1
 
@@ -47,7 +48,7 @@ RLS وملكية المستند تحميان البيانات بعد وصول ا
 
 ## Benchmark
 
-`API-001..API-010` تتحقق من:
+`API-001..API-011` تتحقق من:
 
 - استثناء safe methods.
 - Fetch Metadata guard.
@@ -59,5 +60,6 @@ RLS وملكية المستند تحميان البيانات بعد وصول ا
 - Guard واحد لكل mutating handler.
 - Origin normalization.
 - منع wildcard/suffix origin acceptance.
+- سياسة Vercel Preview ذات الأصل المطابق للطلب.
 
 هذه الطبقة تكمل RLS وSSR Route Authorization ولا تستبدلهما.
