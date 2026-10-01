@@ -268,6 +268,42 @@ export default function EditorPage() {
     }));
   }, [blocks]);
 
+  async function persistSuggestionDecision(
+    item: QuickSuggestion,
+    status: "accepted" | "rejected"
+  ) {
+    if (!analysis || !documentId) return false;
+
+    const response = await fetch(`/api/suggestions/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status,
+        documentId,
+        versionNo: analysis.document.versionNo ?? 1
+      })
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      if (payload.code === "VERSION_CHANGED") {
+        setValidationMessage(
+          "ظهرت نسخة أحدث من المستند. أعد تحميل الصفحة قبل حفظ القرار."
+        );
+      } else if (payload.code === "SUGGESTION_NOT_FOUND") {
+        setValidationMessage(
+          "هذه الملاحظة لا تنتمي إلى النسخة الحالية. أعد تحميل المستند."
+        );
+      } else {
+        setValidationMessage("تعذر حفظ قرار المراجعة.");
+      }
+      return false;
+    }
+
+    return true;
+  }
+
   async function acceptSuggestion(item: QuickSuggestion) {
     if (!analysis || !item.replacement) return;
 
@@ -301,11 +337,12 @@ export default function EditorPage() {
     setSavingDecision(true);
 
     try {
-      await fetch(`/api/suggestions/${item.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "accepted" })
-      });
+      const persisted = await persistSuggestionDecision(
+        item,
+        "accepted"
+      );
+
+      if (!persisted) return;
 
       setBlocks((current) =>
         current.map((entry) =>
@@ -328,19 +365,20 @@ export default function EditorPage() {
   }
 
   async function rejectSuggestion(item: QuickSuggestion) {
-    setRejected((current) => {
-      const next = new Set(current);
-      next.add(item.id);
-      return next;
-    });
-
     setSavingDecision(true);
 
     try {
-      await fetch(`/api/suggestions/${item.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "rejected" })
+      const persisted = await persistSuggestionDecision(
+        item,
+        "rejected"
+      );
+
+      if (!persisted) return;
+
+      setRejected((current) => {
+        const next = new Set(current);
+        next.add(item.id);
+        return next;
       });
 
       setValidationMessage("تم تجاهل الملاحظة ولن تُطبق على النص.");
