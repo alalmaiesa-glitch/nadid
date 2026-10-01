@@ -2,6 +2,7 @@ import { isSupabaseAdminConfigured } from "@/lib/supabase-admin";
 import { authorizeUser } from "@/lib/server/authz";
 import { createPendingDocumentUpload } from "@/lib/server/document-persistence";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
+import { readBoundedJson } from "@/lib/server/request-bounds";
 
 export async function POST(request: Request) {
   const integrity = enforceSameOriginMutation(request);
@@ -26,13 +27,23 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json()) as {
+  const parsed = await readBoundedJson<{
     filename?: string;
     size?: number;
-  };
+  }>(request, 8 * 1024);
+
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.value;
 
   const filename = body.filename?.trim() ?? "";
   const size = Number(body.size ?? 0);
+
+  if (filename.length > 255) {
+    return Response.json(
+      { error: "Filename is too long." },
+      { status: 400 }
+    );
+  }
 
   if (!filename.toLowerCase().endsWith(".docx")) {
     return Response.json(

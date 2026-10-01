@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { authorizeDocument } from "@/lib/server/authz";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
+import { readBoundedJson } from "@/lib/server/request-bounds";
 
 export async function PATCH(
   request: Request,
@@ -10,11 +11,14 @@ export async function PATCH(
   if (integrity) return integrity;
   const { id } = await context.params;
 
-  const body = (await request.json()) as {
+  const parsed = await readBoundedJson<{
     status?: "accepted" | "rejected";
     documentId?: string;
     versionNo?: number;
-  };
+  }>(request, 16 * 1024);
+
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.value;
 
   if (body.status !== "accepted" && body.status !== "rejected") {
     return Response.json(
@@ -25,6 +29,8 @@ export async function PATCH(
 
   if (
     !body.documentId ||
+    body.documentId.length > 128 ||
+    id.length > 128 ||
     !Number.isInteger(body.versionNo) ||
     Number(body.versionNo) < 1
   ) {

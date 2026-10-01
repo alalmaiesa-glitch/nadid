@@ -3,6 +3,8 @@ import {
   isAeeBackendConfigured,
   validatePatchWithAee
 } from "@/lib/server/aee-client";
+import { authorizeUser } from "@/lib/server/authz";
+import { readBoundedJson } from "@/lib/server/request-bounds";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
 type PatchRequest = {
@@ -15,12 +17,27 @@ type PatchRequest = {
 export async function POST(request: Request) {
   const integrity = enforceSameOriginMutation(request);
   if (integrity) return integrity;
-  const body = (await request.json()) as PatchRequest;
+
+  const auth = await authorizeUser();
+  if (!auth.ok) return auth.response;
+
+  const parsed = await readBoundedJson<PatchRequest>(
+    request,
+    256 * 1024
+  );
+  if (!parsed.ok) return parsed.response;
+
+  const body = parsed.value;
 
   if (
     !body.blockText ||
     !body.original ||
-    typeof body.replacement !== "string"
+    typeof body.replacement !== "string" ||
+    body.blockText.length > 100_000 ||
+    body.original.length > 20_000 ||
+    body.replacement.length > 20_000 ||
+    !Array.isArray(body.protectedFacts) ||
+    body.protectedFacts.length > 500
   ) {
     return Response.json(
       { error: "بيانات التعديل غير مكتملة." },

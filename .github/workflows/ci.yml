@@ -105,6 +105,7 @@ jobs:
           benchmark/run_suggestion_decision_benchmark.py
           benchmark/run_ssr_route_authorization_benchmark.py
           benchmark/run_api_origin_csrf_benchmark.py
+          benchmark/run_api_auth_request_bounds_benchmark.py
           benchmark/build_gold_sample.py
           benchmark/evaluate_gold.py
           benchmark/review_gold_cli.py
@@ -298,6 +299,14 @@ jobs:
           --report benchmark/api-origin-csrf-report.json
           --enforce
 
+      - name: Run API Authentication Coverage & Request Bounds V1
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python benchmark/run_api_auth_request_bounds_benchmark.py
+          --report benchmark/api-auth-request-bounds-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -326,6 +335,7 @@ jobs:
             benchmark/suggestion-decision-report.json
             benchmark/ssr-route-authorization-report.json
             benchmark/api-origin-csrf-report.json
+            benchmark/api-auth-request-bounds-report.json
 
 
   database-fault-injection:

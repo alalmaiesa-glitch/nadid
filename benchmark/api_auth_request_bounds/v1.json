@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "description": "API Authentication Coverage & Request Bounds V1. Protect all non-health API routes with authentication/ownership checks and bound JSON, multipart preflight, query, identifier, and version inputs.",
+  "cases": [
+    "BND-001","BND-002","BND-003","BND-004","BND-005","BND-006",
+    "BND-007","BND-008","BND-009","BND-010","BND-011","BND-012"
+  ]
+}

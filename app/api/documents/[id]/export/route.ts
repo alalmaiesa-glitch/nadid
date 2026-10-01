@@ -13,7 +13,10 @@ export async function GET(
   const requested = url.searchParams.get("version");
   const versionNo = requested ? Number(requested) : undefined;
 
-  if (requested && !Number.isInteger(versionNo)) {
+  if (
+    requested &&
+    (!Number.isInteger(versionNo) || Number(versionNo) < 1)
+  ) {
     return Response.json(
       { error: "Invalid document version." },
       { status: 400 }
