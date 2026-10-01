@@ -1,10 +1,13 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { authorizeDocument } from "@/lib/server/authz";
+import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const integrity = enforceSameOriginMutation(request);
+  if (integrity) return integrity;
   const { id } = await context.params;
 
   const body = (await request.json()) as {
