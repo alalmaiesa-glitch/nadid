@@ -104,6 +104,7 @@ jobs:
           benchmark/run_payment_reconciliation_scheduler_benchmark.py
           benchmark/run_payment_reconciliation_run_ledger_benchmark.py
           benchmark/run_payment_reconciliation_claim_lease_benchmark.py
+          benchmark/run_payment_reconciliation_time_budget_benchmark.py
           benchmark/run_moyasar_provider_resilience_benchmark.py
           benchmark/run_source_immutability_benchmark.py
           benchmark/run_secure_deletion_benchmark.py
@@ -408,6 +409,12 @@ jobs:
           --report benchmark/payment-reconciliation-claim-lease-report.json
           --enforce
 
+      - name: Run Payment Reconciliation Run Time Budget & Graceful Yield V1
+        run: >-
+          python benchmark/run_payment_reconciliation_time_budget_benchmark.py
+          --report benchmark/payment-reconciliation-time-budget-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -436,6 +443,7 @@ jobs:
             benchmark/payment-reconciliation-run-ledger-report.json
             benchmark/moyasar-provider-resilience-report.json
             benchmark/payment-reconciliation-claim-lease-report.json
+            benchmark/payment-reconciliation-time-budget-report.json
             benchmark/source-immutability-report.json
             benchmark/secure-deletion-report.json
             benchmark/upload-finalization-report.json
