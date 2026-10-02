@@ -103,6 +103,7 @@ jobs:
           benchmark/run_payment_reconciliation_fairness_benchmark.py
           benchmark/run_payment_reconciliation_scheduler_benchmark.py
           benchmark/run_payment_reconciliation_run_ledger_benchmark.py
+          benchmark/run_payment_reconciliation_claim_lease_benchmark.py
           benchmark/run_moyasar_provider_resilience_benchmark.py
           benchmark/run_source_immutability_benchmark.py
           benchmark/run_secure_deletion_benchmark.py
@@ -401,6 +402,12 @@ jobs:
           --report benchmark/moyasar-provider-resilience-report.json
           --enforce
 
+      - name: Run Payment Reconciliation Claim Lease & Overlap Suppression V1
+        run: >-
+          python benchmark/run_payment_reconciliation_claim_lease_benchmark.py
+          --report benchmark/payment-reconciliation-claim-lease-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -428,6 +435,7 @@ jobs:
             benchmark/payment-reconciliation-scheduler-report.json
             benchmark/payment-reconciliation-run-ledger-report.json
             benchmark/moyasar-provider-resilience-report.json
+            benchmark/payment-reconciliation-claim-lease-report.json
             benchmark/source-immutability-report.json
             benchmark/secure-deletion-report.json
             benchmark/upload-finalization-report.json
@@ -556,6 +564,14 @@ jobs:
           psql
           "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           -f supabase/tests/payment_reconciliation_run_ledger.sql
+
+      - name: Run Payment Reconciliation Claim Lease & Overlap Suppression V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/payment_reconciliation_claim_lease.sql
 
       - name: Run Storage Object Isolation & Signed Access V1
         env:
