@@ -17,6 +17,8 @@ type MoyasarPaymentData = {
   status?: unknown;
   amount?: unknown;
   currency?: unknown;
+  captured?: unknown;
+  refunded?: unknown;
   metadata?: unknown;
 };
 
@@ -58,6 +60,16 @@ export function parseMoyasarPaymentWebhook(
       ? payload.data.currency.trim().toUpperCase()
       : "";
   const amount = Number(payload.data?.amount);
+  const capturedValue = payload.data?.captured;
+  const refundedValue = payload.data?.refunded;
+  const capturedMinor =
+    capturedValue === undefined || capturedValue === null
+      ? null
+      : Number(capturedValue);
+  const refundedMinor =
+    refundedValue === undefined || refundedValue === null
+      ? null
+      : Number(refundedValue);
   const occurredAt =
     typeof payload.created_at === "string" ? payload.created_at : null;
 
@@ -67,7 +79,11 @@ export function parseMoyasarPaymentWebhook(
     !paymentId ||
     !Number.isSafeInteger(amount) ||
     amount < 0 ||
-    !currency
+    !currency ||
+    (capturedMinor !== null &&
+      (!Number.isSafeInteger(capturedMinor) || capturedMinor < 0)) ||
+    (refundedMinor !== null &&
+      (!Number.isSafeInteger(refundedMinor) || refundedMinor < 0))
   ) {
     return null;
   }
@@ -78,6 +94,8 @@ export function parseMoyasarPaymentWebhook(
     paymentId,
     amount,
     currency,
+    capturedMinor,
+    refundedMinor,
     live: payload.live === true,
     occurredAt
   };
@@ -117,6 +135,8 @@ export async function applyMoyasarPaymentWebhook(
       p_provider_payment_id: parsed.paymentId,
       p_amount_minor: parsed.amount,
       p_currency: parsed.currency,
+      p_captured_minor: parsed.capturedMinor,
+      p_refunded_minor: parsed.refundedMinor,
       p_live: parsed.live,
       p_occurred_at: parsed.occurredAt,
       p_payload_digest: webhookPayloadDigest(rawBody)
