@@ -6,6 +6,8 @@ export type MoyasarFetchedPayment = {
   status: string;
   amount: number;
   currency: string;
+  captured: number;
+  refunded: number;
   created_at?: string;
   updated_at?: string;
   metadata?: Record<string, unknown>;
@@ -85,6 +87,8 @@ export async function fetchMoyasarPayment(
   const id = typeof item.id === "string" ? item.id : "";
   const status = typeof item.status === "string" ? item.status : "";
   const amount = Number(item.amount);
+  const captured = Number(item.captured);
+  const refunded = Number(item.refunded);
   const currency =
     typeof item.currency === "string"
       ? item.currency.toUpperCase()
@@ -95,6 +99,12 @@ export async function fetchMoyasarPayment(
     !status ||
     !Number.isSafeInteger(amount) ||
     amount < 0 ||
+    !Number.isSafeInteger(captured) ||
+    captured < 0 ||
+    captured > amount ||
+    !Number.isSafeInteger(refunded) ||
+    refunded < 0 ||
+    refunded > amount ||
     !currency
   ) {
     return {
@@ -111,6 +121,8 @@ export async function fetchMoyasarPayment(
       status,
       amount,
       currency,
+      captured,
+      refunded,
       created_at:
         typeof item.created_at === "string"
           ? item.created_at

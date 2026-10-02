@@ -49,6 +49,8 @@ begin
     'pay_sub_001',
     5900,
     'SAR',
+    5900,
+    0,
     false,
     now(),
     'digest-paid-001'
@@ -80,6 +82,8 @@ begin
     'pay_sub_001',
     5900,
     'SAR',
+    5900,
+    0,
     false,
     now(),
     'digest-paid-001'
@@ -110,6 +114,8 @@ begin
       'pay_sub_001',
       5900,
       'SAR',
+      5900,
+      0,
       false,
       now(),
       'different-digest'
@@ -144,6 +150,8 @@ begin
     'pay_sub_001',
     5900,
     'SAR',
+    5900,
+    5900,
     false,
     now(),
     'digest-refund-001'
@@ -183,6 +191,8 @@ begin
     'pay_sub_001',
     5900,
     'SAR',
+    5900,
+    5900,
     false,
     now(),
     'digest-paid-late-001'
@@ -214,6 +224,8 @@ begin
     'pay_topup_001',
     999,
     'SAR',
+    999,
+    0,
     false,
     now(),
     'digest-mismatch-001'
@@ -241,6 +253,8 @@ from public.apply_payment_webhook_event(
   'pay_topup_001',
   900,
   'SAR',
+  900,
+  0,
   false,
   now(),
   'digest-topup-paid-001'
@@ -263,6 +277,8 @@ begin
     'pay_topup_001',
     900,
     'SAR',
+    900,
+    900,
     false,
     now(),
     'digest-topup-refund-001'
@@ -297,6 +313,8 @@ begin
     'unknown-provider-payment',
     100,
     'SAR',
+    100,
+    0,
     false,
     now(),
     'digest-unmatched-001'
@@ -313,7 +331,7 @@ do $$
 begin
   if has_function_privilege(
     'authenticated',
-    'public.apply_payment_webhook_event(text,text,text,text,bigint,text,boolean,timestamptz,text)',
+    'public.apply_payment_webhook_event(text,text,text,text,bigint,text,bigint,bigint,boolean,timestamptz,text)',
     'EXECUTE'
   ) then
     raise exception 'WEBHOOK-DB-009 authenticated can execute webhook RPC';
