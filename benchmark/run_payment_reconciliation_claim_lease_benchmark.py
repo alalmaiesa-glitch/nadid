@@ -31,7 +31,7 @@ def main() -> int:
         ("RECON-LEASE-003", "make_interval(secs => v_lease_seconds)" in migration),
         ("RECON-LEASE-004", "greatest(coalesce(p_lease_seconds, 900), 60)" in migration and "3600" in migration),
         ("RECON-LEASE-005", "for update skip locked" in migration.lower()),
-        ("RECON-LEASE-006", "drop function if exists public.claim_payment_reconciliation_batch(integer)" in migration),
+        ("RECON-LEASE-006", "from public.claim_payment_reconciliation_batch(p_limit, 900) c" in migration and "revoke all on function public.claim_payment_reconciliation_batch(integer)" in migration),
         ("RECON-LEASE-007", "p_lease_seconds: claimLeaseSeconds()" in route),
         ("RECON-LEASE-008", "NADID_PAYMENT_RECONCILE_CLAIM_LEASE_SECONDS=900" in env),
         ("RECON-LEASE-009", "RECON-LEASE-DB-001" in tests and "RECON-LEASE-DB-007" in tests),
