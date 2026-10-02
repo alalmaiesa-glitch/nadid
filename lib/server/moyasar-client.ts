@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { resolveMoyasarEnvironment } from "@/lib/server/moyasar-environment";
 
 export type MoyasarFetchedPayment = {
   id: string;
@@ -16,16 +17,16 @@ export async function fetchMoyasarPayment(
   | { ok: true; payment: MoyasarFetchedPayment; rawBody: string; live: boolean }
   | { ok: false; code: string; status: number }
 > {
-  const secret = process.env.MOYASAR_SECRET_KEY;
-  if (!secret) {
+  const environment = resolveMoyasarEnvironment();
+  if (!environment.ok) {
     return {
       ok: false,
-      code: "MOYASAR_SECRET_NOT_CONFIGURED",
+      code: environment.code,
       status: 503
     };
   }
 
-  const auth = Buffer.from(`${secret}:`).toString("base64");
+  const auth = Buffer.from(`${environment.secretKey}:`).toString("base64");
 
   let response: Response;
   try {
@@ -124,7 +125,7 @@ export async function fetchMoyasarPayment(
           : undefined
     },
     rawBody,
-    live: secret.startsWith("sk_live_")
+    live: environment.mode === "live"
   };
 }
 
