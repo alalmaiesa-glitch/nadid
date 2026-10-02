@@ -445,6 +445,14 @@ jobs:
           "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           -f supabase/tests/payment_webhook_reversal_safety.sql
 
+      - name: Run Payment Intent & Callback Integrity V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/payment_intent_callback_integrity.sql
+
       - name: Run Storage Object Isolation & Signed Access V1
         env:
           PGPASSWORD: postgres
