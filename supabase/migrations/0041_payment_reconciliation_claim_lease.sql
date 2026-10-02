@@ -17,8 +17,8 @@ create index if not exists payments_reconciliation_claim_lease_idx
 drop function if exists public.claim_payment_reconciliation_batch(integer);
 
 create or replace function public.claim_payment_reconciliation_batch(
-  p_limit integer default 25,
-  p_lease_seconds integer default 900
+  p_limit integer,
+  p_lease_seconds integer
 )
 returns table (
   id uuid,
@@ -77,8 +77,37 @@ begin
 end;
 $$;
 
+-- Backward-compatible V1 fairness signature. It cannot bypass the lease:
+-- legacy callers are delegated to the leased implementation with 900 seconds.
+create or replace function public.claim_payment_reconciliation_batch(
+  p_limit integer default 25
+)
+returns table (
+  id uuid,
+  provider_payment_id text,
+  status text,
+  updated_at timestamptz,
+  reconciliation_checked_at timestamptz
+)
+language sql
+security definer
+set search_path = public
+as $$
+  select
+    c.id,
+    c.provider_payment_id,
+    c.status,
+    c.updated_at,
+    c.reconciliation_checked_at
+  from public.claim_payment_reconciliation_batch(p_limit, 900) c;
+$$;
+
 revoke all on function public.claim_payment_reconciliation_batch(integer, integer)
+from public, anon, authenticated;
+revoke all on function public.claim_payment_reconciliation_batch(integer)
 from public, anon, authenticated;
 
 grant execute on function public.claim_payment_reconciliation_batch(integer, integer)
+to service_role;
+grant execute on function public.claim_payment_reconciliation_batch(integer)
 to service_role;
