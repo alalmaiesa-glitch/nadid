@@ -13,6 +13,65 @@ export type MoyasarFetchedPayment = {
   metadata?: Record<string, unknown>;
 };
 
+const RETRYABLE_MOYASAR_STATUSES = new Set([
+  408,
+  425,
+  429,
+  500,
+  502,
+  503,
+  504
+]);
+
+function boundedInteger(
+  raw: string | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number
+) {
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed)) return fallback;
+  return Math.min(Math.max(parsed, minimum), maximum);
+}
+
+export function moyasarFetchTimeoutMs() {
+  return boundedInteger(
+    process.env.NADID_MOYASAR_FETCH_TIMEOUT_MS,
+    8000,
+    1000,
+    30000
+  );
+}
+
+export function moyasarFetchMaxAttempts() {
+  return boundedInteger(
+    process.env.NADID_MOYASAR_FETCH_MAX_ATTEMPTS,
+    3,
+    1,
+    5
+  );
+}
+
+function retryDelayMs(attempt: number, response?: Response) {
+  const retryAfter = response?.headers.get("retry-after");
+  if (retryAfter && /^\d+$/.test(retryAfter)) {
+    return Math.min(Number(retryAfter) * 1000, 2000);
+  }
+
+  return Math.min(150 * 2 ** Math.max(attempt - 1, 0), 1000);
+}
+
+async function sleep(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function providerFailureCode(status: number | null, timedOut: boolean) {
+  if (timedOut) return "MOYASAR_FETCH_TIMEOUT";
+  if (status === 429) return "MOYASAR_RATE_LIMITED";
+  if (status === 404) return "MOYASAR_PAYMENT_NOT_FOUND";
+  return "MOYASAR_FETCH_FAILED";
+}
+
 export async function fetchMoyasarPayment(
   paymentId: string
 ): Promise<
@@ -29,40 +88,67 @@ export async function fetchMoyasarPayment(
   }
 
   const auth = Buffer.from(`${environment.secretKey}:`).toString("base64");
+  const maxAttempts = moyasarFetchMaxAttempts();
+  const timeoutMs = moyasarFetchTimeoutMs();
+  let response: Response | null = null;
+  let timedOut = false;
 
-  let response: Response;
-  try {
-    response = await fetch(
-      `https://api.moyasar.com/v1/payments/${encodeURIComponent(paymentId)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Basic ${auth}`,
-          Accept: "application/json"
-        },
-        cache: "no-store"
-      }
-    );
-  } catch {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      response = await fetch(
+        `https://api.moyasar.com/v1/payments/${encodeURIComponent(paymentId)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Basic ${auth}`,
+            Accept: "application/json"
+          },
+          cache: "no-store",
+          signal: controller.signal
+        }
+      );
+      timedOut = false;
+    } catch (error) {
+      timedOut =
+        error instanceof Error &&
+        (error.name === "AbortError" || controller.signal.aborted);
+      response = null;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    const retryable =
+      response === null ||
+      RETRYABLE_MOYASAR_STATUSES.has(response.status);
+
+    if (retryable && attempt < maxAttempts) {
+      await sleep(retryDelayMs(attempt, response ?? undefined));
+      continue;
+    }
+
+    break;
+  }
+
+  if (!response) {
     return {
       ok: false,
-      code: "MOYASAR_FETCH_FAILED",
+      code: providerFailureCode(null, timedOut),
       status: 503
     };
   }
 
-  const rawBody = await response.text();
-
   if (!response.ok) {
     return {
       ok: false,
-      code:
-        response.status === 404
-          ? "MOYASAR_PAYMENT_NOT_FOUND"
-          : "MOYASAR_FETCH_FAILED",
+      code: providerFailureCode(response.status, false),
       status: response.status === 404 ? 404 : 503
     };
   }
+
+  const rawBody = await response.text();
 
   let value: unknown;
   try {
