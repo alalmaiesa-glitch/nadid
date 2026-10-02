@@ -437,6 +437,14 @@ jobs:
           PGPASSWORD: postgres
         run: python3 supabase/tests/postgrest_jwt_authz_e2e.py
 
+      - name: Run Payment Webhook Replay & Reversal Safety V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/payment_webhook_reversal_safety.sql
+
       - name: Run Storage Object Isolation & Signed Access V1
         env:
           PGPASSWORD: postgres
