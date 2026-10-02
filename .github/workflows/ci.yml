@@ -100,6 +100,7 @@ jobs:
           benchmark/run_payment_reconciliation_benchmark.py
           benchmark/run_subscription_renewal_benchmark.py
           benchmark/run_billing_cycle_quota_benchmark.py
+          benchmark/run_payment_reconciliation_fairness_benchmark.py
           benchmark/run_source_immutability_benchmark.py
           benchmark/run_secure_deletion_benchmark.py
           benchmark/run_upload_finalization_benchmark.py
@@ -373,6 +374,12 @@ jobs:
           --report benchmark/billing-cycle-quota-report.json
           --enforce
 
+      - name: Run Payment Reconciliation Fairness, Claiming & Starvation Safety V1
+        run: >-
+          python benchmark/run_payment_reconciliation_fairness_benchmark.py
+          --report benchmark/payment-reconciliation-fairness-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -396,6 +403,7 @@ jobs:
             benchmark/payment-reconciliation-report.json
             benchmark/subscription-renewal-report.json
             benchmark/billing-cycle-quota-report.json
+            benchmark/payment-reconciliation-fairness-report.json
             benchmark/source-immutability-report.json
             benchmark/secure-deletion-report.json
             benchmark/upload-finalization-report.json
@@ -508,6 +516,14 @@ jobs:
           psql
           "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           -f supabase/tests/billing_cycle_quota_windows.sql
+
+      - name: Run Payment Reconciliation Fairness, Claiming & Starvation Safety V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/payment_reconciliation_fairness.sql
 
       - name: Run Storage Object Isolation & Signed Access V1
         env:
