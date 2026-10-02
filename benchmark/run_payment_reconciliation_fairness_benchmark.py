@@ -29,7 +29,7 @@ def main() -> int:
         ("RECON-FAIR-003", "for update skip locked" in migration.lower()),
         ("RECON-FAIR-004", "reconciliation_checked_at asc nulls first" in migration),
         ("RECON-FAIR-005", "least(greatest(coalesce(p_limit, 25), 1), 100)" in migration),
-        ("RECON-FAIR-006", 'claim_payment_reconciliation_batch' in route and ".from("payments")" not in route),
+        ("RECON-FAIR-006", 'claim_payment_reconciliation_batch' in route and '.from("payments")' not in route),
         ("RECON-FAIR-007", "RECON-FAIR-DB-001" in tests and "RECON-FAIR-DB-006" in tests),
         ("RECON-FAIR-008", "tail candidate was starved" in tests),
         ("RECON-FAIR-009", "revoke all on function public.claim_payment_reconciliation_batch(integer)" in migration and "to service_role" in migration),
