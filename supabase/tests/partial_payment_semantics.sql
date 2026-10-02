@@ -392,7 +392,7 @@ end
 $$;
 
 -- PARTIAL-DB-009: a stale partial refund cannot downgrade a full refund.
-do $
+do $$
 declare
   intent record;
   event record;
@@ -467,10 +467,10 @@ begin
     raise exception 'PARTIAL-DB-009 refunded total moved backwards';
   end if;
 end
-$;
+$$;
 
 -- PARTIAL-DB-010: refunded amount cannot exceed captured amount.
-do $
+do $$
 declare
   intent record;
   event record;
@@ -515,7 +515,7 @@ begin
     raise exception 'PARTIAL-DB-010 invalid refund mutated refund total';
   end if;
 end
-$;
+$$;
 
 -- PARTIAL-DB-008: authenticated clients cannot execute the new RPC signature.
 do $$
