@@ -99,6 +99,7 @@ jobs:
           benchmark/run_worker_idempotency_benchmark.py
           benchmark/run_payment_reconciliation_benchmark.py
           benchmark/run_subscription_renewal_benchmark.py
+          benchmark/run_billing_cycle_quota_benchmark.py
           benchmark/run_source_immutability_benchmark.py
           benchmark/run_secure_deletion_benchmark.py
           benchmark/run_upload_finalization_benchmark.py
@@ -366,6 +367,12 @@ jobs:
           --report benchmark/subscription-renewal-report.json
           --enforce
 
+      - name: Run Billing-Cycle Aligned Character Quota Windows V1
+        run: >-
+          python benchmark/run_billing_cycle_quota_benchmark.py
+          --report benchmark/billing-cycle-quota-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -388,6 +395,7 @@ jobs:
             benchmark/worker-idempotency-report.json
             benchmark/payment-reconciliation-report.json
             benchmark/subscription-renewal-report.json
+            benchmark/billing-cycle-quota-report.json
             benchmark/source-immutability-report.json
             benchmark/secure-deletion-report.json
             benchmark/upload-finalization-report.json
@@ -492,6 +500,14 @@ jobs:
           psql
           "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           -f supabase/tests/subscription_renewal_continuity.sql
+
+      - name: Run Billing-Cycle Aligned Character Quota Windows V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/billing_cycle_quota_windows.sql
 
       - name: Run Storage Object Isolation & Signed Access V1
         env:
