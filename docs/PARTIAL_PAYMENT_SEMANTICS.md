@@ -35,13 +35,18 @@ Moyasar تعرض حقلي captured وrefunded ضمن Payment، وتدعم captur
 
 partially_refunded وrefunded وvoided حالات نهائية بالنسبة إلى paid/captured المتأخر؛ لا يمكن لحدث قديم أن يعيد الاستحقاق.
 
+كما أن Refund نفسه أحادي الاتجاه:
+- `refunded` لا يعود إلى `partially_refunded`.
+- قيمة `refunded_minor` لا تنخفض إذا وصل Snapshot أقدم أو مكرر.
+- أي Refund يتجاوز `captured_minor` يرفض قبل أي mutation.
+
 ## تطابق المبلغ والعملة
 
 كل حدث مالي مرتبط بـPayment محلية يجب أن يحمل amount/currency المطابقين للأصل قبل أي mutation، وليس paid فقط.
 
 ## الاختبارات
 
-PARTIAL-DB-001..008 تغطي:
+PARTIAL-DB-001..010 تغطي:
 - رفض partial capture.
 - قبول full capture.
 - تسجيل partial refund.
@@ -51,3 +56,5 @@ PARTIAL-DB-001..008 تغطي:
 - رفض refund أكبر من الأصل.
 - رفض currency mismatch.
 - حماية RPC من authenticated clients.
+- منع خفض Full Refund إلى Partial Refund بوصول حدث أقدم.
+- منع Refund يتجاوز المبلغ الملتقط فعليًا.
