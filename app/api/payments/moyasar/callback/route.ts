@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 
   const { data: localPayment, error: localError } = await supabase
     .from("payments")
-    .select("id,user_id,provider_payment_id,amount_minor,currency,status")
+    .select("id,user_id,provider_payment_id,provider_mode,amount_minor,currency,status")
     .eq("provider", "moyasar")
     .eq("provider_payment_id", paymentId)
     .eq("user_id", auth.userId)
@@ -78,7 +78,10 @@ export async function GET(request: Request) {
 
   const payment = remote.payment;
 
+  const remoteMode = remote.live ? "live" : "test";
+
   if (
+    String(localPayment.provider_mode) !== remoteMode ||
     Number(localPayment.amount_minor) !== payment.amount ||
     String(localPayment.currency).toUpperCase() !== payment.currency
   ) {

@@ -453,6 +453,14 @@ jobs:
           "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           -f supabase/tests/payment_intent_callback_integrity.sql
 
+      - name: Run Payment Environment Isolation V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/payment_environment_isolation.sql
+
       - name: Run Storage Object Isolation & Signed Access V1
         env:
           PGPASSWORD: postgres
