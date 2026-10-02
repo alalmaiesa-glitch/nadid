@@ -1,6 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
-  RECONCILABLE_PAYMENT_STATUSES,
   reconciliationSecretValid,
   reconcileMoyasarPayment
 } from "@/lib/server/payment-reconciliation";
@@ -38,14 +37,10 @@ export async function GET(request: Request) {
     );
   }
 
-  const { data, error } = await supabase
-    .from("payments")
-    .select("id,provider_payment_id,status,updated_at")
-    .eq("provider", "moyasar")
-    .in("status", [...RECONCILABLE_PAYMENT_STATUSES])
-    .not("provider_payment_id", "is", null)
-    .order("updated_at", { ascending: true })
-    .limit(batchSize());
+  const { data, error } = await supabase.rpc(
+    "claim_payment_reconciliation_batch",
+    { p_limit: batchSize() }
+  );
 
   if (error) {
     return Response.json(

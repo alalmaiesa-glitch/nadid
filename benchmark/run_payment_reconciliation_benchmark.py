@@ -8,6 +8,7 @@ ROUTE = REPO / "app" / "api" / "internal" / "payments" / "reconcile" / "route.ts
 CORE = REPO / "lib" / "server" / "payment-reconciliation.ts"
 ENV = REPO / ".env.example"
 DOC = REPO / "docs" / "PAYMENT_RECONCILIATION.md"
+FAIR_MIG = REPO / "supabase" / "migrations" / "0039_payment_reconciliation_fairness.sql"
 
 def main():
     p = argparse.ArgumentParser()
@@ -19,12 +20,22 @@ def main():
     core = CORE.read_text(encoding="utf-8")
     env = ENV.read_text(encoding="utf-8")
     doc = DOC.read_text(encoding="utf-8")
+    fair_mig = FAIR_MIG.read_text(encoding="utf-8") if FAIR_MIG.exists() else ""
 
     checks = [
         ("RECON-001", 'process.env.CRON_SECRET' in route and 'reconciliationSecretValid' in route),
         ("RECON-002", 'timingSafeEqual' in core and 'if (!expected) return false' in core),
         ("RECON-003", 'RECONCILABLE_PAYMENT_STATUSES' in core and '"pending"' in core and '"paid"' in core and '"partially_refunded"' in core),
-        ("RECON-004", '.eq("provider", "moyasar")' in route and '.in("status"' in route),
+        ("RECON-004",
+         (
+             '.eq("provider", "moyasar")' in route
+             and '.in("status"' in route
+         )
+         or (
+             'claim_payment_reconciliation_batch' in route
+             and "p.provider = 'moyasar'" in fair_mig
+             and "p.status in ('pending', 'paid', 'partially_refunded')" in fair_mig
+         )),
         ("RECON-005", 'Math.min(parsed, 100)' in route and 'NADID_PAYMENT_RECONCILE_BATCH' in route),
         ("RECON-006", 'fetchMoyasarPayment(paymentId)' in core and 'callbackEventType(payment.status)' in core),
         ("RECON-007", 'applyMoyasarPaymentWebhook' in core and 'canonicalRemoteState' in core),
