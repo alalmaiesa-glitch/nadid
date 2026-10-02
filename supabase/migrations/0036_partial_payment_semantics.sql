@@ -239,9 +239,18 @@ begin
     if p_refunded_minor is null
        or p_refunded_minor <= 0
        or p_refunded_minor > v_payment.amount_minor
+       or p_captured_minor is null
+       or p_captured_minor < p_refunded_minor
+       or p_captured_minor > v_payment.amount_minor
     then
       v_outcome := 'rejected_mismatch';
-    elsif v_payment.status = 'voided' then
+    elsif v_payment.status in ('voided', 'refunded') then
+      -- Terminal financial states are monotonic. A delayed partial-refund
+      -- webhook must never downgrade a fully refunded/voided payment.
+      v_outcome := 'ignored';
+    elsif p_refunded_minor <= v_payment.refunded_minor then
+      -- Refund totals are cumulative provider state. Older/equal snapshots
+      -- must not move the local payment backwards.
       v_outcome := 'ignored';
     else
       update public.payments
@@ -249,7 +258,8 @@ begin
             when p_refunded_minor = amount_minor then 'refunded'
             else 'partially_refunded'
           end,
-          refunded_minor = greatest(refunded_minor, p_refunded_minor),
+          captured_minor = greatest(captured_minor, p_captured_minor),
+          refunded_minor = p_refunded_minor,
           updated_at = clock_timestamp()
       where id = v_payment.id;
 
