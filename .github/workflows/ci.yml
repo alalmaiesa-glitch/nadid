@@ -103,6 +103,7 @@ jobs:
           benchmark/run_payment_reconciliation_fairness_benchmark.py
           benchmark/run_payment_reconciliation_scheduler_benchmark.py
           benchmark/run_payment_reconciliation_run_ledger_benchmark.py
+          benchmark/run_moyasar_provider_resilience_benchmark.py
           benchmark/run_source_immutability_benchmark.py
           benchmark/run_secure_deletion_benchmark.py
           benchmark/run_upload_finalization_benchmark.py
@@ -394,6 +395,12 @@ jobs:
           --report benchmark/payment-reconciliation-run-ledger-report.json
           --enforce
 
+      - name: Run Moyasar Provider Timeout, Retry Budget & Failure Classification V1
+        run: >-
+          python benchmark/run_moyasar_provider_resilience_benchmark.py
+          --report benchmark/moyasar-provider-resilience-report.json
+          --enforce
+
       - name: Upload quality reports
         uses: actions/upload-artifact@v4
         with:
@@ -420,6 +427,7 @@ jobs:
             benchmark/payment-reconciliation-fairness-report.json
             benchmark/payment-reconciliation-scheduler-report.json
             benchmark/payment-reconciliation-run-ledger-report.json
+            benchmark/moyasar-provider-resilience-report.json
             benchmark/source-immutability-report.json
             benchmark/secure-deletion-report.json
             benchmark/upload-finalization-report.json
