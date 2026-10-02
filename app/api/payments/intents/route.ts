@@ -5,6 +5,7 @@ import {
 } from "@/lib/server/rate-limit";
 import { enforceSameOriginMutation } from "@/lib/server/request-integrity";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { resolveMoyasarEnvironment } from "@/lib/server/moyasar-environment";
 
 export const runtime = "nodejs";
 
@@ -93,6 +94,17 @@ export async function POST(request: Request) {
     );
   }
 
+  const providerEnvironment = resolveMoyasarEnvironment();
+  if (!providerEnvironment.ok) {
+    return Response.json(
+      {
+        error: "Payment provider configuration is unsafe.",
+        code: providerEnvironment.code
+      },
+      { status: 503 }
+    );
+  }
+
   const supabase = getSupabaseAdmin() as any;
   if (!supabase) {
     return Response.json(
@@ -107,7 +119,8 @@ export async function POST(request: Request) {
       p_user_id: auth.userId,
       p_product_kind: productKind,
       p_product_id: productId,
-      p_request_id: idempotencyKey
+      p_request_id: idempotencyKey,
+      p_provider_mode: providerEnvironment.mode
     }
   );
 
@@ -129,10 +142,8 @@ export async function POST(request: Request) {
 
   const intent = data[0];
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  const publishableKey =
-    process.env.NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY;
 
-  if (!appUrl || !publishableKey) {
+  if (!appUrl) {
     return Response.json(
       {
         error: "Payment provider is not configured.",
@@ -157,6 +168,7 @@ export async function POST(request: Request) {
     purpose: intent.purpose,
     metadata: intent.payment_metadata,
     callbackUrl,
-    publishableKey
+    publishableKey: providerEnvironment.publishableKey,
+    providerMode: providerEnvironment.mode
   });
 }
