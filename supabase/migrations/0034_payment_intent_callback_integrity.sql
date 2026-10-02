@@ -84,12 +84,12 @@ begin
   end if;
 
   if p_product_kind = 'subscription' then
-    select * into v_plan
-    from public.billing_plans
-    where id = p_product_id
-      and active = true
-      and tier <> 'free'
-      and amount_minor > 0;
+    select bp.* into v_plan
+    from public.billing_plans as bp
+    where bp.id = p_product_id
+      and bp.active = true
+      and bp.tier <> 'free'
+      and bp.amount_minor > 0;
 
     if not found then
       raise exception 'paid_plan_not_found'
@@ -105,11 +105,11 @@ begin
     );
 
   elsif p_product_kind = 'credit_topup' then
-    select * into v_pack
-    from public.credit_packs
-    where id = p_product_id
-      and active = true
-      and amount_minor > 0;
+    select cp.* into v_pack
+    from public.credit_packs as cp
+    where cp.id = p_product_id
+      and cp.active = true
+      and cp.amount_minor > 0;
 
     if not found then
       raise exception 'credit_pack_not_found'
