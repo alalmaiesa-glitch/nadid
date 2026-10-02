@@ -18,7 +18,8 @@ begin
     '54000000-0000-0000-0000-000000000001',
     'subscription',
     'pro_monthly',
-    '54000000-0000-4000-8000-000000000101'
+    '54000000-0000-4000-8000-000000000101',
+    'test'
   );
 
   if r.reused then
@@ -56,7 +57,8 @@ begin
     '54000000-0000-0000-0000-000000000001',
     'subscription',
     'basic_monthly',
-    '54000000-0000-4000-8000-000000000102'
+    '54000000-0000-4000-8000-000000000102',
+    'test'
   );
 
   select * into second_row
@@ -64,7 +66,8 @@ begin
     '54000000-0000-0000-0000-000000000001',
     'subscription',
     'basic_monthly',
-    '54000000-0000-4000-8000-000000000102'
+    '54000000-0000-4000-8000-000000000102',
+    'test'
   );
 
   if not second_row.reused or second_row.payment_id <> first_row.payment_id then
@@ -90,7 +93,8 @@ begin
     '54000000-0000-0000-0000-000000000001',
     'credit_topup',
     'topup_100k',
-    '54000000-0000-4000-8000-000000000103'
+    '54000000-0000-4000-8000-000000000103',
+    'test'
   );
 
   begin
@@ -99,7 +103,8 @@ begin
       '54000000-0000-0000-0000-000000000001',
       'credit_topup',
       'topup_500k',
-      '54000000-0000-4000-8000-000000000103'
+      '54000000-0000-4000-8000-000000000103',
+      'test'
     );
     raise exception 'INTENT-DB-003 idempotency mismatch accepted';
   exception
@@ -121,7 +126,8 @@ begin
     '54000000-0000-0000-0000-000000000001',
     'credit_topup',
     'topup_1m',
-    '54000000-0000-4000-8000-000000000104'
+    '54000000-0000-4000-8000-000000000104',
+    'test'
   );
 
   if r.amount_minor <> 4900
@@ -141,7 +147,8 @@ begin
       '54000000-0000-0000-0000-000000000001',
       'subscription',
       'free_monthly',
-      '54000000-0000-4000-8000-000000000105'
+      '54000000-0000-4000-8000-000000000105',
+      'test'
     );
     raise exception 'INTENT-DB-005 free paid intent accepted';
   exception
@@ -162,7 +169,8 @@ begin
       '54000000-0000-0000-0000-000000000001',
       'subscription',
       'does_not_exist',
-      '54000000-0000-4000-8000-000000000106'
+      '54000000-0000-4000-8000-000000000106',
+      'test'
     );
     raise exception 'INTENT-DB-006 unknown product accepted';
   exception
@@ -179,7 +187,7 @@ do $$
 begin
   if has_function_privilege(
     'authenticated',
-    'public.create_payment_intent(uuid,text,text,uuid)',
+    'public.create_payment_intent(uuid,text,text,uuid,text)',
     'EXECUTE'
   ) then
     raise exception 'INTENT-DB-007 authenticated can execute intent RPC';
