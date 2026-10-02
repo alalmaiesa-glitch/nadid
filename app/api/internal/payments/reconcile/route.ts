@@ -13,6 +13,14 @@ function batchSize() {
   return Math.min(parsed, 100);
 }
 
+function claimLeaseSeconds() {
+  const parsed = Number(
+    process.env.NADID_PAYMENT_RECONCILE_CLAIM_LEASE_SECONDS ?? "900"
+  );
+  if (!Number.isSafeInteger(parsed)) return 900;
+  return Math.min(Math.max(parsed, 60), 3600);
+}
+
 async function finishRun(
   supabase: any,
   runId: string,
@@ -83,7 +91,10 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabase.rpc(
     "claim_payment_reconciliation_batch",
-    { p_limit: batchSize() }
+    {
+      p_limit: batchSize(),
+      p_lease_seconds: claimLeaseSeconds()
+    }
   );
 
   if (error) {
