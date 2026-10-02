@@ -391,6 +391,132 @@ begin
 end
 $$;
 
+-- PARTIAL-DB-009: a stale partial refund cannot downgrade a full refund.
+do $
+declare
+  intent record;
+  event record;
+begin
+  select * into intent
+  from public.create_payment_intent(
+    '56000000-0000-0000-0000-000000000001',
+    'subscription',
+    'basic_monthly',
+    '56000000-0000-4000-8000-000000000106',
+    'test'
+  );
+
+  perform *
+  from public.apply_payment_webhook_event(
+    'moyasar',
+    'full-refund-monotonic-paid',
+    'payment_paid',
+    intent.payment_id::text,
+    2900,
+    'SAR',
+    2900,
+    0,
+    false,
+    now(),
+    'full-refund-monotonic-paid-digest'
+  );
+
+  perform *
+  from public.apply_payment_webhook_event(
+    'moyasar',
+    'full-refund-monotonic-full',
+    'payment_refunded',
+    intent.payment_id::text,
+    2900,
+    'SAR',
+    2900,
+    2900,
+    false,
+    now(),
+    'full-refund-monotonic-full-digest'
+  );
+
+  select * into event
+  from public.apply_payment_webhook_event(
+    'moyasar',
+    'full-refund-monotonic-stale-partial',
+    'payment_refunded',
+    intent.payment_id::text,
+    2900,
+    'SAR',
+    2900,
+    1000,
+    false,
+    now() - interval '5 minutes',
+    'full-refund-monotonic-stale-partial-digest'
+  );
+
+  if event.outcome <> 'ignored' then
+    raise exception 'PARTIAL-DB-009 stale partial refund not ignored';
+  end if;
+
+  if (
+    select status from public.payments where id = intent.payment_id
+  ) <> 'refunded' then
+    raise exception 'PARTIAL-DB-009 full refund was downgraded';
+  end if;
+
+  if (
+    select refunded_minor from public.payments where id = intent.payment_id
+  ) <> 2900 then
+    raise exception 'PARTIAL-DB-009 refunded total moved backwards';
+  end if;
+end
+$;
+
+-- PARTIAL-DB-010: refunded amount cannot exceed captured amount.
+do $
+declare
+  intent record;
+  event record;
+begin
+  select * into intent
+  from public.create_payment_intent(
+    '56000000-0000-0000-0000-000000000001',
+    'subscription',
+    'basic_monthly',
+    '56000000-0000-4000-8000-000000000107',
+    'test'
+  );
+
+  select * into event
+  from public.apply_payment_webhook_event(
+    'moyasar',
+    'refund-over-captured',
+    'payment_refunded',
+    intent.payment_id::text,
+    2900,
+    'SAR',
+    1000,
+    1500,
+    false,
+    now(),
+    'refund-over-captured-digest'
+  );
+
+  if event.outcome <> 'rejected_mismatch' then
+    raise exception 'PARTIAL-DB-010 refund above captured amount accepted';
+  end if;
+
+  if (
+    select status from public.payments where id = intent.payment_id
+  ) <> 'pending' then
+    raise exception 'PARTIAL-DB-010 invalid refund mutated payment status';
+  end if;
+
+  if (
+    select refunded_minor from public.payments where id = intent.payment_id
+  ) <> 0 then
+    raise exception 'PARTIAL-DB-010 invalid refund mutated refund total';
+  end if;
+end
+$;
+
 -- PARTIAL-DB-008: authenticated clients cannot execute the new RPC signature.
 do $$
 begin
