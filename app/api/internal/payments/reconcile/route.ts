@@ -3,6 +3,10 @@ import {
   reconciliationSecretValid,
   reconcileMoyasarPayment
 } from "@/lib/server/payment-reconciliation";
+import {
+  moyasarFetchMaxAttempts,
+  moyasarFetchTimeoutMs
+} from "@/lib/server/moyasar-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +23,25 @@ function claimLeaseSeconds() {
   );
   if (!Number.isSafeInteger(parsed)) return 900;
   return Math.min(Math.max(parsed, 60), 3600);
+}
+
+function runBudgetMs() {
+  const parsed = Number(
+    process.env.NADID_PAYMENT_RECONCILE_RUN_BUDGET_MS ?? "240000"
+  );
+  if (!Number.isSafeInteger(parsed)) return 240000;
+  return Math.min(Math.max(parsed, 60000), 900000);
+}
+
+function nextItemReserveMs() {
+  const attempts = moyasarFetchMaxAttempts();
+  const providerWait =
+    moyasarFetchTimeoutMs() * attempts +
+    Math.max(attempts - 1, 0) * 2000;
+
+  // Keep a small margin for webhook/RPC persistence and JSON handling after
+  // the provider call has completed.
+  return providerWait + 5000;
 }
 
 async function finishRun(
@@ -89,52 +112,45 @@ export async function GET(request: Request) {
     );
   }
 
-  const { data, error } = await supabase.rpc(
-    "claim_payment_reconciliation_batch",
-    {
-      p_limit: batchSize(),
-      p_lease_seconds: claimLeaseSeconds()
-    }
-  );
-
-  if (error) {
-    const summary = {
-      scanned: 0,
-      reconciled: 0,
-      ignored: 0,
-      failed: 0
-    };
-    const audited = await finishRun(
-      supabase,
-      runId,
-      "lookup_failure",
-      summary,
-      "PAYMENT_RECONCILIATION_LOOKUP_FAILED"
-    );
-
-    return Response.json(
-      {
-        error: audited
-          ? "Could not load reconciliation candidates."
-          : "Reconciliation lookup and audit finalization failed.",
-        code: audited
-          ? "PAYMENT_RECONCILIATION_LOOKUP_FAILED"
-          : "PAYMENT_RECONCILIATION_AUDIT_FAILED"
-      },
-      { status: 503 }
-    );
-  }
-
-  const rows = Array.isArray(data) ? data : [];
+  const limit = batchSize();
+  const deadline = Date.now() + runBudgetMs();
   const summary = {
-    scanned: rows.length,
+    scanned: 0,
     reconciled: 0,
     ignored: 0,
     failed: 0
   };
   const failures: Array<{ paymentId: string; code: string }> = [];
+  let budgetExhausted = false;
+  let lookupFailed = false;
 
-  for (const row of rows) {
+  while (summary.scanned < limit) {
+    if (Date.now() + nextItemReserveMs() >= deadline) {
+      budgetExhausted = true;
+      break;
+    }
+
+    const { data, error } = await supabase.rpc(
+      "claim_payment_reconciliation_batch",
+      {
+        p_limit: 1,
+        p_lease_seconds: claimLeaseSeconds()
+      }
+    );
+
+    if (error) {
+      lookupFailed = true;
+      break;
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    if (rows.length === 0) {
+      break;
+    }
+
+    const row = rows[0];
+    summary.scanned += 1;
+
     const paymentId =
       typeof row.provider_payment_id === "string"
         ? row.provider_payment_id
@@ -168,6 +184,57 @@ export async function GET(request: Request) {
     } else {
       summary.ignored += 1;
     }
+  }
+
+  if (lookupFailed) {
+    const status =
+      summary.scanned === 0 ? "lookup_failure" : "partial_failure";
+    const errorCode =
+      summary.scanned === 0
+        ? "PAYMENT_RECONCILIATION_LOOKUP_FAILED"
+        : "PAYMENT_RECONCILIATION_PARTIAL_FAILURE";
+
+    const audited = await finishRun(
+      supabase,
+      runId,
+      status,
+      summary,
+      errorCode
+    );
+
+    return Response.json(
+      {
+        ok: false,
+        code: audited
+          ? errorCode
+          : "PAYMENT_RECONCILIATION_AUDIT_FAILED",
+        ...summary,
+        failures
+      },
+      { status: 503 }
+    );
+  }
+
+  if (budgetExhausted) {
+    const audited = await finishRun(
+      supabase,
+      runId,
+      "partial_failure",
+      summary,
+      "PAYMENT_RECONCILIATION_TIME_BUDGET_EXHAUSTED"
+    );
+
+    return Response.json(
+      {
+        ok: false,
+        code: audited
+          ? "PAYMENT_RECONCILIATION_TIME_BUDGET_EXHAUSTED"
+          : "PAYMENT_RECONCILIATION_AUDIT_FAILED",
+        ...summary,
+        failures
+      },
+      { status: 503 }
+    );
   }
 
   if (summary.failed > 0) {
