@@ -54,6 +54,8 @@ begin
     v_payment_id::text,
     2900,
     'SAR',
+    2900,
+    0,
     true,
     now(),
     'env-live-to-test-digest'
@@ -90,6 +92,8 @@ begin
     v_payment_id::text,
     2900,
     'SAR',
+    2900,
+    0,
     false,
     now(),
     'env-test-to-test-digest'
@@ -130,6 +134,8 @@ begin
     r_intent.payment_id::text,
     900,
     'SAR',
+    900,
+    0,
     false,
     now(),
     'env-test-to-live-digest'
