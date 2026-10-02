@@ -461,6 +461,14 @@ jobs:
           "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           -f supabase/tests/payment_environment_isolation.sql
 
+      - name: Run Partial Capture & Partial Refund Semantics V1
+        env:
+          PGPASSWORD: postgres
+        run: >-
+          psql
+          "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          -f supabase/tests/partial_payment_semantics.sql
+
       - name: Run Storage Object Isolation & Signed Access V1
         env:
           PGPASSWORD: postgres
