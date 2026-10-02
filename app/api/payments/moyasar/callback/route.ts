@@ -107,6 +107,8 @@ export async function GET(request: Request) {
         paymentId: payment.id,
         amount: payment.amount,
         currency: payment.currency,
+        capturedMinor: payment.captured,
+        refundedMinor: payment.refunded,
         live: remote.live,
         occurredAt: payment.updated_at ?? payment.created_at ?? null
       },
