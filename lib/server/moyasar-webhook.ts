@@ -80,6 +80,7 @@ export function parseMoyasarPaymentWebhook(
     !Number.isSafeInteger(amount) ||
     amount < 0 ||
     !currency ||
+    typeof payload.live !== "boolean" ||
     (capturedMinor !== null &&
       (!Number.isSafeInteger(capturedMinor) || capturedMinor < 0)) ||
     (refundedMinor !== null &&
@@ -96,7 +97,7 @@ export function parseMoyasarPaymentWebhook(
     currency,
     capturedMinor,
     refundedMinor,
-    live: payload.live === true,
+    live: payload.live,
     occurredAt
   };
 }
