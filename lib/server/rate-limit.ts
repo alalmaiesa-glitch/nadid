@@ -46,6 +46,16 @@ export const API_RATE_LIMITS = {
     action: "create_version",
     limit: 12,
     windowSeconds: 60
+  },
+  paymentIntent: {
+    action: "payment_intent",
+    limit: 12,
+    windowSeconds: 60
+  },
+  paymentVerify: {
+    action: "payment_verify",
+    limit: 30,
+    windowSeconds: 60
   }
 } as const satisfies Record<string, ApiRateLimitPolicy>;
 
