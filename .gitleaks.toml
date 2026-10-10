@@ -1,0 +1,14 @@
+# EIMDADAT security: exact-commit exceptions for reviewed PUBLIC Supabase publishable keys.
+# Values are deliberately not reproduced. Retain all default Gitleaks rules.
+# Every exception requires exact historical commit AND exact path AND generic-api-key.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+  description = "Historical Supabase sb_publishable client key, reviewed 2026-10-10"
+  condition = "AND"
+  commits = ["d26aa21a1871086b55e2b512e097c58c808a9d3e"]
+  paths = ['''^preview/index\.html$''']
